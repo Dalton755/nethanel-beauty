@@ -161,7 +161,7 @@ export async function loadCloudState() {
   const session = await ensureSession()
   if (!session) return { authenticated: false }
 
-  const establishments = await rest('establishments?select=id,name,slug,timezone,currency,active,primary_segment_code,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_postal_code,latitude,longitude,marketplace_enabled,public_booking_enabled,public_description,public_cover_url,brand_enabled,brand_logo_url,brand_primary_color,brand_secondary_color,brand_accent_color&active=eq.true&order=created_at.asc')
+  const establishments = await rest('establishments?select=id,name,slug,timezone,currency,active,primary_segment_code,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_postal_code,latitude,longitude,marketplace_enabled,public_booking_enabled,public_description,public_cover_url,brand_enabled,brand_logo_url,brand_primary_color,brand_secondary_color,brand_accent_color,plan_code,store_push_enabled&active=eq.true&order=created_at.asc')
   if (!establishments?.length) {
     return {
       authenticated: true,
@@ -269,6 +269,8 @@ export async function loadCloudState() {
       brandPrimaryColor: est.brand_primary_color || '#3b172b',
       brandSecondaryColor: est.brand_secondary_color || '#6b3149',
       brandAccentColor: est.brand_accent_color || '#c89a61',
+      planCode: est.plan_code || 'FREE',
+      storePushEnabled: est.store_push_enabled !== false,
     },
     services: visibleServices.map(s => ({
       id: s.id, name: s.name, segment: s.segment_code, price: Number(s.price),
@@ -560,6 +562,72 @@ export async function customerDashboard() {
 
 export async function customerMarkNotificationsRead() {
   return rest('rpc/customer_mark_notifications_read', { method: 'POST', body: {} })
+}
+
+export async function businessPushStatus(establishmentId) {
+  return rest('rpc/business_push_status', {
+    method:'POST',
+    body:{ p_establishment_id: establishmentId },
+  })
+}
+
+export async function businessRegisterPush(establishmentId, subscription) {
+  return rest('rpc/business_register_push', {
+    method:'POST',
+    body:{
+      p_establishment_id:establishmentId,
+      p_endpoint:subscription.endpoint,
+      p_p256dh:subscription.keys?.p256dh,
+      p_auth_secret:subscription.keys?.auth,
+      p_user_agent:navigator.userAgent || null,
+    },
+  })
+}
+
+export async function listBusinessNotifications(establishmentId, limit = 40) {
+  const rows = await rest(`notifications?select=id,type,title,body,data,read_at,created_at&establishment_id=eq.${q(establishmentId)}&order=created_at.desc&limit=${Number(limit)||40}`)
+  return (rows || []).map(n => ({
+    id:n.id,type:n.type,title:n.title,body:n.body,data:n.data||{},
+    readAt:n.read_at,createdAt:n.created_at,
+  }))
+}
+
+export async function businessMarkNotificationsRead(establishmentId) {
+  return rest('rpc/business_mark_notifications_read', {
+    method:'POST',
+    body:{ p_establishment_id:establishmentId },
+  })
+}
+
+export async function sendBusinessPushTest(establishmentId) {
+  const session = await ensureSession()
+  if (!session?.access_token) throw new Error('Entre novamente na ZAIA.')
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-customer-push`, {
+    method:'POST',
+    headers:{
+      apikey:apiKey(),
+      Authorization:`Bearer ${session.access_token}`,
+      'Content-Type':'application/json',
+    },
+    body:JSON.stringify({ mode:'business_test', establishment_id:establishmentId }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error || 'Não foi possível testar o Push da loja.')
+  return data
+}
+
+export async function cancelAppointment(appointmentId, reason = '') {
+  return rest('rpc/cancel_appointment', {
+    method:'POST',
+    body:{ p_appointment_id:appointmentId, p_reason:reason || null },
+  })
+}
+
+export async function customerCancelAppointment(appointmentId, reason = '') {
+  return rest('rpc/customer_cancel_appointment', {
+    method:'POST',
+    body:{ p_appointment_id:appointmentId, p_reason:reason || null },
+  })
 }
 
 export async function customerRegisterPush(subscription) {
@@ -1036,6 +1104,7 @@ export async function updateEstablishment(establishmentId, data = {}) {
   if (data.brandPrimaryColor !== undefined) body.brand_primary_color = data.brandPrimaryColor
   if (data.brandSecondaryColor !== undefined) body.brand_secondary_color = data.brandSecondaryColor
   if (data.brandAccentColor !== undefined) body.brand_accent_color = data.brandAccentColor
+  if (data.storePushEnabled !== undefined) body.store_push_enabled = Boolean(data.storePushEnabled)
   body.updated_at = new Date().toISOString()
   await rest(`establishments?id=eq.${q(establishmentId)}`, {
     method: 'PATCH', body, prefer: 'return=minimal'
