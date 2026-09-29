@@ -714,7 +714,7 @@ function financePage(){
     <article class="card"><div class="section-head"><div><span class="eyebrow">SERVIÇOS</span><h2>O que mais gera resultado</h2></div></div>${services.length?`<div class="finance-ranking">${services.slice(0,8).map((p,i)=>`<div><span class="rank">${i+1}</span><div class="item-main"><strong>${esc(p.name)}</strong><small>${p.appointments} atendimento${Number(p.appointments)===1?'':'s'} • materiais ${fmtMoney(p.materials)}</small></div><div><strong>${fmtMoney(p.revenue)}</strong><small>contrib. ${fmtMoney(p.contribution)}</small></div></div>`).join('')}</div>`:'<div class="empty compact">Ainda não há serviços concluídos no período.</div>'}</article>
   </section>
 
-  <section class="card finance-transactions-card"><div class="section-head"><div><span class="eyebrow">MOVIMENTAÇÕES</span><h2>Últimos lançamentos</h2></div><div class="finance-inline-actions"><button class="btn small ghost" data-finance-new="INCOME">+ Receita</button><button class="btn small" data-finance-new="EXPENSE">+ Despesa</button></div></div>${txs.length?`<div class="finance-transactions-list">${txs.map(t=>`<div class="finance-transaction-row"><span class="finance-type-icon ${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'↑':'↓'}</span><div class="item-main"><strong>${esc(t.description)}</strong><div class="meta">${fmtDate(t.dueDate)} • ${esc(t.category)}${t.paymentMethod?' • '+paymentMethodLabel(t.paymentMethod):''}</div></div><div class="finance-tx-right"><strong class="${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'+':'-'} ${fmtMoney(t.amount)}</strong><span class="pill ${t.status==='PAID'?'good':t.status==='CANCELLED'?'':'warn'}">${financeStatusLabel(t.status)}</span></div>${t.status==='PENDING'?`<button class="btn small ghost" data-finance-pay="${t.id}">Baixar</button><button class="finance-icon-action" data-finance-cancel="${t.id}" aria-label="Cancelar">×</button>`:''}</div>`).join('')}</div>`:'<div class="empty compact"><b>Nenhum lançamento ainda.</b>Registre receitas e despesas ou conclua um atendimento.</div>'}</section>`
+  <section class="card finance-transactions-card"><div class="section-head"><div><span class="eyebrow">MOVIMENTAÇÕES</span><h2>Últimos lançamentos</h2></div><div class="finance-inline-actions"><button class="btn small ghost" data-finance-new="INCOME">+ Receita</button><button class="btn small" data-finance-new="EXPENSE">+ Despesa</button></div></div>${txs.length?`<div class="finance-transactions-list">${txs.map(t=>`<div class="finance-transaction-row"><span class="finance-type-icon ${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'↑':'↓'}</span><div class="item-main"><strong>${esc(t.description)}</strong><div class="meta">${fmtDate(t.dueDate)} • ${esc(t.category)}${t.paymentMethod?' • '+paymentMethodLabel(t.paymentMethod):''}</div></div><div class="finance-tx-right"><strong class="${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'+':'-'} ${fmtMoney(t.amount)}</strong><span class="pill ${t.status==='PAID'?'good':t.status==='CANCELLED'?'':'warn'}">${financeStatusLabel(t.status)}</span></div>${t.status==='PENDING'?`<button class="btn small ghost" data-finance-pay="${t.id}">Baixar</button>${t.source==='MANUAL'? `<button class="finance-icon-action" data-finance-cancel="${t.id}" aria-label="Cancelar">×</button>` : ''}`:''}</div>`).join('')}</div>`:'<div class="empty compact"><b>Nenhum lançamento ainda.</b>Registre receitas e despesas ou conclua um atendimento.</div>'}</section>`
 }
 
 function promotionsPage(){
@@ -942,6 +942,34 @@ function bindGlobal(){
   })
 }
 function bindPage(){
+  if(page==='finance'&&!state.financeData&&!financeLoading)loadFinance()
+  $('#loadFinanceNow')?.addEventListener('click',()=>{state.financeData=null;loadFinance(true)})
+  document.querySelectorAll('[data-finance-range]').forEach(b=>b.onclick=()=>{
+    const key=b.dataset.financeRange
+    financeRange=key==='month'?{...monthRange(),preset:'month'}:{...dateRange(Number(key)),preset:key}
+    state.financeData=null
+    loadFinance(true)
+  })
+  document.querySelectorAll('[data-finance-new]').forEach(b=>b.onclick=()=>{
+    modalData={kind:b.dataset.financeNew}
+    openModal('financeEntry')
+  })
+  document.querySelectorAll('[data-finance-pay]').forEach(b=>b.onclick=()=>{
+    modalData={transactionId:b.dataset.financePay}
+    openModal('financePay')
+  })
+  document.querySelectorAll('[data-finance-cancel]').forEach(b=>b.onclick=async()=>{
+    const t=(state.financeTransactions||[]).find(x=>x.id===b.dataset.financeCancel)
+    if(!t||t.source!=='MANUAL')return
+    if(!confirm('Cancelar este lançamento financeiro?'))return
+    try{
+      await updateFinanceTransaction(t.id,{status:'CANCELLED'})
+      state.financeData=null
+      await loadFinance(true)
+    }catch(error){alert(friendlyError(error))}
+  })
+  $('#financeSettingsBtn')?.addEventListener('click',()=>openModal('financeSettings'))
+  $('#financeNewAccount')?.addEventListener('click',()=>openModal('financeAccount'))
   document.querySelectorAll('[data-promotion-edit]').forEach(b=>b.onclick=()=>{modalData={promotionId:b.dataset.promotionEdit};openModal('promotion')})
   document.querySelectorAll('[data-promotion-delete]').forEach(b=>b.onclick=async()=>{
     if(!confirm('Excluir esta promoção?'))return
@@ -1094,6 +1122,92 @@ function bindModal(){
       }
     })
   }
+
+  const financeEntryStatus=$('#financeEntryStatus')
+  const financePaidFields=$('#financePaidFields')
+  const syncFinancePaidFields=()=>{
+    financePaidFields?.classList.toggle('is-hidden',financeEntryStatus?.value!=='PAID')
+  }
+  financeEntryStatus?.addEventListener('change',syncFinancePaidFields)
+  syncFinancePaidFields()
+
+  $('#financeEntryForm')?.addEventListener('submit',async e=>{
+    e.preventDefault()
+    const form=e.currentTarget
+    const fd=Object.fromEntries(new FormData(form))
+    const button=form.querySelector('button[type="submit"]')
+    const amount=Number(fd.amount||0)
+    if(!(amount>0))return alert('Informe um valor maior que zero.')
+    setBusy(button,true,'Salvando...')
+    try{
+      await insertFinanceTransaction(state.establishment.id,{
+        kind:fd.kind,
+        category:String(fd.category||'').trim(),
+        description:String(fd.description||'').trim(),
+        amount,
+        dueDate:fd.dueDate,
+        status:fd.status,
+        paymentMethod:fd.status==='PAID'?fd.paymentMethod:null,
+        accountId:fd.status==='PAID'?(fd.accountId||null):null,
+        notes:String(fd.notes||'').trim(),
+      })
+      modal=null;modalData=null
+      state.financeData=null
+      await loadFinance(true)
+    }catch(error){setBusy(button,false);alert(friendlyError(error))}
+  })
+
+  $('#financePayForm')?.addEventListener('submit',async e=>{
+    e.preventDefault()
+    const form=e.currentTarget
+    const fd=Object.fromEntries(new FormData(form))
+    const button=form.querySelector('button[type="submit"]')
+    setBusy(button,true,'Confirmando...')
+    try{
+      await markFinancePaid(form.dataset.transactionId,fd.paymentMethod,fd.accountId||null)
+      modal=null;modalData=null
+      state.financeData=null
+      await loadFinance(true)
+    }catch(error){setBusy(button,false);alert(friendlyError(error))}
+  })
+
+  $('#financeSettingsForm')?.addEventListener('submit',async e=>{
+    e.preventDefault()
+    const form=e.currentTarget
+    const fd=Object.fromEntries(new FormData(form))
+    const button=form.querySelector('button[type="submit"]')
+    setBusy(button,true,'Salvando...')
+    try{
+      await saveFinanceSettings(state.establishment.id,{
+        monthlyRevenueTarget:Number(fd.monthlyRevenueTarget||0),
+        monthlyProfitTarget:Number(fd.monthlyProfitTarget||0),
+        reserveTarget:Number(fd.reserveTarget||0),
+      })
+      modal=null;modalData=null
+      state.financeData=null
+      await loadFinance(true)
+    }catch(error){setBusy(button,false);alert(friendlyError(error))}
+  })
+
+  $('#financeAccountForm')?.addEventListener('submit',async e=>{
+    e.preventDefault()
+    const form=e.currentTarget
+    const fd=Object.fromEntries(new FormData(form))
+    const button=form.querySelector('button[type="submit"]')
+    const name=String(fd.name||'').trim()
+    if(!name)return
+    setBusy(button,true,'Criando...')
+    try{
+      await insertFinanceAccount(state.establishment.id,{
+        name,
+        type:fd.type,
+        openingBalance:Number(fd.openingBalance||0),
+      })
+      modal=null;modalData=null
+      state.financeData=null
+      await loadFinance(true)
+    }catch(error){setBusy(button,false);alert(friendlyError(error))}
+  })
 
   const commissionType=$('#commissionType')
   const commissionValue=$('#commissionValue')
