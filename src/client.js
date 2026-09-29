@@ -283,9 +283,8 @@ async function renderMap(){
     markers=[]
     points.forEach(x=>{
       const m=L.marker([Number(x.latitude),Number(x.longitude)]).addTo(map)
-      m.bindPopup(`<strong>${esc(x.name)}</strong><br><small>${esc(x.address||'')}</small>`)
-      m.on('click',()=>{})
-      m.on('dblclick',()=>openStore(x.id))
+      m.bindTooltip(esc(x.name),{direction:'top',offset:[0,-10]})
+      m.on('click',()=>openStore(x.id))
       markers.push(m)
     })
     if(state.coords)L.circleMarker([state.coords.lat,state.coords.long],{radius:7}).addTo(map).bindPopup('Você está por aqui')
