@@ -71,3 +71,16 @@
   .inventory-item{gap:10px}
   .inventory-item>.pill{align-self:flex-start}
 }
+
+
+/* Incremental material learning */
+.learning-notice{display:grid;gap:4px;margin-top:14px}
+.learning-notice span{font-size:13px;color:var(--muted)}
+.learning-card{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.learning-card>div{display:grid;gap:4px}
+.learning-card span:not(.pill){font-size:13px;color:var(--muted)}
+.learning-card.learned{border-style:dashed}
+@media(max-width:560px){
+  .learning-card{display:grid}
+  .learning-card .pill{justify-self:start}
+}
