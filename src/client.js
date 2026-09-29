@@ -323,7 +323,7 @@ function bind(){
     button.disabled=true;button.textContent='Aguarde...'
     try{
       if(state.authMode==='signup'){
-        const result=await signUp(String(fd.email).trim(),String(fd.password))
+        const result=await signUp(String(fd.email).trim(),String(fd.password),location.origin+'/cliente')
         localStorage.setItem('zaia_pending_customer_profile',JSON.stringify({fullName:String(fd.name).trim(),phone:normalizePhone(fd.phone)}))
         if(!result?.access_token){state.authMessage='Conta criada. Confirme seu e-mail e depois entre na ZAIA.';state.authMode='login';render();return}
       }else await signIn(String(fd.email).trim(),String(fd.password))
