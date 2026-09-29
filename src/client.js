@@ -314,10 +314,10 @@ function render(){
 function bind(){
   $('#clientLogin')?.addEventListener('click',()=>{state.authMode='login';state.authMessage='';render()})
   $('#bookingLogin')?.addEventListener('click',()=>{state.authMode='login';state.authMessage='';render()})
-  $('[data-auth-close]').forEach(b=>b.onclick=()=>{state.authMode=null;state.authMessage='';render()})
+  document.querySelectorAll('[data-auth-close]').forEach(b=>b.onclick=()=>{state.authMode=null;state.authMessage='';render()})
   $('#authSwitch')?.addEventListener('click',()=>{state.authMode=state.authMode==='signup'?'login':'signup';state.authMessage='';render()})
   $('#authPhone')?.addEventListener('input',e=>e.target.value=maskPhone(e.target.value))
-  $('[data-password-toggle]').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('[data-password-toggle]').forEach(b=>b.onclick=()=>{
     const input=$('#clientAuthPassword')
     if(!input)return
     const showing=input.type==='text'
@@ -353,7 +353,7 @@ function bind(){
     e.preventDefault();const fd=Object.fromEntries(new FormData(e.currentTarget));const phone=normalizePhone(fd.phone)
     try{await customerUpsertProfile({fullName:String(fd.name).trim(),phone,birthDate:fd.birthDate||null,marketingOptIn:e.currentTarget.elements.marketing?.checked!==false});await refreshCustomer();state.authMode=null;render()}catch(error){alert(String(error.message||error))}
   })
-  $('[data-client-tab]').forEach(b=>b.onclick=async()=>{
+  document.querySelectorAll('[data-client-tab]').forEach(b=>b.onclick=async()=>{
     const tab=b.dataset.clientTab
     if(tab==='buscar'){state.tab='buscar';state.screen='search';history.pushState({},'', '/cliente');render();return}
     if(!state.session){state.authMode='login';state.authMessage='Entre para acessar sua área ZAIA.';render();return}
@@ -362,7 +362,7 @@ function bind(){
     if(tab==='promocoes')await refreshPromotions()
     render()
   })
-  $('[data-promo-store]').forEach(b=>b.onclick=async()=>{const serviceId=b.dataset.promoService;await openStore(b.dataset.promoStore);if(serviceId)await selectService(serviceId)})
+  document.querySelectorAll('[data-promo-store]').forEach(b=>b.onclick=async()=>{const serviceId=b.dataset.promoService;await openStore(b.dataset.promoStore);if(serviceId)await selectService(serviceId)})
   $('#editClientProfile')?.addEventListener('click',()=>{state.authMode='profile';render()})
   $('#clientLogout')?.addEventListener('click',()=>{clearSession();state.session=null;state.customerData=null;state.tab='buscar';state.screen='search';render()})
   $('#enableClientPush')?.addEventListener('click',enableCustomerPush)
