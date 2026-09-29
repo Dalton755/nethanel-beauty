@@ -435,10 +435,21 @@ export async function getAvailableSlots(professionalId, serviceId, date, stepMin
 }
 
 export async function publicBusinessBranding(slug) {
-  return rest('rpc/public_business_branding', {
+  const row = await rest('rpc/public_business_branding', {
     method:'POST',
     body:{ p_slug: slug },
   })
+  if (!row) return null
+  return {
+    id:row.id,
+    slug:row.slug || '',
+    name:row.name || '',
+    brandEnabled:row.brand_enabled === true,
+    brandLogoUrl:row.brand_logo_url || '',
+    brandPrimaryColor:row.brand_primary_color || '#3b172b',
+    brandSecondaryColor:row.brand_secondary_color || '#6b3149',
+    brandAccentColor:row.brand_accent_color || '#c89a61',
+  }
 }
 
 export async function uploadBrandLogo(establishmentId, file) {
