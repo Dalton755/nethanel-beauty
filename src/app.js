@@ -85,7 +85,48 @@ function fmtDateTime(iso){
   if(!iso)return ''
   return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
 }
-function normalizePhone(p=''){return p.replace(/\D/g,'')}
+function normalizePhone(p=''){return String(p||'').replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,'')}
+function maskPhone(value=''){
+  let d=normalizePhone(value).slice(0,11)
+  if(!d)return ''
+  if(d.length<=2)return `(${d}`
+  const area=d.slice(0,2),rest=d.slice(2)
+  if(rest.length<=4)return `(${area}) ${rest}`
+  if(rest.length<=8)return `(${area}) ${rest.slice(0,4)}-${rest.slice(4)}`
+  return `(${area}) ${rest.slice(0,5)}-${rest.slice(5)}`
+}
+function parseMaskedNumber(value=''){
+  const raw=String(value||'').replace(/[^\d,.-]/g,'').replace(/\.(?=.*\.)/g,'')
+  if(!raw)return 0
+  if(raw.includes(','))return Number(raw.replace(/\./g,'').replace(',','.'))||0
+  return Number(raw)||0
+}
+function formatPercent(value){return `${Number(value||0).toLocaleString('pt-BR',{maximumFractionDigits:2})}%`}
+function formatCommission(type,value){
+  const n=Number(value||0)
+  if(type==='PERCENT')return formatPercent(n)
+  if(type==='FIXED')return fmtMoney(n)
+  return ''
+}
+function bindPhoneMasks(root=document){
+  $('[data-mask="phone"]',root).forEach(input=>{
+    input.value=maskPhone(input.value)
+    input.addEventListener('input',()=>{input.value=maskPhone(input.value)})
+  })
+}
+function openModal(name){
+  modal=name
+  if(!history.state?.beautyModal)history.pushState({...history.state,beautyModal:true},'',location.href)
+  render()
+}
+function closeModal(){
+  modal=null
+  render()
+  if(history.state?.beautyModal)history.back()
+}
+window.addEventListener('popstate',()=>{
+  if(modal){modal=null;render()}
+})
 function fmtQty(n){return Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:3})}
 function materialCost(materials=[]){return materials.reduce((sum,m)=>sum+Number(m.quantity||0)*Number(productById(m.productId)?.cost||0),0)}
 function eligibleProducts(segment){return state.products.filter(p=>p.active!==false&&(!p.segment||p.segment===segment))}
@@ -261,9 +302,9 @@ function professionalsPage(){
 function morePage(){return `<div class="eyebrow">Gestão</div><h1 class="title">Mais</h1><div class="list" style="margin-top:18px"><button class="item" data-page="professionals"><div style="font-size:22px">♙</div><div class="item-main" style="text-align:left"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div>›</button><button class="item" data-page="inventory"><div style="font-size:22px">▦</div><div class="item-main" style="text-align:left"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div>›</button><button class="item" id="notifyBtn"><div style="font-size:22px">🔔</div><div class="item-main" style="text-align:left"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div>›</button><button class="item" data-open="business"><div style="font-size:22px">⚙</div><div class="item-main" style="text-align:left"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div>›</button></div><div class="section-head"><h2>MVP</h2></div><div class="card"><strong>Web App instalável</strong><p class="subtitle" style="margin-top:7px">Manifest + service worker já deixam a base preparada como PWA. Depois ela pode ser empacotada para Android sem alterar o banco.</p></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn" style="margin-top:18px">Sair da conta</button>':'<button class="btn danger wide" id="resetApp" style="margin-top:18px">Reiniciar demonstração</button>'}`}
 
 function modalHtml(){
-  const close='<button class="x" data-close>×</button>'
-  if(modal==='appointment')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo ${vocab().appointment.toLowerCase()}</h3>${close}</div><form class="form" id="appointmentForm"><div class="field"><label>Cliente</label><input name="clientName" required placeholder="Nome da cliente"></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" placeholder="(11) 99999-9999"></div><div class="field"><label>Serviço</label><select name="serviceId" id="appointmentService" required><option value="">Selecione</option>${state.services.filter(s=>s.active).map(s=>`<option value="${s.id}">${esc(s.name)} — ${fmtMoney(s.price)}</option>`).join('')}</select></div><div class="field"><label>Profissional</label><select name="professionalId" id="appointmentProfessional" required><option value="">Selecione o serviço primeiro</option></select></div><div id="appointmentMaterialsBox"></div><div class="row"><div class="field"><label>Data</label><input name="date" id="appointmentDate" type="date" value="${todayISO()}" required></div><div class="field"><label>Horário</label><input name="time" id="appointmentTime" type="time" value="09:00" required></div></div><button type="button" class="btn wide" id="checkAvailability">Ver horários livres</button><div id="availableSlots"></div><button class="btn primary wide" type="submit">Salvar horário</button></form></div></div>`
-  if(modal==='client')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo cliente</h3>${close}</div><form class="form" id="clientForm"><div class="field"><label>Nome</label><input name="name" required></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" placeholder="(11) 99999-9999"></div><button class="btn primary wide">Salvar cliente</button></form></div></div>`
+  const close='<button type="button" class="x" data-close aria-label="Fechar">×</button>'
+  if(modal==='appointment')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo ${vocab().appointment.toLowerCase()}</h3>${close}</div><form class="form" id="appointmentForm"><div class="field"><label>Cliente</label><input name="clientName" required placeholder="Nome da cliente"></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" data-mask="phone" maxlength="15" placeholder="(11) 99999-9999"></div><div class="field"><label>Serviço</label><select name="serviceId" id="appointmentService" required><option value="">Selecione</option>${state.services.filter(s=>s.active).map(s=>`<option value="${s.id}">${esc(s.name)} — ${fmtMoney(s.price)}</option>`).join('')}</select></div><div class="field"><label>Profissional</label><select name="professionalId" id="appointmentProfessional" required><option value="">Selecione o serviço primeiro</option></select></div><div id="appointmentMaterialsBox"></div><div class="row"><div class="field"><label>Data</label><input name="date" id="appointmentDate" type="date" value="${todayISO()}" required></div><div class="field"><label>Horário</label><input name="time" id="appointmentTime" type="time" value="09:00" required></div></div><button type="button" class="btn wide" id="checkAvailability">Ver horários livres</button><div id="availableSlots"></div><button class="btn primary wide" type="submit">Salvar horário</button></form></div></div>`
+  if(modal==='client')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo cliente</h3>${close}</div><form class="form" id="clientForm"><div class="field"><label>Nome</label><input name="name" required></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" data-mask="phone" maxlength="15" placeholder="(11) 99999-9999"></div><button class="btn primary wide">Salvar cliente</button></form></div></div>`
   if(modal==='service')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo serviço</h3>${close}</div><form class="form" id="serviceForm"><div class="field"><label>Segmento</label><select name="segment" required>${segmentKeys().map(k=>`<option value="${k}">${SEGMENTS[k].name}</option>`).join('')}</select></div><div class="field"><label>Nome do serviço</label><input name="name" required placeholder="Ex.: Selagem Premium"></div><div class="row"><div class="field"><label>Preço</label><input name="price" type="number" min="0" step="0.01" inputmode="decimal" value="50" required></div><div class="field"><label>Duração (min)</label><input name="duration" type="number" min="5" step="5" inputmode="numeric" value="45" required></div></div><div class="field"><label>Retorno sugerido (dias)</label><input name="returnDays" type="number" min="0" max="3650" inputmode="numeric" value="${activeSegments()[0]?.returnDays||0}"></div><button class="btn primary wide">Adicionar serviço</button></form></div></div>`
   if(modal==='product')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo produto</h3>${close}</div><form class="form" id="productForm"><div class="field"><label>Área</label><select name="segment"><option value="">Compartilhado pelo estabelecimento</option>${segmentKeys().map(k=>`<option value="${k}">${SEGMENTS[k].name}</option>`).join('')}</select></div><div class="field"><label>Nome</label><input name="name" required></div><div class="field"><label>Categoria</label><select name="category" required>${categories().map(c=>`<option>${esc(c)}</option>`).join('')}<option value="Outros">Outros</option></select></div><div class="row"><div class="field"><label>Estoque atual</label><input name="stock" type="number" step="0.001" inputmode="decimal" value="0" required></div><div class="field"><label>Estoque mínimo</label><input name="minStock" type="number" step="0.001" inputmode="decimal" value="0" required></div></div><div class="row"><div class="field"><label>Unidade</label><select name="unit"><option>un</option><option>ml</option><option>g</option><option>kg</option><option>L</option></select></div><div class="field"><label>Custo unitário</label><input name="cost" type="number" min="0" step="0.01" inputmode="decimal" value="0" required></div></div><button class="btn primary wide">Adicionar produto</button></form></div></div>`
   if(typeof modal==='string'&&modal.startsWith('serviceMaterials:')){const id=modal.split(':')[1];const svc=serviceById(id);if(!svc)return '';return `<div class="modal-backdrop"><div class="modal modal-tall"><div class="modal-head"><div><h3>Materiais do serviço</h3><div class="helper">${esc(svc.name)} • custo calculado automaticamente</div></div>${close}</div><form class="form" id="serviceMaterialsForm" data-service-id="${svc.id}"><div class="notice material-notice">Defina quanto normalmente é usado em um atendimento. Essa receita será copiada para novos agendamentos.</div>${materialsEditorHtml(svc.materials||[],svc.segment)}<div class="material-total">Custo estimado: <strong id="materialCostPreview">${fmtMoney(materialCost(svc.materials||[]))}</strong></div><button class="btn primary wide">Salvar materiais</button></form></div></div>`}
@@ -271,7 +312,7 @@ function modalHtml(){
   if(modal==='professional'||modal.startsWith('professionalEdit:')){
     const id=modal.includes(':')?modal.split(':')[1]:null
     const p=id?professionalById(id):null
-    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>${p?'Editar profissional':'Novo profissional'}</h3>${close}</div><form class="form" id="professionalForm" data-professional-id="${p?.id||''}"><div class="field"><label>Nome</label><input name="name" required value="${esc(p?.name||'')}" placeholder="Ex.: Ana Souza"></div><div class="field"><label>Função / especialidade</label><input name="jobTitle" value="${esc(p?.jobTitle||'')}" placeholder="Ex.: Cabeleireira, Lash designer"></div><div class="row"><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" value="${esc(p?.phone||'')}" placeholder="(11) 99999-9999"></div><div class="field"><label>E-mail</label><input name="email" type="email" value="${esc(p?.email||'')}"></div></div><div class="field"><label>Comissão padrão</label><select name="commissionType"><option value="NONE" ${p?.commissionType==='NONE'||!p?'selected':''}>Sem comissão</option><option value="PERCENT" ${p?.commissionType==='PERCENT'?'selected':''}>Percentual</option><option value="FIXED" ${p?.commissionType==='FIXED'?'selected':''}>Valor fixo</option></select></div><div class="field"><label>Valor da comissão</label><input name="commissionValue" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(p?.commissionValue||0)}"></div><button class="btn primary wide">${p?'Salvar alterações':'Cadastrar profissional'}</button></form></div></div>`
+    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>${p?'Editar profissional':'Novo profissional'}</h3>${close}</div><form class="form" id="professionalForm" data-professional-id="${p?.id||''}"><div class="field"><label>Nome</label><input name="name" required value="${esc(p?.name||'')}" placeholder="Ex.: Ana Souza"></div><div class="field"><label>Função / especialidade</label><input name="jobTitle" value="${esc(p?.jobTitle||'')}" placeholder="Ex.: Cabeleireira, Lash designer"></div><div class="row"><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" data-mask="phone" maxlength="15" value="${esc(maskPhone(p?.phone||''))}" placeholder="(11) 99999-9999"></div><div class="field"><label>E-mail</label><input name="email" type="email" value="${esc(p?.email||'')}"></div></div><div class="field"><label>Comissão padrão</label><select name="commissionType" id="commissionType"><option value="NONE" ${p?.commissionType==='NONE'||!p?'selected':''}>Sem comissão</option><option value="PERCENT" ${p?.commissionType==='PERCENT'?'selected':''}>Percentual</option><option value="FIXED" ${p?.commissionType==='FIXED'?'selected':''}>Valor fixo</option></select></div><div class="field"><label id="commissionValueLabel">Valor da comissão</label><input name="commissionValue" id="commissionValue" type="text" inputmode="decimal" autocomplete="off" value="${esc(formatCommission(p?.commissionType||'NONE',p?.commissionValue||0))}"></div><button class="btn primary wide">${p?'Salvar alterações':'Cadastrar profissional'}</button></form></div></div>`
   }
   if(modal.startsWith('professionalServices:')){
     const p=professionalById(modal.split(':')[1]);if(!p)return ''
@@ -294,16 +335,16 @@ function modalHtml(){
 }
 
 function bindGlobal(){
-  $$('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;modal=null;render()})
-  $$('[data-open]').forEach(b=>b.onclick=()=>{modal=b.dataset.open;render()})
+  $('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;modal=null;render()})
+  $('[data-open]').forEach(b=>b.onclick=()=>openModal(b.dataset.open))
   $$('[data-wa]').forEach(b=>b.onclick=()=>openWhatsApp(b.dataset.wa))
-  $$('[data-service-materials]').forEach(b=>b.onclick=()=>{modal=`serviceMaterials:${b.dataset.serviceMaterials}`;render()})
-  $$('[data-appointment-materials]').forEach(b=>b.onclick=()=>{modal=`appointmentMaterials:${b.dataset.appointmentMaterials}`;render()})
+  $('[data-service-materials]').forEach(b=>b.onclick=()=>openModal(`serviceMaterials:${b.dataset.serviceMaterials}`))
+  $('[data-appointment-materials]').forEach(b=>b.onclick=()=>openModal(`appointmentMaterials:${b.dataset.appointmentMaterials}`))
   $('[data-complete]').forEach(b=>b.onclick=()=>completeAppointment(b.dataset.complete,b))
-  $('[data-pro-edit]').forEach(b=>b.onclick=()=>{modal=`professionalEdit:${b.dataset.proEdit}`;render()})
-  $('[data-pro-services]').forEach(b=>b.onclick=()=>{modal=`professionalServices:${b.dataset.proServices}`;render()})
-  $('[data-pro-hours]').forEach(b=>b.onclick=()=>{modal=`professionalHours:${b.dataset.proHours}`;render()})
-  $('[data-pro-block]').forEach(b=>b.onclick=()=>{modal=`professionalBlock:${b.dataset.proBlock}`;render()})
+  $('[data-pro-edit]').forEach(b=>b.onclick=()=>openModal(`professionalEdit:${b.dataset.proEdit}`))
+  $('[data-pro-services]').forEach(b=>b.onclick=()=>openModal(`professionalServices:${b.dataset.proServices}`))
+  $('[data-pro-hours]').forEach(b=>b.onclick=()=>openModal(`professionalHours:${b.dataset.proHours}`))
+  $('[data-pro-block]').forEach(b=>b.onclick=()=>openModal(`professionalBlock:${b.dataset.proBlock}`))
 }
 function bindPage(){
   $('#seedAgenda')?.addEventListener('click',seedAgenda)
@@ -312,8 +353,38 @@ function bindPage(){
   $('#logoutBtn')?.addEventListener('click',()=>{clearSession();state=emptyState();currentUser=null;page='home';authMessage='';render()})
 }
 function bindModal(){
-  $$('[data-close]').forEach(b=>b.onclick=()=>{modal=null;render()})
-  $('.modal-backdrop')?.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop')){modal=null;render()}})
+  $('[data-close]').forEach(b=>b.onclick=closeModal)
+  $('.modal-backdrop')?.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))closeModal()})
+  bindPhoneMasks($('.modal-backdrop')||document)
+
+  const commissionType=$('#commissionType')
+  const commissionValue=$('#commissionValue')
+  const commissionLabel=$('#commissionValueLabel')
+  const syncCommissionMask=(format=true)=>{
+    if(!commissionType||!commissionValue)return
+    const type=commissionType.value
+    const numeric=parseMaskedNumber(commissionValue.value)
+    if(commissionLabel)commissionLabel.textContent=type==='PERCENT'?'Percentual da comissão':type==='FIXED'?'Valor fixo da comissão':'Valor da comissão'
+    commissionValue.disabled=type==='NONE'
+    commissionValue.placeholder=type==='PERCENT'?'Ex.: 20%':type==='FIXED'?'Ex.: R$ 50,00':'Sem comissão'
+    if(type==='NONE'){commissionValue.value='';return}
+    if(format)commissionValue.value=formatCommission(type,numeric)
+  }
+  commissionType?.addEventListener('change',()=>syncCommissionMask(true))
+  commissionValue?.addEventListener('focus',()=>{
+    if(commissionType?.value==='NONE')return
+    const n=parseMaskedNumber(commissionValue.value)
+    commissionValue.value=n?String(n).replace('.',','):''
+    setTimeout(()=>commissionValue.select(),0)
+  })
+  commissionValue?.addEventListener('blur',()=>syncCommissionMask(true))
+  commissionValue?.addEventListener('input',()=>{
+    if(commissionType?.value==='PERCENT'){
+      const n=Math.min(100,Math.max(0,parseMaskedNumber(commissionValue.value)))
+      if(parseMaskedNumber(commissionValue.value)>100)commissionValue.value='100'
+    }
+  })
+  syncCommissionMask(true)
 
   const apptService=$('#appointmentService')
   const apptProfessional=$('#appointmentProfessional')
@@ -359,9 +430,9 @@ function bindModal(){
       let c=state.clients.find(c=>normalizePhone(c.phone)===normalizePhone(f.phone)&&f.phone)||state.clients.find(c=>c.name.toLowerCase()===String(f.clientName).toLowerCase())
       if(!c){
         if(cloudEnabled()){
-          const row=await insertClient(state.establishment.id,{name:f.clientName,phone:f.phone})
+          const row=await insertClient(state.establishment.id,{name:f.clientName,phone:normalizePhone(f.phone)})
           c={id:row.id,name:row.name,phone:row.phone||''};state.clients.push(c)
-        }else{c={id:uid(),name:f.clientName,phone:f.phone,createdAt:new Date().toISOString()};state.clients.push(c)}
+        }else{c={id:uid(),name:f.clientName,phone:normalizePhone(f.phone),createdAt:new Date().toISOString()};state.clients.push(c)}
       }
       const materials=readMaterials(e.target)
       const pro=professionalById(f.professionalId)
@@ -378,7 +449,7 @@ function bindModal(){
   $('#clientForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const button=e.target.querySelector('button[type="submit"]');setBusy(button,true)
     try{
-      const f=Object.fromEntries(new FormData(e.target));let c={id:uid(),name:f.name,phone:f.phone,createdAt:new Date().toISOString()}
+      const f=Object.fromEntries(new FormData(e.target));let c={id:uid(),name:f.name,phone:normalizePhone(f.phone),createdAt:new Date().toISOString()}
       if(cloudEnabled()){const row=await insertClient(state.establishment.id,c);c={id:row.id,name:row.name,phone:row.phone||''}}
       state.clients.push(c);persistLocal();modal=null;render()
     }catch(error){setBusy(button,false);alert(`Não foi possível salvar o cliente. ${friendlyError(error)}`)}
@@ -433,7 +504,7 @@ function bindModal(){
   $('#professionalForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const button=e.target.querySelector('button[type="submit"]');setBusy(button,true)
     const f=Object.fromEntries(new FormData(e.target));const id=e.target.dataset.professionalId
-    const data={name:String(f.name||'').trim(),jobTitle:String(f.jobTitle||'').trim(),phone:String(f.phone||'').trim(),email:String(f.email||'').trim(),commissionType:f.commissionType||'NONE',commissionValue:Number(f.commissionValue||0),acceptsAllServices:true}
+    const data={name:String(f.name||'').trim(),jobTitle:String(f.jobTitle||'').trim(),phone:normalizePhone(f.phone),email:String(f.email||'').trim(),commissionType:f.commissionType||'NONE',commissionValue:parseMaskedNumber(f.commissionValue),acceptsAllServices:true}
     try{
       if(cloudEnabled()){id?await updateProfessional(id,data):await insertProfessional(state.establishment.id,data);modal=null;page='professionals';await boot();return}
       if(id){Object.assign(professionalById(id),data)}else state.professionals.push({id:uid(),...data,active:true,services:[],workingHours:[],blocks:[]})
