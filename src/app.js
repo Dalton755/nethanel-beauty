@@ -32,6 +32,8 @@ import {
   insertPromotion,
   updatePromotion,
   deletePromotion,
+  uploadBrandLogo,
+  publicBusinessBranding,
 } from './cloud.js'
 
 const SEGMENTS = {
@@ -52,6 +54,8 @@ const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now()
 const todayISO = ()=> new Date().toISOString().slice(0,10)
 const storageKey='beauty_os_mvp_v2'
+const brandCacheKey='zaia_last_business_brand_v1'
+const ZAIA_COLORS={primary:'#3b172b',secondary:'#6b3149',accent:'#c89a61'}
 
 const emptyState = () => ({
   setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], promotions:[], notificationsEnabled:false
@@ -65,12 +69,54 @@ let loading=true
 let authMessage=''
 let currentUser=null
 let businessLocationDraft=null
+let loginBrand=null
 
 function localLoad(){
   try{return JSON.parse(localStorage.getItem(storageKey))||emptyState()}catch{return emptyState()}
 }
 function localSave(){localStorage.setItem(storageKey,JSON.stringify(state))}
 function persistLocal(){ if(!cloudEnabled()) localSave() }
+function brandFromEstablishment(est){
+  if(!est)return null
+  return {
+    id:est.id||null,
+    slug:est.slug||'',
+    name:est.name||'',
+    brandEnabled:est.brandEnabled===true,
+    brandLogoUrl:est.brandLogoUrl||'',
+    brandPrimaryColor:est.brandPrimaryColor||ZAIA_COLORS.primary,
+    brandSecondaryColor:est.brandSecondaryColor||ZAIA_COLORS.secondary,
+    brandAccentColor:est.brandAccentColor||ZAIA_COLORS.accent,
+  }
+}
+function loadCachedBrand(){
+  try{return JSON.parse(localStorage.getItem(brandCacheKey))||null}catch{return null}
+}
+function cacheBusinessBrand(est){
+  const brand=brandFromEstablishment(est)
+  if(!brand)return
+  localStorage.setItem(brandCacheKey,JSON.stringify(brand))
+  loginBrand=brand
+}
+function validHexColor(value,fallback){
+  return /^#[0-9a-f]{6}$/i.test(String(value||''))?String(value):fallback
+}
+function applyBrandTheme(est){
+  const brand=est?.brandEnabled?brandFromEstablishment(est):null
+  const root=document.documentElement
+  root.style.setProperty('--brand',validHexColor(brand?.brandPrimaryColor,ZAIA_COLORS.primary))
+  root.style.setProperty('--brand-2',validHexColor(brand?.brandSecondaryColor,ZAIA_COLORS.secondary))
+  root.style.setProperty('--champagne',validHexColor(brand?.brandAccentColor,ZAIA_COLORS.accent))
+  document.body?.classList.toggle('business-branded',Boolean(brand))
+}
+function businessBrandHtml(est=state.establishment,{compact=false,login=false}={}){
+  const brand=brandFromEstablishment(est)
+  if(!brand?.brandEnabled||!brand.brandLogoUrl)return zaiaLogo(compact)
+  const logo=`<img class="merchant-logo ${compact?'compact':''}" src="${esc(brand.brandLogoUrl)}" alt="${esc(brand.name)}">`
+  if(compact)return logo
+  return `<div class="merchant-brand ${login?'login-merchant-brand':''}">${logo}<div><strong>${esc(brand.name)}</strong><small>ZAIA</small></div></div>`
+}
+
 function activeSegments(){return (state.establishment?.segments||[]).map(k=>SEGMENTS[k]).filter(Boolean)}
 function segmentKeys(){return state.establishment?.segments||[]}
 function vocab(){return activeSegments()[0]?.vocabulary||{client:'Cliente',appointment:'Atendimento'}}
@@ -204,12 +250,22 @@ function openModal(name){
 }
 function closeModal(){
   modal=null
+  modalData=null
+  applyBrandTheme(state.establishment?.brandEnabled?state.establishment:loginBrand)
   render()
   if(history.state?.beautyModal)history.back()
 }
 window.addEventListener('popstate',()=>{
   if(modal){modal=null;render()}
 })
+document.addEventListener('click',e=>{
+  const close=e.target.closest?.('[data-close]')
+  if(!close||!modal)return
+  e.preventDefault()
+  e.stopPropagation()
+  closeModal()
+})
+
 function fmtQty(n){return Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:3})}
 function materialCost(materials=[]){return materials.reduce((sum,m)=>sum+Number(m.quantity||0)*Number(productById(m.productId)?.cost||0),0)}
 function eligibleProducts(segment){return state.products.filter(p=>p.active!==false&&(!p.segment||p.segment===segment))}
@@ -643,8 +699,8 @@ function bindGlobal(){
   })
 }
 function bindPage(){
-  $('[data-promotion-edit]').forEach(b=>b.onclick=()=>{modalData={promotionId:b.dataset.promotionEdit};openModal('promotion')})
-  $('[data-promotion-delete]').forEach(b=>b.onclick=async()=>{
+  document.querySelectorAll('[data-promotion-edit]').forEach(b=>b.onclick=()=>{modalData={promotionId:b.dataset.promotionEdit};openModal('promotion')})
+  document.querySelectorAll('[data-promotion-delete]').forEach(b=>b.onclick=async()=>{
     if(!confirm('Excluir esta promoção?'))return
     try{await deletePromotion(b.dataset.promotionDelete);await boot()}catch(error){alert(friendlyError(error))}
   })
@@ -686,7 +742,6 @@ function bindPage(){
   $('#logoutBtn')?.addEventListener('click',()=>{clearSession();state=emptyState();currentUser=null;page='home';authMessage='';render()})
 }
 function bindModal(){
-  $$('[data-close]').forEach(b=>b.onclick=closeModal)
   $('.modal-backdrop')?.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))closeModal()})
   bindPhoneMasks($('.modal-backdrop')||document)
 
