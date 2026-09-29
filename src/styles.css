@@ -479,3 +479,26 @@ input:focus,select:focus,textarea:focus{border-color:#a97a8f;box-shadow:0 0 0 4p
   .modal{padding-bottom:max(20px,env(safe-area-inset-bottom))}
   .pro-feature-grid{grid-template-columns:1fr}
 }
+
+/* Mobile bottom navigation typography refinement */
+@media(max-width:959px){
+  .nav button[data-page] > span{
+    display:block;
+    margin:0;
+    font-size:9px;
+    line-height:1.05;
+    font-weight:700;
+    letter-spacing:-.01em;
+    white-space:nowrap;
+  }
+  .nav button[data-page].active > span{font-weight:850}
+  .nav button[data-page] .ui-icon{
+    width:20px;
+    height:20px;
+    margin:0 0 3px;
+  }
+}
+@media(max-width:380px){
+  .nav button[data-page] > span{font-size:8.3px}
+  .nav button[data-page]{min-width:54px;padding-left:4px;padding-right:4px}
+}
