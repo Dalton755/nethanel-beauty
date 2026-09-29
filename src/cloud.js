@@ -233,10 +233,14 @@ export async function loadCloudState() {
     }),
     appointments: appointments.map(a => {
       const local = isoToLocal(a.starts_at)
+      const endLocal = isoToLocal(a.ends_at)
       return {
         id: a.id, clientId: a.client_id, clientName: clientMap[a.client_id]?.name || 'Cliente',
         phone: clientMap[a.client_id]?.phone || '', professionalId: a.professional_id,
-        serviceId: a.service_id, date: local.date, time: local.time, price: Number(a.price),
+        serviceId: a.service_id, date: local.date, time: local.time, endTime: endLocal.time,
+        startsAt: a.starts_at, endsAt: a.ends_at,
+        durationMinutes: Math.max(0, Math.round((new Date(a.ends_at)-new Date(a.starts_at))/60000)),
+        price: Number(a.price),
         status: appStatus(a.status), completedAt: a.completed_at,
         materials: appointmentMaterialMap[a.id] || [],
       }
@@ -355,6 +359,8 @@ export async function getAvailableSlots(professionalId, serviceId, date, stepMin
     endsAt: r.ends_at,
     price: Number(r.price || 0),
     time: isoToLocal(r.starts_at).time,
+    endTime: isoToLocal(r.ends_at).time,
+    durationMinutes: Math.max(0, Math.round((new Date(r.ends_at)-new Date(r.starts_at))/60000)),
   }))
 }
 
@@ -434,6 +440,22 @@ export async function insertClient(establishmentId, client) {
     prefer: 'return=representation',
   })
   return row
+}
+
+export async function updateService(serviceId, service) {
+  const rows = await rest(`services?id=eq.${q(serviceId)}&select=*`, {
+    method: 'PATCH',
+    body: {
+      segment_code: service.segment,
+      name: service.name,
+      price: Number(service.price || 0),
+      duration_minutes: Number(service.duration || 60),
+      return_interval_days: Number(service.returnDays || 0) || null,
+      updated_at: new Date().toISOString(),
+    },
+    prefer: 'return=representation',
+  })
+  return rows?.[0] || null
 }
 
 export async function insertService(establishmentId, service) {
