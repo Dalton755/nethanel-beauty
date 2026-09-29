@@ -131,6 +131,29 @@ async function locateAddressByText(address){
   return {latitude:Number(rows[0].lat),longitude:Number(rows[0].lon),displayName:rows[0].display_name}
 }
 
+function normalizePostalCode(value=''){
+  return String(value||'').replace(/\D/g,'').slice(0,8)
+}
+function maskPostalCode(value=''){
+  const d=normalizePostalCode(value)
+  return d.length>5?`${d.slice(0,5)}-${d.slice(5)}`:d
+}
+async function lookupPostalCode(value){
+  const cep=normalizePostalCode(value)
+  if(cep.length!==8)throw new Error('Informe um CEP com 8 dígitos.')
+  const res=await fetch(`https://viacep.com.br/ws/${cep}/json/`,{headers:{Accept:'application/json'}})
+  if(!res.ok)throw new Error('Não foi possível consultar o CEP agora.')
+  const data=await res.json()
+  if(data?.erro)throw new Error('CEP não encontrado.')
+  return {
+    postalCode:maskPostalCode(cep),
+    street:data.logradouro||'',
+    neighborhood:data.bairro||'',
+    city:data.localidade||'',
+    state:data.uf||'',
+  }
+}
+
 function normalizePhone(p=''){return String(p||'').replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,'')}
 function maskPhone(value=''){
   let d=normalizePhone(value).slice(0,11)
@@ -535,7 +558,7 @@ function modalHtml(){
       <div class="field"><label>Nome do estabelecimento</label><input id="businessName" value="${esc(state.establishment.name)}"></div>
       <div class="field"><label>Descrição para clientes</label><textarea id="businessDescription" rows="3" placeholder="Ex.: Especialistas em cortes, tratamentos e coloração.">${esc(state.establishment.publicDescription||'')}</textarea></div>
       <div class="section-head form-section-head"><div><span class="eyebrow">ENDEREÇO</span><h2>Onde os clientes encontram você</h2></div></div>
-      <div class="field"><label>CEP</label><input id="businessPostalCode" inputmode="numeric" value="${esc(a.postalCode||'')}" placeholder="00000-000"></div>
+      <div class="field"><label>CEP</label><input id="businessPostalCode" inputmode="numeric" autocomplete="postal-code" maxlength="9" value="${esc(maskPostalCode(a.postalCode||''))}" placeholder="00000-000"><span class="helper" id="businessCepStatus">Digite o CEP para preencher o endereço automaticamente.</span></div>
       <div class="field"><label>Rua / avenida</label><input id="businessStreet" value="${esc(a.street||'')}" placeholder="Rua, avenida..."></div>
       <div class="row"><div class="field"><label>Número</label><input id="businessNumber" value="${esc(a.number||'')}"></div><div class="field"><label>Complemento</label><input id="businessComplement" value="${esc(a.complement||'')}"></div></div>
       <div class="field"><label>Bairro</label><input id="businessNeighborhood" value="${esc(a.neighborhood||'')}"></div>
@@ -846,7 +869,7 @@ function bindModal(){
     }catch(error){alert(`Não foi possível remover o bloqueio. ${friendlyError(error)}`)}
   })
 
-  $('[data-toggle-seg]').forEach(b=>b.onclick=()=>{
+  $$('[data-toggle-seg]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.toggleSeg;const a=state.establishment.segments
     if(a.includes(k)){
       if(a.length===1){alert('O estabelecimento precisa manter pelo menos um segmento ativo.');return}
@@ -854,6 +877,49 @@ function bindModal(){
     }else{
       a.push(k);b.classList.add('on')
     }
+  })
+
+  const businessCep=$('#businessPostalCode')
+  let lastCepLookup=''
+  const invalidateBusinessLocation=()=>{
+    businessLocationDraft=null
+    if($('#businessLat'))$('#businessLat').value=''
+    if($('#businessLong'))$('#businessLong').value=''
+    const box=$('#businessLocationStatus')
+    if(box){
+      box.classList.remove('location-ready')
+      box.innerHTML='<strong>Endereço alterado</strong><span>Ao salvar, a ZAIA localizará novamente o ponto no mapa.</span>'
+    }
+  }
+  const fillAddressFromCep=async()=>{
+    const cep=normalizePostalCode(businessCep?.value)
+    if(cep.length!==8||cep===lastCepLookup)return
+    lastCepLookup=cep
+    const status=$('#businessCepStatus')
+    if(status)status.textContent='Buscando endereço...'
+    try{
+      const data=await lookupPostalCode(cep)
+      if(businessCep)businessCep.value=data.postalCode
+      if($('#businessStreet'))$('#businessStreet').value=data.street
+      if($('#businessNeighborhood'))$('#businessNeighborhood').value=data.neighborhood
+      if($('#businessCity'))$('#businessCity').value=data.city
+      if($('#businessState'))$('#businessState').value=data.state
+      invalidateBusinessLocation()
+      if(status)status.textContent='Endereço preenchido. Informe o número; ao salvar, a ZAIA localizará o ponto no mapa.'
+      $('#businessNumber')?.focus()
+    }catch(error){
+      lastCepLookup=''
+      if(status)status.textContent=friendlyError(error)
+    }
+  }
+  businessCep?.addEventListener('input',()=>{
+    businessCep.value=maskPostalCode(businessCep.value)
+    if(normalizePostalCode(businessCep.value).length===8)fillAddressFromCep()
+  })
+  businessCep?.addEventListener('blur',fillAddressFromCep)
+
+  ;['businessStreet','businessNumber','businessNeighborhood','businessCity','businessState'].forEach(id=>{
+    $('#'+id)?.addEventListener('input',invalidateBusinessLocation)
   })
 
   $('#locateBusinessAddress')?.addEventListener('click',async e=>{
@@ -902,7 +968,7 @@ function bindModal(){
       neighborhood:$('#businessNeighborhood')?.value.trim()||'',
       city:$('#businessCity')?.value.trim()||'',
       state:($('#businessState')?.value.trim()||'').toUpperCase(),
-      postalCode:$('#businessPostalCode')?.value.trim()||'',
+      postalCode:maskPostalCode($('#businessPostalCode')?.value.trim()||''),
       latitude:businessLocationDraft?.latitude??($('#businessLat')?.value===''?null:Number($('#businessLat').value)),
       longitude:businessLocationDraft?.longitude??($('#businessLong')?.value===''?null:Number($('#businessLong').value)),
     }
