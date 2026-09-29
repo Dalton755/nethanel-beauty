@@ -660,6 +660,118 @@ export async function deletePromotion(promotionId) {
   return rest(`promotions?id=eq.${q(promotionId)}`, { method:'DELETE', prefer:'return=minimal' })
 }
 
+export async function getFinanceDashboard(establishmentId, startDate, endDate) {
+  return rest('rpc/finance_dashboard', {
+    method:'POST',
+    body:{
+      p_establishment_id:establishmentId,
+      p_start_date:startDate,
+      p_end_date:endDate,
+    },
+  })
+}
+
+export async function listFinanceTransactions(establishmentId, limit = 120) {
+  const rows = await rest(`finance_transactions?select=id,establishment_id,account_id,appointment_id,professional_id,kind,category,description,amount,due_date,status,paid_at,payment_method,source,notes,installment_number,installment_total,created_at&establishment_id=eq.${q(establishmentId)}&order=due_date.desc,created_at.desc&limit=${Number(limit)||120}`)
+  return (rows || []).map(t => ({
+    id:t.id, establishmentId:t.establishment_id, accountId:t.account_id,
+    appointmentId:t.appointment_id, professionalId:t.professional_id,
+    kind:t.kind, category:t.category, description:t.description,
+    amount:Number(t.amount||0), dueDate:t.due_date, status:t.status,
+    paidAt:t.paid_at, paymentMethod:t.payment_method, source:t.source,
+    notes:t.notes||'', installmentNumber:t.installment_number,
+    installmentTotal:t.installment_total, createdAt:t.created_at,
+  }))
+}
+
+export async function listFinanceAccounts(establishmentId) {
+  const rows = await rest(`finance_accounts?select=id,establishment_id,name,account_type,opening_balance,active&establishment_id=eq.${q(establishmentId)}&active=eq.true&order=name.asc`)
+  return (rows || []).map(a => ({
+    id:a.id, establishmentId:a.establishment_id, name:a.name,
+    type:a.account_type, openingBalance:Number(a.opening_balance||0), active:a.active,
+  }))
+}
+
+export async function insertFinanceTransaction(establishmentId, transaction) {
+  const paid = transaction.status === 'PAID'
+  const [row] = await rest('finance_transactions?select=*', {
+    method:'POST',
+    body:{
+      establishment_id:establishmentId,
+      account_id:paid ? (transaction.accountId || null) : null,
+      professional_id:transaction.professionalId || null,
+      kind:transaction.kind,
+      category:transaction.category,
+      description:transaction.description,
+      amount:Number(transaction.amount||0),
+      due_date:transaction.dueDate,
+      status:paid?'PAID':'PENDING',
+      paid_at:paid ? (transaction.paidAt || new Date().toISOString()) : null,
+      payment_method:paid ? (transaction.paymentMethod || 'OTHER') : null,
+      source:'MANUAL',
+      notes:transaction.notes || null,
+      installment_number:transaction.installmentNumber || null,
+      installment_total:transaction.installmentTotal || null,
+    },
+    prefer:'return=representation',
+  })
+  return row
+}
+
+export async function updateFinanceTransaction(transactionId, patch) {
+  const body={}
+  if(patch.category!==undefined)body.category=patch.category
+  if(patch.description!==undefined)body.description=patch.description
+  if(patch.amount!==undefined)body.amount=Number(patch.amount||0)
+  if(patch.dueDate!==undefined)body.due_date=patch.dueDate
+  if(patch.notes!==undefined)body.notes=patch.notes||null
+  if(patch.status!==undefined)body.status=patch.status
+  body.updated_at=new Date().toISOString()
+  const rows=await rest(`finance_transactions?id=eq.${q(transactionId)}&select=*`,{
+    method:'PATCH',body,prefer:'return=representation'
+  })
+  return rows?.[0]||null
+}
+
+export async function markFinancePaid(transactionId, paymentMethod, accountId = null) {
+  return rest('rpc/finance_mark_paid', {
+    method:'POST',
+    body:{
+      p_transaction_id:transactionId,
+      p_payment_method:paymentMethod,
+      p_account_id:accountId||null,
+      p_paid_at:new Date().toISOString(),
+    },
+  })
+}
+
+export async function saveFinanceSettings(establishmentId, settings) {
+  return rest('rpc/finance_save_settings', {
+    method:'POST',
+    body:{
+      p_establishment_id:establishmentId,
+      p_monthly_revenue_target:Number(settings.monthlyRevenueTarget||0),
+      p_monthly_profit_target:Number(settings.monthlyProfitTarget||0),
+      p_reserve_target:Number(settings.reserveTarget||0),
+    },
+  })
+}
+
+export async function insertFinanceAccount(establishmentId, account) {
+  const [row]=await rest('finance_accounts?select=*',{
+    method:'POST',
+    body:{
+      establishment_id:establishmentId,
+      name:account.name,
+      account_type:account.type||'CASH',
+      opening_balance:Number(account.openingBalance||0),
+      active:true,
+    },
+    prefer:'return=representation',
+  })
+  return row
+}
+
 export async function createEstablishment({ name, segments, services }) {
   const session = await ensureSession()
   if (!session?.user?.id) throw new Error('Sessão inválida. Entre novamente.')
