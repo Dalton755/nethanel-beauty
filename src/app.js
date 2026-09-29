@@ -341,7 +341,7 @@ function authPage(){
 function bindAuth(){
   const form=$('#authForm')
   $('#googleLogin')?.addEventListener('click',()=>{
-    signInWithGoogle(location.origin + '/')
+    signInWithGoogle('https://nethanel-beauty.vercel.app/')
   })
   form?.addEventListener('submit',async e=>{
     e.preventDefault();authMessage=''
