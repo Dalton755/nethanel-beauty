@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 220" role="img" aria-labelledby="title desc">
+<title id="title">ZAIA</title><desc id="desc">Marca ZAIA em ameixa e champagne</desc>
+<defs>
+  <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#f2d7a5"/><stop offset=".45" stop-color="#d2a36b"/><stop offset="1" stop-color="#9a693a"/>
+  </linearGradient>
+  <linearGradient id="plum" x1="0" y1="0" x2="1" y2="1">
+    <stop offset="0" stop-color="#28101d"/><stop offset="1" stop-color="#5a263d"/>
+  </linearGradient>
+</defs>
+<g transform="translate(14 20)">
+  <rect x="0" y="0" width="174" height="174" rx="44" fill="url(#plum)"/>
+  <path d="M48 48c26-19 64-27 88-18-12 6-25 15-36 26-18 18-31 37-41 55 23-14 49-24 78-27-15 10-29 22-41 36-15 17-25 33-34 49-9-17-14-36-12-52 2-17 10-33 23-49 8-10 17-19 27-27-18 1-35 7-52 17-7 4-13 8-18 12 2-8 7-16 16-22Z" fill="url(#gold)"/>
+  <path d="M49 127c22-12 48-20 77-22-14 9-27 20-39 33-9 10-17 21-24 32-9-12-14-26-14-43Z" fill="#f3ddba" opacity=".82"/>
+</g>
+<g fill="#351523">
+  <path d="M244 62h102l-70 91h72v28H230l71-91h-57Z"/>
+  <path d="M395 62h34l52 119h-35l-10-26h-52l-10 26h-34Zm0 66h31l-15-40Z"/>
+  <path d="M500 62h32v119h-32Z"/>
+  <path d="M585 62h34l52 119h-35l-10-26h-52l-10 26h-34Zm0 66h31l-15-40Z"/>
+</g>
+<text x="246" y="205" fill="#9a7d72" font-family="Arial,Helvetica,sans-serif" font-size="15" letter-spacing="5">BEAUTY BUSINESS</text>
+</svg>
