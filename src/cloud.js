@@ -532,6 +532,29 @@ export async function insertAppointment(establishmentId, appointment, service) {
   return row
 }
 
+export async function suggestServiceMaterials(serviceId) {
+  const result = await rest('rpc/suggest_service_materials', {
+    method: 'POST',
+    body: { p_service_id: serviceId },
+  })
+  const data = Array.isArray(result) ? result[0] : result
+  return {
+    serviceId: data?.service_id || serviceId,
+    serviceName: data?.service_name || '',
+    learnedServices: Number(data?.learned_services || 0),
+    lastServiceId: data?.last_service_id || null,
+    lastServiceName: data?.last_service_name || '',
+    source: data?.source || 'none',
+    materials: (data?.materials || []).map(m => ({
+      productId: m.product_id,
+      quantity: Number(m.quantity || 0),
+      confidence: Number(m.confidence || 0),
+      support: Number(m.support || 0),
+      usedInLastService: Boolean(m.used_in_last_service),
+    })),
+  }
+}
+
 export async function saveServiceMaterials(serviceId, materials) {
   return rest('rpc/set_service_materials', {
     method: 'POST',
