@@ -16,7 +16,7 @@ for (const file of ['src/app.js','src/cloud.js']) {
 
 await mkdir('dist', { recursive: true })
 
-for (const file of ['index.html','manifest.webmanifest','icon.svg','sw.js']) {
+for (const file of ['index.html','manifest.webmanifest','icon.svg','zaia-logo.svg','sw.js']) {
   await cp(file, `dist/${file}`)
 }
 
