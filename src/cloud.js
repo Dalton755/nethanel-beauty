@@ -48,6 +48,49 @@ export async function signIn(email, password) {
   return saveSession(data)
 }
 
+async function authUser(accessToken) {
+  const res = await fetch(`${baseUrl()}/auth/v1/user`, {
+    headers: {
+      apikey: apiKey(),
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.msg || data?.message || 'Não foi possível carregar sua conta.')
+  return data
+}
+
+export function signInWithGoogle(redirectTo = '') {
+  const redirect = redirectTo || (typeof location !== 'undefined' ? location.origin : '')
+  const url = new URL(`${baseUrl()}/auth/v1/authorize`)
+  url.searchParams.set('provider', 'google')
+  if (redirect) url.searchParams.set('redirect_to', redirect)
+  location.assign(url.toString())
+}
+
+export async function consumeOAuthSessionFromUrl() {
+  if (typeof location === 'undefined') return null
+  const hash = new URLSearchParams(location.hash.replace(/^#/, ''))
+  const oauthError = hash.get('error_description') || hash.get('error')
+  if (oauthError) {
+    history.replaceState({}, '', location.pathname + location.search)
+    throw new Error(oauthError)
+  }
+  const accessToken = hash.get('access_token')
+  if (!accessToken) return null
+  const refreshToken = hash.get('refresh_token') || ''
+  const expiresIn = Number(hash.get('expires_in') || 3600)
+  const user = await authUser(accessToken)
+  const session = saveSession({
+    access_token: accessToken,
+    refresh_token: refreshToken,
+    expires_in: expiresIn,
+    user,
+  })
+  history.replaceState({}, '', location.pathname + location.search)
+  return session
+}
+
 export async function signUp(email, password, redirectTo = '') {
   const path = redirectTo ? `signup?redirect_to=${encodeURIComponent(redirectTo)}` : 'signup'
   const data = await authRequest(path, { email, password })
