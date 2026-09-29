@@ -47,6 +47,7 @@ import {
   listBusinessNotifications,
   businessMarkNotificationsRead,
   sendBusinessPushTest,
+  getZaiaPushPublicKey,
   cancelAppointment,
 } from './cloud.js'
 
@@ -181,6 +182,12 @@ async function loadBusinessNotifications(){
 }
 async function openBusinessNotifications(){
   await loadBusinessNotifications()
+  if(businessPushState?.plan==='PRO'&&Number(businessPushState?.unread||0)>0){
+    try{
+      await businessMarkNotificationsRead(state.establishment.id)
+      businessPushState.unread=0
+    }catch{}
+  }
   modalData=null
   openModal('businessNotifications')
 }
@@ -1043,8 +1050,8 @@ function bindPage(){
   })
 
   $('#seedAgenda')?.addEventListener('click',seedAgenda)
-  $('#notifyBtn')?.addEventListener('click',enableNotifications)
-  $('#notifyTopBtn')?.addEventListener('click',enableNotifications)
+  $('#notifyBtn')?.addEventListener('click',openBusinessNotifications)
+  $('#notifyTopBtn')?.addEventListener('click',openBusinessNotifications)
   $('#seedStarterCatalog')?.addEventListener('click',async e=>{
     const button=e.currentTarget
     setBusy(button,true,'Adicionando...')
@@ -1686,10 +1693,38 @@ function seedAgenda(){
   persistLocal();render()
 }
 async function enableNotifications(){
-  if(!('Notification'in window))return alert('Este navegador não suporta notificações.')
-  const result=await Notification.requestPermission();state.notificationsEnabled=result==='granted';persistLocal()
-  if(result==='granted'){new Notification(`${state.establishment.name}: notificações ativadas`,{body:'Lembretes da agenda e alertas operacionais poderão aparecer neste dispositivo.',icon:'/icon.svg'})}
-  render()
+  if(state.establishment?.planCode!=='PRO'){
+    await openBusinessNotifications()
+    return
+  }
+  if(!('Notification' in window)||!('serviceWorker' in navigator)||!('PushManager' in window)){
+    return alert('Este navegador não oferece suporte a notificações Push.')
+  }
+  try{
+    const permission=await Notification.requestPermission()
+    if(permission!=='granted')return alert('Permissão de notificações não concedida.')
+    const registration=await navigator.serviceWorker.ready
+    let subscription=await registration.pushManager.getSubscription()
+    if(!subscription){
+      const publicKey=await getZaiaPushPublicKey()
+      subscription=await registration.pushManager.subscribe({
+        userVisibleOnly:true,
+        applicationServerKey:urlBase64ToUint8Array(publicKey),
+      })
+    }
+    const json=subscription.toJSON()
+    await businessRegisterPush(state.establishment.id,{
+      endpoint:json.endpoint,
+      keys:json.keys,
+    })
+    state.notificationsEnabled=true
+    businessPushState=await businessPushStatus(state.establishment.id)
+    await sendBusinessPushTest(state.establishment.id)
+    await loadBusinessNotifications()
+    render()
+  }catch(error){
+    alert(friendlyError(error))
+  }
 }
 
 if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}
