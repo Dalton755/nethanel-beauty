@@ -358,43 +358,67 @@ function friendlyError(error){
 }
 
 async function boot(){
-  loading=true;render()
+  loading=true
+  loginBrand=loginBrand||loadCachedBrand()
+  render()
   if(!cloudEnabled()){
     state=localLoad();loading=false;render();return
   }
   try{
     try{await consumeOAuthSessionFromUrl()}catch(error){authMessage=friendlyError(error)}
+
+    if(!getSession()){
+      const slug=new URLSearchParams(location.search).get('loja')
+      if(slug){
+        try{
+          const publicBrand=await publicBusinessBranding(slug)
+          if(publicBrand?.brandEnabled){
+            loginBrand=publicBrand
+            localStorage.setItem(brandCacheKey,JSON.stringify(publicBrand))
+          }
+        }catch{}
+      }
+    }
+
     const loaded=await loadCloudState()
     if(!loaded.authenticated){
       currentUser=null;state=emptyState();loading=false;render();return
     }
     currentUser=loaded.user||getSession()?.user||null
     state={...emptyState(),...loaded}
+    if(state.establishment){
+      cacheBusinessBrand(state.establishment)
+    }
   }catch(error){
     authMessage=`Não foi possível carregar os dados: ${friendlyError(error)}`
     state=emptyState()
   }
   loading=false;render()
 }
-
 function render(){
   const app=$('#app')
   if(!app)return
+  const activeBrand=state.establishment?.brandEnabled?state.establishment:loginBrand
+  applyBrandTheme(activeBrand)
   if(loading){app.innerHTML=loadingPage();return}
   if(cloudEnabled()&&!getSession()){app.innerHTML=authPage();bindAuth();return}
   if(!state.setup){app.innerHTML=onboarding();bindOnboarding();return}
   app.innerHTML=`<div class="shell">${nav()}${topbar()}<main class="content">${pageContent()}</main></div>${modal?modalHtml():''}`
   bindGlobal();bindPage();if(modal)bindModal()
 }
-
 function loadingPage(){
-  return '<section class="onboard zaia-auth"><div class="onboard-inner loading-inner"><div class="auth-brand">'+zaiaLogo()+'</div><div class="loading-ring"></div><h1>Preparando seu espaço</h1><p class="subtitle">Organizando sua operação com a experiência ZAIA.</p></div></section>'
-}
-
-function authPage(){
-  return '<section class="onboard zaia-auth"><div class="auth-shell"><div class="auth-visual"><div class="auth-brand">'+zaiaLogo()+'</div><div class="auth-copy"><span class="step">GESTÃO PARA NEGÓCIOS DE BELEZA</span><h1>Mais que beleza.<br>Mais possibilidades.</h1><p>Agenda, equipe, clientes, estoque e inteligência em uma experiência feita para o seu negócio.</p></div><div class="auth-powered">by Nethanel</div></div><div class="auth-panel"><div class="mobile-auth-brand">'+zaiaLogo()+'</div><div class="step">BEM-VINDO À ZAIA</div><h1>Entre no seu espaço.</h1><p class="subtitle">Sua operação organizada, elegante e sempre à mão.</p>'+(authMessage?'<div class="warning-box" style="margin-top:18px">'+esc(authMessage)+'</div>':'')+'<div class="auth-card"><button type="button" class="google-auth-btn" id="googleLogin"><span class="google-g">G</span><span>Continuar com Google</span></button><div class="auth-divider"><span>ou</span></div><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="seu@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Sua senha"></div><button class="btn primary wide" name="action" value="login">Entrar '+icon('arrow',18)+'</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper auth-helper">No primeiro acesso, a ZAIA monta uma base inicial de acordo com o segmento do estabelecimento.</p><div class="auth-client-entry"><span>Quer agendar um serviço?</span><a class="btn ghost wide" href="/cliente">Encontrar profissionais e horários</a></div></div><div class="mobile-powered">by Nethanel</div></div></div></section>'
-}
-function bindAuth(){
+  const brand=loginBrand?.brandEnabled?businessBrandHtml(loginBrand,{login:true}):zaiaLogo()
+  return `<section class="onboard zaia-auth"><div class="onboard-inner loading-inner"><div class="auth-brand">${brand}</div><div class="loading-ring"></div><h1>Preparando seu espaço</h1><p class="subtitle">Organizando sua operação com a experiência ZAIA.</p></div></section>`
+}function authPage(){
+  const branded=loginBrand?.brandEnabled&&loginBrand?.brandLogoUrl
+  const visualBrand=branded?businessBrandHtml(loginBrand,{login:true}):zaiaLogo()
+  const mobileBrand=branded?businessBrandHtml(loginBrand,{login:true}):zaiaLogo()
+  const heading=branded?`Entre no ${esc(loginBrand.name)}.`:'Entre no seu espaço.'
+  const kicker=branded?'ACESSO DO ESTABELECIMENTO':'BEM-VINDO À ZAIA'
+  const visualTitle=branded?`${esc(loginBrand.name)}.<br>Seu espaço, sua marca.`:'Mais que beleza.<br>Mais possibilidades.'
+  const visualText=branded?'A experiência da sua equipe com a identidade do seu negócio e a tecnologia ZAIA por trás.':'Agenda, equipe, clientes, estoque e inteligência em uma experiência feita para o seu negócio.'
+  return `<section class="onboard zaia-auth ${branded?'merchant-auth':''}"><div class="auth-shell"><div class="auth-visual"><div class="auth-brand">${visualBrand}</div><div class="auth-copy"><span class="step">${branded?'TECNOLOGIA ZAIA':'GESTÃO PARA NEGÓCIOS DE BELEZA'}</span><h1>${visualTitle}</h1><p>${visualText}</p></div><div class="auth-powered">${branded?'ZAIA • by Nethanel':'by Nethanel'}</div></div><div class="auth-panel"><div class="mobile-auth-brand">${mobileBrand}</div><div class="step">${kicker}</div><h1>${heading}</h1><p class="subtitle">Sua operação organizada, elegante e sempre à mão.</p>${authMessage?`<div class="warning-box" style="margin-top:18px">${esc(authMessage)}</div>`:''}<div class="auth-card"><button type="button" class="google-auth-btn" id="googleLogin"><span class="google-g">G</span><span>Continuar com Google</span></button><div class="auth-divider"><span>ou</span></div><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="seu@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Sua senha"></div><button class="btn primary wide" name="action" value="login">Entrar ${icon('arrow',18)}</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper auth-helper">${branded?'A identidade visual deste acesso pertence ao estabelecimento. ZAIA permanece integrada à operação.':'No primeiro acesso, a ZAIA monta uma base inicial de acordo com o segmento do estabelecimento.'}</p><div class="auth-client-entry"><span>Quer agendar um serviço?</span><a class="btn ghost wide" href="/cliente">Encontrar profissionais e horários</a></div></div><div class="mobile-powered">${branded?'ZAIA • by Nethanel':'by Nethanel'}</div></div></div></section>`
+}function bindAuth(){
   const form=$('#authForm')
   $('#googleLogin')?.addEventListener('click',()=>{
     signInWithGoogle('https://nethanel-beauty.vercel.app/')
@@ -422,9 +446,8 @@ function topbar(){
   const est=state.establishment
   const segments=est.segments.map(s=>SEGMENTS[s]?.name).filter(Boolean).join(' • ')
   const userLabel=(currentUser?.email||'Conta ZAIA').split('@')[0]
-  return '<header class="topbar"><div class="mobile-brand">'+zaiaLogo(true)+'<div class="brandtext"><strong>'+esc(est.name)+'</strong><span>'+esc(segments)+'</span></div></div><div class="desktop-search">'+icon('search',18)+'<span>Buscar clientes, serviços e atendimentos...</span></div><div class="top-actions"><button class="icon-button" id="notifyTopBtn" aria-label="Notificações">'+icon('bell',19)+'<i></i></button><div class="account-chip"><div class="avatar">'+esc((userLabel[0]||'Z').toUpperCase())+'</div><div><strong>'+esc(userLabel)+'</strong><span>'+esc(est.name)+'</span></div></div></div></header>'
-}
-function nav(){
+  return `<header class="topbar"><div class="mobile-brand">${businessBrandHtml(est,{compact:true})}<div class="brandtext"><strong>${esc(est.name)}</strong><span>${esc(segments)}</span></div></div><div class="desktop-search">${icon('search',18)}<span>Buscar clientes, serviços e atendimentos...</span></div><div class="top-actions"><button class="icon-button" id="notifyTopBtn" aria-label="Notificações">${icon('bell',19)}<i></i></button><div class="account-chip"><div class="avatar">${esc((userLabel[0]||'Z').toUpperCase())}</div><div><strong>${esc(userLabel)}</strong><span>${esc(est.name)}</span></div></div></div></header>`
+}function nav(){
   const items=[
     ['home','home','Início'],
     ['agenda','calendar','Agenda'],
@@ -434,7 +457,8 @@ function nav(){
     ['inventory','box','Estoque'],
     ['more','menu','Mais']
   ]
-  return '<nav class="nav"><div class="nav-brand">'+zaiaLogo()+'</div><div class="nav-items">'+items.map(([p,i,l])=>'<button data-page="'+p+'" class="'+(page===p?'active':'')+'">'+icon(i,20)+'<span>'+l+'</span></button>').join('')+'</div><button class="zaia-pro-card" data-open="zaiaPro"><span class="pro-icon">'+icon('crown',20)+'</span><span><strong>ZAIA Pro</strong><small>Personalize sua marca</small></span><b>›</b></button><div class="nav-powered">ZAIA <small>by Nethanel</small></div></nav>'
+  const brand=businessBrandHtml(state.establishment)
+  return `<nav class="nav"><div class="nav-brand merchant-nav-brand">${brand}</div><div class="nav-items">${items.map(([p,i,l])=>`<button data-page="${p}" class="${page===p?'active':''}">${icon(i,20)}<span>${l}</span></button>`).join('')}</div><button class="zaia-pro-card" data-open="zaiaPro"><span class="pro-icon">${icon('crown',20)}</span><span><strong>Personalização</strong><small>${state.establishment.brandEnabled?'Identidade ativa':'Configure sua marca'}</small></span><b>›</b></button><div class="nav-powered">Tecnologia <strong>ZAIA</strong> <small>by Nethanel</small></div></nav>`
 }
 function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage,promotions:promotionsPage})[page]?.()||homePage()}
 
