@@ -925,3 +925,29 @@ img,svg{max-width:100%}
     justify-self:end;
   }
 }
+
+
+/* Public client mobile: avoid lateral carousels on narrow screens */
+@media(max-width:560px){
+  .client-chips{
+    display:flex;
+    flex-wrap:wrap;
+    overflow:visible;
+    padding-bottom:0
+  }
+  .client-chips button{flex:0 0 auto}
+  .client-date-strip{
+    display:grid;
+    grid-template-columns:repeat(5,minmax(0,1fr));
+    overflow:visible;
+    gap:6px
+  }
+  .client-date-strip button{
+    min-width:0;
+    width:100%;
+    padding:8px 4px
+  }
+  .client-date-strip button span{font-size:8px}
+  .client-store-hero{max-width:100%}
+  .client-searchbar input{width:100%}
+}
