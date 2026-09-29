@@ -1,6 +1,6 @@
-import { cp, mkdir, readFile, writeFile } from 'node:fs/promises'
+import { cp, mkdir, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
-import { gunzipSync } from 'node:zlib'
+import { execFileSync } from 'node:child_process'
 
 const url = process.env.SUPABASE_URL
 const key = process.env.SUPABASE_PUBLISHABLE_KEY
@@ -10,25 +10,19 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
+for (const file of ['src/app.js','src/cloud.js']) {
+  execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
+}
+
 await mkdir('dist', { recursive: true })
 
 for (const file of ['index.html','manifest.webmanifest','icon.svg','sw.js']) {
   await cp(file, `dist/${file}`)
 }
 
-async function restore(target, chunks) {
-  const encoded = (await Promise.all(chunks.map(file => readFile(file, 'utf8')))).join('')
-  const decoded = gunzipSync(Buffer.from(encoded, 'base64'))
-  await writeFile(`dist/${target}`, decoded)
-}
-
-await restore('app.js', [
-  'scripts/chunks/app_js.00.txt',
-  'scripts/chunks/app_js.01.txt',
-  'scripts/chunks/app_js.02.txt',
-])
-await restore('cloud.js', ['scripts/chunks/cloud_js.00.txt'])
-await restore('styles.css', ['scripts/chunks/styles_css.00.txt'])
+await cp('src/app.js', 'dist/app.js')
+await cp('src/cloud.js', 'dist/cloud.js')
+await cp('src/styles.css', 'dist/styles.css')
 
 await writeFile('dist/config.js', `window.BEAUTY_CONFIG = ${JSON.stringify({
   supabaseUrl: url,
