@@ -263,18 +263,17 @@ function render(){
   if(loading){app.innerHTML=loadingPage();return}
   if(cloudEnabled()&&!getSession()){app.innerHTML=authPage();bindAuth();return}
   if(!state.setup){app.innerHTML=onboarding();bindOnboarding();return}
-  app.innerHTML=`<div class="shell">${topbar()}<main class="content">${pageContent()}</main>${nav()}</div>${modal?modalHtml():''}`
+  app.innerHTML=`<div class="shell">${nav()}${topbar()}<main class="content">${pageContent()}</main></div>${modal?modalHtml():''}`
   bindGlobal();bindPage();if(modal)bindModal()
 }
 
 function loadingPage(){
-  return `<section class="onboard"><div class="onboard-inner" style="max-width:520px;padding-top:12vh;text-align:center"><div class="hero-logo" style="margin:auto">B</div><h1 style="font-size:28px">Preparando seu espaço...</h1><p class="subtitle">Carregando a operação do estabelecimento.</p></div></section>`
+  return '<section class="onboard zaia-auth"><div class="onboard-inner loading-inner"><div class="auth-brand">'+zaiaLogo()+'</div><div class="loading-ring"></div><h1>Preparando seu espaço</h1><p class="subtitle">Organizando sua operação com a experiência ZAIA.</p></div></section>'
 }
 
 function authPage(){
-  return `<section class="onboard"><div class="onboard-inner" style="max-width:480px;padding-top:5vh"><div class="hero-logo">B</div><div class="step" style="margin-top:22px">ACESSO AO ESTABELECIMENTO</div><h1>Entre no seu espaço.</h1><p class="subtitle">Cada usuário acessa somente os estabelecimentos aos quais pertence.</p>${authMessage?`<div class="warning-box" style="margin-top:18px">${esc(authMessage)}</div>`:''}<div class="card" style="margin-top:22px"><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="voce@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Mínimo de 6 caracteres"></div><button class="btn primary wide" name="action" value="login">Entrar</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper" style="margin-top:12px">No primeiro acesso, após entrar, você configura o tipo do estabelecimento e os serviços iniciais.</p></div></div></section>`
+  return '<section class="onboard zaia-auth"><div class="auth-shell"><div class="auth-visual"><div class="auth-brand">'+zaiaLogo()+'</div><div class="auth-copy"><span class="step">GESTÃO PARA NEGÓCIOS DE BELEZA</span><h1>Mais que beleza.<br>Mais possibilidades.</h1><p>Agenda, equipe, clientes, estoque e inteligência em uma experiência feita para o seu negócio.</p></div><div class="auth-powered">by Nethanel</div></div><div class="auth-panel"><div class="mobile-auth-brand">'+zaiaLogo()+'</div><div class="step">BEM-VINDO À ZAIA</div><h1>Entre no seu espaço.</h1><p class="subtitle">Sua operação organizada, elegante e sempre à mão.</p>'+(authMessage?'<div class="warning-box" style="margin-top:18px">'+esc(authMessage)+'</div>':'')+'<div class="auth-card"><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="seu@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Sua senha"></div><button class="btn primary wide" name="action" value="login">Entrar '+icon('arrow',18)+'</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper auth-helper">No primeiro acesso, a ZAIA monta uma base inicial de acordo com o segmento do estabelecimento.</p></div><div class="mobile-powered">by Nethanel</div></div></div></section>'
 }
-
 function bindAuth(){
   const form=$('#authForm')
   form?.addEventListener('submit',async e=>{
@@ -298,17 +297,27 @@ function bindAuth(){
 
 function topbar(){
   const est=state.establishment
-  return `<header class="topbar"><div class="brand"><div class="brandmark">B</div><div class="brandtext"><strong>${esc(est.name)}</strong><span>${est.segments.map(s=>SEGMENTS[s]?.name).filter(Boolean).join(' • ')}</span></div></div><div class="avatar">${esc(est.name[0]?.toUpperCase()||'B')}</div></header>`
+  const segments=est.segments.map(s=>SEGMENTS[s]?.name).filter(Boolean).join(' • ')
+  const userLabel=(currentUser?.email||'Conta ZAIA').split('@')[0]
+  return '<header class="topbar"><div class="mobile-brand">'+zaiaLogo(true)+'<div class="brandtext"><strong>'+esc(est.name)+'</strong><span>'+esc(segments)+'</span></div></div><div class="desktop-search">'+icon('search',18)+'<span>Buscar clientes, serviços e atendimentos...</span></div><div class="top-actions"><button class="icon-button" id="notifyTopBtn" aria-label="Notificações">'+icon('bell',19)+'<i></i></button><div class="account-chip"><div class="avatar">'+esc((userLabel[0]||'Z').toUpperCase())+'</div><div><strong>'+esc(userLabel)+'</strong><span>'+esc(est.name)+'</span></div></div></div></header>'
 }
 function nav(){
-  const items=[['home','⌂','Hoje'],['agenda','▣','Agenda'],['clients','♙','Clientes'],['catalog','◇','Catálogo'],['more','☰','Mais']]
-  return `<nav class="nav">${items.map(([p,i,l])=>`<button data-page="${p}" class="${page===p?'active':''}"><span>${i}</span>${l}</button>`).join('')}</nav>`
+  const items=[
+    ['home','home','Início'],
+    ['agenda','calendar','Agenda'],
+    ['clients','users','Clientes'],
+    ['services','sparkle','Serviços'],
+    ['professionals','briefcase','Profissionais'],
+    ['inventory','box','Estoque'],
+    ['more','menu','Mais']
+  ]
+  return '<nav class="nav"><div class="nav-brand">'+zaiaLogo()+'</div><div class="nav-items">'+items.map(([p,i,l])=>'<button data-page="'+p+'" class="'+(page===p?'active':'')+'">'+icon(i,20)+'<span>'+l+'</span></button>').join('')+'</div><button class="zaia-pro-card" data-open="zaiaPro"><span class="pro-icon">'+icon('crown',20)+'</span><span><strong>ZAIA Pro</strong><small>Personalize sua marca</small></span><b>›</b></button><div class="nav-powered">ZAIA <small>by Nethanel</small></div></nav>'
 }
 function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage})[page]?.()||homePage()}
 
 function onboarding(){
   const current=state._onboarding||{step:1,type:null,segments:[]};state._onboarding=current
-  if(current.step===1)return `<section class="onboard"><div class="onboard-inner"><div class="hero-logo">B</div><div class="step">PASSO 1 DE 3</div><h1>Que tipo de negócio você administra?</h1><p class="subtitle">O sistema monta uma experiência específica para o seu segmento. Você poderá personalizar tudo depois.</p><div class="segments">${Object.entries(SEGMENTS).map(([k,s])=>`<button class="segment ${current.type===k?'selected':''}" data-segment="${k}"><div class="segment-icon">${s.icon}</div><strong>${s.name}</strong><small>${s.desc}</small></button>`).join('')}<button class="segment ${current.type==='STUDIO'?'selected':''}" data-segment="STUDIO"><div class="segment-icon">🏠</div><strong>Studio multidisciplinar</strong><small>Combine cabelo, unhas, cílios, sobrancelhas e outros.</small></button></div><button class="btn primary wide" id="next1" ${!current.type?'disabled':''}>Continuar</button></div></section>`
+  if(current.step===1)return `<section class="onboard"><div class="onboard-inner"><div class="hero-logo zaia-hero">'+zaiaLogo()+'</div><div class="step">PASSO 1 DE 3</div><h1>Que tipo de negócio você administra?</h1><p class="subtitle">O sistema monta uma experiência específica para o seu segmento. Você poderá personalizar tudo depois.</p><div class="segments">${Object.entries(SEGMENTS).map(([k,s])=>`<button class="segment ${current.type===k?'selected':''}" data-segment="${k}"><div class="segment-icon">${s.icon}</div><strong>${s.name}</strong><small>${s.desc}</small></button>`).join('')}<button class="segment ${current.type==='STUDIO'?'selected':''}" data-segment="STUDIO"><div class="segment-icon">🏠</div><strong>Studio multidisciplinar</strong><small>Combine cabelo, unhas, cílios, sobrancelhas e outros.</small></button></div><button class="btn primary wide" id="next1" ${!current.type?'disabled':''}>Continuar</button></div></section>`
   if(current.step===2){
     const studio=current.type==='STUDIO'
     return `<section class="onboard"><div class="onboard-inner"><div class="step">PASSO 2 DE 3</div><h1>${studio?'Quais áreas fazem parte do seu studio?':'Vamos configurar seu estabelecimento.'}</h1><p class="subtitle">${studio?'Marque somente os segmentos que realmente fazem parte da operação.':'Essa escolha define serviços, estoque, formulários e linguagem inicial.'}</p>${studio?`<div class="segments">${Object.entries(SEGMENTS).map(([k,s])=>`<button class="segment ${current.segments.includes(k)?'selected':''}" data-multi="${k}"><div class="segment-icon">${s.icon}</div><strong>${s.name}</strong></button>`).join('')}</div>`:`<div class="card" style="margin:22px 0"><div class="segment-icon">${SEGMENTS[current.type].icon}</div><h2>${SEGMENTS[current.type].name}</h2><p class="subtitle">${SEGMENTS[current.type].desc}</p></div>`}<button class="btn primary wide" id="next2" ${studio&&!current.segments.length?'disabled':''}>Continuar</button><button class="btn ghost wide" id="back2" style="margin-top:10px">Voltar</button></div></section>`
