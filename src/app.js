@@ -27,6 +27,9 @@ import {
   insertProfessionalBlock,
   deleteProfessionalBlock,
   getAvailableSlots,
+  insertPromotion,
+  updatePromotion,
+  deletePromotion,
 } from './cloud.js'
 
 const SEGMENTS = {
@@ -49,12 +52,13 @@ const todayISO = ()=> new Date().toISOString().slice(0,10)
 const storageKey='beauty_os_mvp_v2'
 
 const emptyState = () => ({
-  setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], notificationsEnabled:false
+  setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], promotions:[], notificationsEnabled:false
 })
 
 let state=emptyState()
 let page='home'
 let modal=null
+let modalData=null
 let loading=true
 let authMessage=''
 let currentUser=null
@@ -370,7 +374,7 @@ function nav(){
   ]
   return '<nav class="nav"><div class="nav-brand">'+zaiaLogo()+'</div><div class="nav-items">'+items.map(([p,i,l])=>'<button data-page="'+p+'" class="'+(page===p?'active':'')+'">'+icon(i,20)+'<span>'+l+'</span></button>').join('')+'</div><button class="zaia-pro-card" data-open="zaiaPro"><span class="pro-icon">'+icon('crown',20)+'</span><span><strong>ZAIA Pro</strong><small>Personalize sua marca</small></span><b>›</b></button><div class="nav-powered">ZAIA <small>by Nethanel</small></div></nav>'
 }
-function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage})[page]?.()||homePage()}
+function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage,promotions:promotionsPage})[page]?.()||homePage()}
 
 function onboarding(){
   const current=state._onboarding||{step:1,type:null,segments:[]};state._onboarding=current
@@ -499,10 +503,32 @@ function professionalsPage(){
     return `<div class="item pro-card"><div class="avatar pro-avatar">${esc((p.name||'P')[0].toUpperCase())}</div><div class="item-main"><div class="pro-title"><strong>${esc(p.name)}</strong><span class="pill good">Ativo</span></div><div class="meta">${esc(p.jobTitle||'Profissional')} • ${p.acceptsAllServices!==false?'Todos os serviços':serviceCount+' serviço'+(serviceCount===1?'':'s')}</div><div class="meta">${esc(scheduleSummary(p))}</div><div class="meta">${esc(commissionText(p))}${futureBlocks?` • ${futureBlocks} bloqueio${futureBlocks>1?'s':''}`:''}</div><div class="pro-actions"><button class="btn small" data-pro-edit="${p.id}">Editar</button><button class="btn small" data-pro-services="${p.id}">Serviços</button><button class="btn small" data-pro-hours="${p.id}">Jornada</button><button class="btn small ghost" data-pro-block="${p.id}">Bloquear horário</button></div></div></div>`
   }).join('')}</div>`:`<div class="empty"><b>Nenhum profissional cadastrado</b>Cadastre a equipe para organizar disponibilidade e serviços.</div>`}<div class="notice">A agenda já impede choque de horários, horários fora da jornada e serviços não habilitados para o profissional.</div><button class="fab" data-open="professional">+</button>`
 }
-function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon">${icon('bell',20)}</span><div class="item-main"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div><b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
+function promotionsPage(){
+  const now=Date.now()
+  const list=state.promotions||[]
+  return `<div class="page-heading"><span class="eyebrow">MARKETING</span><h1 class="title">Promoções</h1><p class="subtitle">Crie ofertas que aparecem para clientes na ZAIA enquanto estiverem ativas.</p></div>
+  <div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="promotion">+ Nova promoção</button></div>
+  <div class="section-head"><h2>Promoções cadastradas</h2><span class="pill">${list.length}</span></div>
+  ${list.length?`<div class="list promotion-admin-list">${list.map(p=>{
+    const active=p.active&&new Date(p.startsAt).getTime()<=now&&new Date(p.endsAt).getTime()>=now
+    const svc=serviceById(p.serviceId)
+    return `<div class="item promotion-admin-card"><div class="promotion-admin-icon">${icon('sparkle',20)}</div><div class="item-main"><div class="product-tags"><span class="pill ${active?'good':''}">${active?'Ativa':p.active?'Agendada/encerrada':'Inativa'}</span>${svc?`<span class="tag">${esc(svc.name)}</span>`:''}</div><strong>${esc(p.title)}</strong><div class="promotion-offer">${esc(p.offerText)}</div><div class="meta">${esc(p.description||'')}<br>${fmtDate(String(p.startsAt).slice(0,10))} até ${fmtDate(String(p.endsAt).slice(0,10))}</div></div><div class="item-actions promotion-actions"><button class="btn small" data-promotion-edit="${p.id}">Editar</button><button class="btn small ghost" data-promotion-delete="${p.id}">Excluir</button></div></div>`
+  }).join('')}</div>`:`<div class="empty"><b>Nenhuma promoção ainda</b>Crie uma oferta para aparecer na área de clientes da ZAIA.</div>`}`
+}
+
+function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon">${icon('bell',20)}</span><div class="item-main"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div><b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button><button class="item" data-page="promotions"><span class="settings-icon">${icon('sparkle',20)}</span><div class="item-main"><strong>Promoções</strong><div class="meta">Ofertas para clientes na ZAIA</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
 function modalHtml(){
   const close='<button type="button" class="x" data-close aria-label="Fechar">×</button>'
   if(modal==='zaiaPro')return `<div class="modal-backdrop"><div class="modal pro-modal"><div class="modal-head"><div><span class="eyebrow">ZAIA PRO</span><h3>Personalize a experiência</h3><div class="helper">Sua marca na frente. ZAIA trabalhando por trás.</div></div>${close}</div><div class="pro-preview"><div class="pro-preview-icon">${zaiaLogo(true)}</div><div><strong>${esc(state.establishment.name)}</strong><span>Preview da identidade personalizada</span></div></div><div class="pro-feature-grid"><div><span>${icon('sparkle',20)}</span><strong>Logo própria</strong><small>Marca do estabelecimento no app</small></div><div><span>${icon('settings',20)}</span><strong>Cores da marca</strong><small>Primária, secundária e detalhes</small></div><div><span>${icon('box',20)}</span><strong>Ícone do app</strong><small>PWA com identidade do negócio</small></div><div><span>${icon('crown',20)}</span><strong>White label</strong><small>ZAIA discreta na experiência</small></div></div><div class="notice"><strong>Estrutura do ZAIA Pro pronta para personalização.</strong><span>A ativação comercial e o upload definitivo da identidade entram no próximo bloco do plano Pro.</span></div><button type="button" class="btn primary wide" data-close>Entendi</button></div></div>`
+
+  if(modal==='promotion'){
+    const editId=modalData?.promotionId||null
+    const p=(state.promotions||[]).find(x=>x.id===editId)||{}
+    const start=(p.startsAt||new Date().toISOString()).slice(0,16)
+    const defaultEnd=new Date(Date.now()+7*86400000).toISOString().slice(0,16)
+    const end=(p.endsAt||defaultEnd).slice(0,16)
+    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><div><span class="eyebrow">PROMOÇÃO</span><h3>${editId?'Editar promoção':'Nova promoção'}</h3></div>${close}</div><form class="form" id="promotionForm"><input type="hidden" name="id" value="${esc(editId||'')}"><div class="field"><label>Título</label><input name="title" required maxlength="80" value="${esc(p.title||'')}" placeholder="Ex.: Semana da beleza"></div><div class="field"><label>Oferta</label><input name="offerText" required maxlength="80" value="${esc(p.offerText||'')}" placeholder="Ex.: 20% de desconto"></div><div class="field"><label>Descrição</label><textarea name="description" rows="3" maxlength="300" placeholder="Conte ao cliente o que está incluso.">${esc(p.description||'')}</textarea></div><div class="field"><label>Serviço relacionado <small>(opcional)</small></label><select name="serviceId"><option value="">Todos / promoção geral</option>${state.services.filter(x=>x.active).map(x=>`<option value="${x.id}" ${p.serviceId===x.id?'selected':''}>${esc(x.name)}</option>`).join('')}</select></div><div class="row"><div class="field"><label>Início</label><input name="startsAt" type="datetime-local" value="${start}" required></div><div class="field"><label>Fim</label><input name="endsAt" type="datetime-local" value="${end}" required></div></div><label class="toggle-row"><input type="checkbox" name="active" ${p.active!==false?'checked':''}><span><strong>Promoção ativa</strong><small>Será exibida somente dentro do período definido.</small></span></label><button class="btn primary wide" type="submit">${editId?'Salvar alterações':'Publicar promoção'}</button></form></div></div>`
+  }
 
   if(modal==='appointment')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo ${vocab().appointment.toLowerCase()}</h3>${close}</div><form class="form" id="appointmentForm"><div class="field"><label>Cliente</label><input name="clientName" required placeholder="Nome da cliente"></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" data-mask="phone" maxlength="15" placeholder="(11) 99999-9999"></div><div class="field"><label>Serviço</label><select name="serviceId" id="appointmentService" required><option value="">Selecione</option>${state.services.filter(s=>s.active).map(s=>`<option value="${s.id}">${esc(s.name)} — ${fmtMoney(s.price)}</option>`).join('')}</select></div><div class="field"><label>Profissional</label><select name="professionalId" id="appointmentProfessional" required><option value="">Selecione o serviço primeiro</option></select></div><div id="appointmentMaterialsBox"></div><div class="row"><div class="field"><label>Data</label><input name="date" id="appointmentDate" type="date" value="${todayISO()}" required></div><div class="field"><label>Horário</label><input name="time" id="appointmentTime" type="time" value="09:00" required></div></div><button type="button" class="btn wide" id="checkAvailability">Ver horários livres</button><div id="availableSlots"></div><button class="btn primary wide" type="submit">Salvar horário</button></form></div></div>`
   if(modal==='client')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo cliente</h3>${close}</div><form class="form" id="clientForm"><div class="field"><label>Nome</label><input name="name" required></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" data-mask="phone" maxlength="15" placeholder="(11) 99999-9999"></div><button class="btn primary wide">Salvar cliente</button></form></div></div>`
@@ -611,6 +637,33 @@ function bindGlobal(){
   })
 }
 function bindPage(){
+  $('[data-promotion-edit]').forEach(b=>b.onclick=()=>{modalData={promotionId:b.dataset.promotionEdit};openModal('promotion')})
+  $('[data-promotion-delete]').forEach(b=>b.onclick=async()=>{
+    if(!confirm('Excluir esta promoção?'))return
+    try{await deletePromotion(b.dataset.promotionDelete);await boot()}catch(error){alert(friendlyError(error))}
+  })
+  $('#promotionForm')?.addEventListener('submit',async e=>{
+    e.preventDefault()
+    const form=e.currentTarget
+    const fd=Object.fromEntries(new FormData(form))
+    const payload={
+      title:String(fd.title||'').trim(),
+      offerText:String(fd.offerText||'').trim(),
+      description:String(fd.description||'').trim(),
+      serviceId:fd.serviceId||null,
+      startsAt:new Date(fd.startsAt).toISOString(),
+      endsAt:new Date(fd.endsAt).toISOString(),
+      active:form.elements.active?.checked!==false,
+    }
+    if(new Date(payload.endsAt)<=new Date(payload.startsAt))return alert('A data final precisa ser posterior ao início.')
+    const button=form.querySelector('button[type="submit"]');setBusy(button,true,'Salvando...')
+    try{
+      if(fd.id)await updatePromotion(fd.id,payload)
+      else await insertPromotion(state.establishment.id,payload)
+      modal=null;modalData=null;await boot()
+    }catch(error){setBusy(button,false);alert(friendlyError(error))}
+  })
+
   $('#seedAgenda')?.addEventListener('click',seedAgenda)
   $('#notifyBtn')?.addEventListener('click',enableNotifications)
   $('#notifyTopBtn')?.addEventListener('click',enableNotifications)
