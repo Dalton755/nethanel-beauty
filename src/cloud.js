@@ -133,11 +133,11 @@ export async function loadCloudState() {
   const [segments, services, products, clients, appointments, professionals, serviceMaterials, appointmentMaterials, professionalServices, workingHours, timeBlocks] = await Promise.all([
     rest(`establishment_segments?select=segment_code,active&establishment_id=eq.${eid}&active=eq.true&order=created_at.asc`),
     rest(`services?select=id,segment_code,name,description,duration_minutes,price,estimated_cost,return_interval_days,requires_deposit,active&establishment_id=eq.${eid}&order=name.asc`),
-    rest(`products?select=id,segment_code,name,category,usage_type,unit,stock_quantity,minimum_stock,unit_cost,sale_price,active&establishment_id=eq.${eid}&order=name.asc`),
+    rest(`products?select=id,segment_code,name,category,usage_type,unit,stock_quantity,minimum_stock,unit_cost,sale_price,active,starter_template_key&establishment_id=eq.${eid}&active=eq.true&order=name.asc`),
     rest(`clients?select=id,name,phone,email,birth_date,notes,last_visit_at,next_return_at,active&establishment_id=eq.${eid}&active=eq.true&order=name.asc`),
     rest(`appointments?select=id,client_id,professional_id,service_id,starts_at,ends_at,status,price,notes,completed_at&establishment_id=eq.${eid}&order=starts_at.asc`),
     rest(`professionals?select=id,user_id,name,phone,email,job_title,avatar_url,accepts_all_services,commission_type,commission_value,active&establishment_id=eq.${eid}&active=eq.true&order=name.asc`),
-    rest(`service_product_consumption?select=service_id,product_id,quantity&establishment_id=eq.${eid}`),
+    rest(`service_product_consumption?select=service_id,product_id,quantity,is_estimate&establishment_id=eq.${eid}`),
     rest(`appointment_materials?select=appointment_id,product_id,planned_quantity,used_quantity,unit_cost_snapshot&establishment_id=eq.${eid}`),
     rest(`professional_services?select=professional_id,service_id,custom_price,custom_duration_minutes,active&establishment_id=eq.${eid}`),
     rest(`professional_working_hours?select=id,professional_id,weekday,start_time,end_time,active&establishment_id=eq.${eid}&active=eq.true&order=weekday.asc,start_time.asc`),
@@ -146,7 +146,7 @@ export async function loadCloudState() {
 
   const serviceMaterialMap = {}
   for (const m of serviceMaterials || []) {
-    (serviceMaterialMap[m.service_id] ||= []).push({ productId: m.product_id, quantity: Number(m.quantity) })
+    (serviceMaterialMap[m.service_id] ||= []).push({ productId: m.product_id, quantity: Number(m.quantity), estimated: m.is_estimate === true })
   }
   const appointmentMaterialMap = {}
   for (const m of appointmentMaterials || []) {
@@ -210,12 +210,13 @@ export async function loadCloudState() {
       duration: s.duration_minutes, estimatedCost: Number(s.estimated_cost || 0),
       returnDays: Number(s.return_interval_days || 0), requiresDeposit: s.requires_deposit, active: s.active,
       materials: serviceMaterialMap[s.id] || [],
+      materialsEstimated: (serviceMaterialMap[s.id] || []).length > 0 && (serviceMaterialMap[s.id] || []).every(m => m.estimated),
     })),
     products: visibleProducts.map(p => ({
       id: p.id, name: p.name, segment: p.segment_code, category: p.category,
       type: p.usage_type, unit: p.unit, stock: Number(p.stock_quantity),
       minStock: Number(p.minimum_stock), cost: Number(p.unit_cost), salePrice: p.sale_price == null ? null : Number(p.sale_price),
-      active: p.active,
+      active: p.active, starterTemplateKey: p.starter_template_key || null, suggested: Boolean(p.starter_template_key),
     })),
     clients: clients.map(c => {
       const last = latestCompleted[c.id]
@@ -417,6 +418,8 @@ export async function createEstablishment({ name, segments, services }) {
         prefer: 'return=minimal',
       })
     }
+
+    await seedStarterCatalog(est.id)
   } catch (error) {
     await rest(`establishments?id=eq.${est.id}`, { method: 'DELETE', prefer: 'return=minimal' }).catch(() => {})
     throw error
@@ -448,6 +451,39 @@ export async function insertService(establishmentId, service) {
     prefer: 'return=representation',
   })
   return row
+}
+
+export async function seedStarterCatalog(establishmentId) {
+  return rest('rpc/seed_starter_catalog', {
+    method: 'POST',
+    body: { p_establishment_id: establishmentId },
+  })
+}
+
+export async function updateProduct(productId, product) {
+  const rows = await rest(`products?id=eq.${q(productId)}&select=*`, {
+    method: 'PATCH',
+    body: {
+      segment_code: product.segment || null,
+      name: product.name,
+      category: product.category || null,
+      usage_type: product.type || 'INTERNAL',
+      unit: product.unit || 'un',
+      stock_quantity: Number(product.stock || 0),
+      minimum_stock: Number(product.minStock || 0),
+      unit_cost: Number(product.cost || 0),
+      updated_at: new Date().toISOString(),
+    },
+    prefer: 'return=representation',
+  })
+  return rows?.[0] || null
+}
+
+export async function archiveProduct(productId) {
+  return rest('rpc/archive_product', {
+    method: 'POST',
+    body: { p_product_id: productId },
+  })
 }
 
 export async function insertProduct(establishmentId, product) {
