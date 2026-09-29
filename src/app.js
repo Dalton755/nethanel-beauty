@@ -42,6 +42,12 @@ import {
   markFinancePaid,
   saveFinanceSettings,
   insertFinanceAccount,
+  businessPushStatus,
+  businessRegisterPush,
+  listBusinessNotifications,
+  businessMarkNotificationsRead,
+  sendBusinessPushTest,
+  cancelAppointment,
 } from './cloud.js'
 
 const SEGMENTS = {
@@ -80,6 +86,9 @@ let businessLocationDraft=null
 let loginBrand=null
 let financeLoading=false
 let financeRange=null
+let businessPushState=null
+let businessNotificationItems=[]
+let businessNotificationLoading=false
 
 function localLoad(){
   try{return JSON.parse(localStorage.getItem(storageKey))||emptyState()}catch{return emptyState()}
@@ -145,6 +154,35 @@ function dateRange(days){
   start.setDate(end.getDate()-Math.max(0,days-1))
   const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
   return {start:iso(start),end:iso(end),label:`Últimos ${days} dias`}
+}
+function urlBase64ToUint8Array(base64String){
+  const padding='='.repeat((4-base64String.length%4)%4)
+  const base64=(base64String+padding).replace(/-/g,'+').replace(/_/g,'/')
+  const raw=atob(base64)
+  return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))
+}
+async function loadBusinessNotifications(){
+  if(!cloudEnabled()||!state.establishment?.id||businessNotificationLoading)return
+  businessNotificationLoading=true
+  try{
+    const [status,items]=await Promise.all([
+      businessPushStatus(state.establishment.id),
+      listBusinessNotifications(state.establishment.id,40),
+    ])
+    businessPushState=status
+    businessNotificationItems=items||[]
+    state.notificationsEnabled=Number(status?.devices||0)>0
+  }catch(error){
+    businessPushState={error:friendlyError(error),plan:state.establishment?.planCode||'FREE',devices:0,unread:0}
+    businessNotificationItems=[]
+  }finally{
+    businessNotificationLoading=false
+  }
+}
+async function openBusinessNotifications(){
+  await loadBusinessNotifications()
+  modalData=null
+  openModal('businessNotifications')
 }
 function paymentMethodLabel(v){
   return ({PIX:'Pix',CASH:'Dinheiro',DEBIT:'Débito',CREDIT:'Crédito',TRANSFER:'Transferência',OTHER:'Outro'})[v]||'Outro'
