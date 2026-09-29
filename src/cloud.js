@@ -48,8 +48,9 @@ export async function signIn(email, password) {
   return saveSession(data)
 }
 
-export async function signUp(email, password) {
-  const data = await authRequest('signup', { email, password })
+export async function signUp(email, password, redirectTo = '') {
+  const path = redirectTo ? `signup?redirect_to=${encodeURIComponent(redirectTo)}` : 'signup'
+  const data = await authRequest(path, { email, password })
   if (data?.access_token) saveSession(data)
   return data
 }
