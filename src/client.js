@@ -97,7 +97,7 @@ function authModal(){
   const profile=state.authMode==='profile'
   const p=state.customerData?.profile||{}
   if(profile)return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><span class="client-kicker">SEU PERFIL ZAIA</span><h2>Complete seus dados</h2><p>Usaremos essas informações nos seus agendamentos.</p><form id="clientProfileForm" class="client-auth-form"><div class="field"><label>Nome completo</label><input name="name" required value="${esc(p.full_name||'')}"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" value="${esc(maskPhone(p.phone||''))}"></div><div class="field"><label>Data de nascimento <small>(opcional)</small></label><input name="birthDate" type="date" value="${esc(p.birth_date||'')}"></div><label class="client-check"><input type="checkbox" name="marketing" ${p.marketing_opt_in!==false?'checked':''}><span>Quero receber promoções relevantes na ZAIA</span></label><button class="client-primary wide" type="submit">Salvar perfil</button></form></div></div>`
-  return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><div class="client-auth-logo">${mark()}</div><span class="client-kicker">${signup?'CRIAR CONTA':'MINHA ZAIA'}</span><h2>${signup?'Crie sua conta ZAIA':'Entre na sua conta'}</h2><p>${signup?'Seus agendamentos, histórico e lembretes em um só lugar.':'Continue de onde parou em qualquer estabelecimento.'}</p>${state.authMessage?`<div class="client-alert">${esc(state.authMessage)}</div>`:''}<form id="clientAuthForm" class="client-auth-form">${signup?`<div class="field"><label>Nome completo</label><input name="name" required minlength="2"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" placeholder="(11) 99999-9999"></div>`:''}<div class="field"><label>E-mail</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>Senha</label><input name="password" type="password" required minlength="6" autocomplete="${signup?'new-password':'current-password'}"></div><button class="client-primary wide" type="submit">${signup?'Criar conta':'Entrar'}</button></form><button class="client-auth-switch" id="authSwitch">${signup?'Já tenho conta':'Ainda não tenho conta'}</button></div></div>`
+  return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><div class="client-auth-logo">${mark()}</div><span class="client-kicker">${signup?'CRIAR CONTA':'MINHA ZAIA'}</span><h2>${signup?'Crie sua conta ZAIA':'Entre na sua conta'}</h2><p>${signup?'Seus agendamentos, histórico e lembretes em um só lugar.':'Continue de onde parou em qualquer estabelecimento.'}</p>${state.authMessage?`<div class="client-alert">${esc(state.authMessage)}</div>`:''}<form id="clientAuthForm" class="client-auth-form">${signup?`<div class="field"><label>Nome completo</label><input name="name" required minlength="2"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" placeholder="(11) 99999-9999"></div>`:''}<div class="field"><label>E-mail</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>Senha</label><div class="client-password-field"><input id="clientAuthPassword" name="password" type="password" required minlength="6" autocomplete="${signup?'new-password':'current-password'}"><button type="button" class="client-password-toggle" data-password-toggle aria-label="Mostrar senha">Mostrar</button></div></div><button class="client-primary wide" type="submit">${signup?'Criar conta':'Entrar'}</button></form><button class="client-auth-switch" id="authSwitch">${signup?'Já tenho conta':'Ainda não tenho conta'}</button></div></div>`
 }
 
 
@@ -317,6 +317,15 @@ function bind(){
   $('[data-auth-close]').forEach(b=>b.onclick=()=>{state.authMode=null;state.authMessage='';render()})
   $('#authSwitch')?.addEventListener('click',()=>{state.authMode=state.authMode==='signup'?'login':'signup';state.authMessage='';render()})
   $('#authPhone')?.addEventListener('input',e=>e.target.value=maskPhone(e.target.value))
+  $('[data-password-toggle]').forEach(b=>b.onclick=()=>{
+    const input=$('#clientAuthPassword')
+    if(!input)return
+    const showing=input.type==='text'
+    input.type=showing?'password':'text'
+    b.textContent=showing?'Mostrar':'Ocultar'
+    b.setAttribute('aria-label',showing?'Mostrar senha':'Ocultar senha')
+    input.focus()
+  })
   $('#clientAuthForm')?.addEventListener('submit',async e=>{
     e.preventDefault()
     const form=e.currentTarget,fd=Object.fromEntries(new FormData(form)),button=form.querySelector('button[type="submit"]')
