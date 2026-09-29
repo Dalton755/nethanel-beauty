@@ -813,6 +813,113 @@ function bindModal(){
   $('.modal-backdrop')?.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))closeModal()})
   bindPhoneMasks($('.modal-backdrop')||document)
 
+  const brandForm=$('#brandForm')
+  if(brandForm){
+    const enabled=$('#brandEnabled')
+    const preview=$('#brandLivePreview')
+    const fileInput=$('#brandLogoFile')
+    const previewLogo=$('#brandPreviewLogo')
+    const currentLogo=$('#brandCurrentLogo')
+    const pairs=[
+      ['brandPrimary','brandPrimaryHex','--preview-primary','--brand',ZAIA_COLORS.primary],
+      ['brandSecondary','brandSecondaryHex','--preview-secondary','--brand-2',ZAIA_COLORS.secondary],
+      ['brandAccent','brandAccentHex','--preview-accent','--champagne',ZAIA_COLORS.accent],
+    ]
+    const syncPair=(colorId,hexId,previewVar,rootVar,fallback,fromHex=false)=>{
+      const color=$('#'+colorId),hex=$('#'+hexId)
+      if(!color||!hex)return
+      let value=fromHex?hex.value.trim():color.value
+      if(!/^#[0-9a-f]{6}$/i.test(value)){
+        if(fromHex)return
+        value=fallback
+      }
+      color.value=value
+      hex.value=value.toUpperCase()
+      preview?.style.setProperty(previewVar,value)
+      document.documentElement.style.setProperty(rootVar,value)
+    }
+    pairs.forEach(args=>{
+      const [colorId,hexId]=args
+      $('#'+colorId)?.addEventListener('input',()=>syncPair(...args,false))
+      $('#'+hexId)?.addEventListener('input',()=>{
+        const hex=$('#'+hexId)
+        if(/^#[0-9a-f]{6}$/i.test(hex.value.trim()))syncPair(...args,true)
+      })
+      $('#'+hexId)?.addEventListener('blur',()=>syncPair(...args,true))
+    })
+    enabled?.addEventListener('change',()=>{
+      preview?.classList.toggle('disabled-preview',!enabled.checked)
+    })
+    preview?.classList.toggle('disabled-preview',!enabled?.checked)
+
+    fileInput?.addEventListener('change',()=>{
+      const file=fileInput.files?.[0]
+      if(!file)return
+      if(!/^image\/(png|jpeg|webp|svg\+xml)$/i.test(file.type||'')){
+        fileInput.value=''
+        return alert('Use uma imagem PNG, JPG, WEBP ou SVG.')
+      }
+      if(file.size>5*1024*1024){
+        fileInput.value=''
+        return alert('A logo deve ter no máximo 5 MB.')
+      }
+      const url=URL.createObjectURL(file)
+      if(previewLogo)previewLogo.innerHTML=`<img src="${url}" alt="">`
+      if(currentLogo)currentLogo.innerHTML=`<img src="${url}" alt="">`
+    })
+
+    $('#brandDefaults')?.addEventListener('click',()=>{
+      $('#brandPrimary').value=ZAIA_COLORS.primary
+      $('#brandSecondary').value=ZAIA_COLORS.secondary
+      $('#brandAccent').value=ZAIA_COLORS.accent
+      pairs.forEach(args=>syncPair(...args,false))
+    })
+
+    $('#copyBrandLogin')?.addEventListener('click',async e=>{
+      const value=$('#brandLoginUrl')?.value||''
+      try{
+        await navigator.clipboard.writeText(value)
+        const b=e.currentTarget
+        const old=b.textContent;b.textContent='Copiado'
+        setTimeout(()=>{b.textContent=old},1400)
+      }catch{
+        $('#brandLoginUrl')?.select()
+        document.execCommand?.('copy')
+      }
+    })
+
+    brandForm.addEventListener('submit',async e=>{
+      e.preventDefault()
+      const button=brandForm.querySelector('button[type="submit"]')
+      setBusy(button,true,'Salvando...')
+      try{
+        let logoUrl=state.establishment.brandLogoUrl||''
+        const file=fileInput?.files?.[0]
+        if(file){
+          setBusy(button,true,'Enviando logo...')
+          logoUrl=await uploadBrandLogo(state.establishment.id,file)
+        }
+        const payload={
+          brandEnabled:enabled?.checked===true,
+          brandLogoUrl:logoUrl,
+          brandPrimaryColor:validHexColor($('#brandPrimaryHex')?.value,ZAIA_COLORS.primary),
+          brandSecondaryColor:validHexColor($('#brandSecondaryHex')?.value,ZAIA_COLORS.secondary),
+          brandAccentColor:validHexColor($('#brandAccentHex')?.value,ZAIA_COLORS.accent),
+        }
+        if(cloudEnabled())await updateEstablishment(state.establishment.id,payload)
+        Object.assign(state.establishment,payload)
+        cacheBusinessBrand(state.establishment)
+        applyBrandTheme(state.establishment)
+        modal=null;modalData=null
+        if(cloudEnabled())await boot()
+        else{persistLocal();render()}
+      }catch(error){
+        setBusy(button,false)
+        alert('Não foi possível salvar a personalização. '+friendlyError(error))
+      }
+    })
+  }
+
   const commissionType=$('#commissionType')
   const commissionValue=$('#commissionValue')
   const commissionLabel=$('#commissionValueLabel')
