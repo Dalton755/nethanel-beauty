@@ -277,7 +277,7 @@ function storePage(){
   return `<div class="client-app">
     <header class="client-top store-top"><button class="client-back" id="clientBack">${icon('arrow')} Voltar</button><a href="/cliente" class="client-brand">${logo()}</a><span></span></header>
     <main class="client-store-page">
-      <section class="client-store-hero ${normalizeStoreBrand(st.brand)?.enabled?'merchant-store-hero':''}"><div class="client-store-logo">${storeBrandMark(st)}</div><div><span class="client-kicker">${esc((st.segments||[]).map(x=>x.name).join(' • '))}</span><h1>${esc(st.name)}</h1><p>${esc(st.description||'Escolha um serviço e encontre um horário disponível.')}</p><div class="client-address big">${icon('pin')}${esc(st.address||'')}</div></div></section>
+      <section class="client-store-hero ${normalizeStoreBrand(st.brand)?.enabled?'merchant-store-hero':''}"><div class="client-store-logo">${storeBrandMark(st)}</div><div><span class="client-kicker">${esc((st.segments||[]).map(x=>x.name).join(' • '))}</span><h1>${esc(st.name)}</h1>${normalizeStoreBrand(st.brand)?.enabled?'<div class="merchant-powered-client">ZAIA</div>':''}<p>${esc(st.description||'Escolha um serviço e encontre um horário disponível.')}</p><div class="client-address big">${icon('pin')}${esc(st.address||'')}</div></div></section>
 
       <div class="client-booking-grid">
         <section>
