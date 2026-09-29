@@ -34,6 +34,14 @@ import {
   deletePromotion,
   uploadBrandLogo,
   publicBusinessBranding,
+  getFinanceDashboard,
+  listFinanceTransactions,
+  listFinanceAccounts,
+  insertFinanceTransaction,
+  updateFinanceTransaction,
+  markFinancePaid,
+  saveFinanceSettings,
+  insertFinanceAccount,
 } from './cloud.js'
 
 const SEGMENTS = {
@@ -58,7 +66,7 @@ const brandCacheKey='zaia_last_business_brand_v1'
 const ZAIA_COLORS={primary:'#3b172b',secondary:'#6b3149',accent:'#c89a61'}
 
 const emptyState = () => ({
-  setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], promotions:[], notificationsEnabled:false
+  setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], promotions:[], financeData:null, financeTransactions:[], financeAccounts:[], notificationsEnabled:false
 })
 
 let state=emptyState()
@@ -70,6 +78,8 @@ let authMessage=''
 let currentUser=null
 let businessLocationDraft=null
 let loginBrand=null
+let financeLoading=false
+let financeRange=null
 
 function localLoad(){
   try{return JSON.parse(localStorage.getItem(storageKey))||emptyState()}catch{return emptyState()}
@@ -124,6 +134,51 @@ function categories(){return [...new Set(activeSegments().flatMap(s=>s.productCa
 function serviceById(id){return state.services.find(s=>s.id===id)}
 function professionalById(id){return state.professionals.find(p=>p.id===id)}
 function productById(id){return state.products.find(p=>p.id===id)}
+function monthRange(base=new Date()){
+  const y=base.getFullYear(),m=base.getMonth()
+  const start=new Date(y,m,1),end=new Date(y,m+1,0)
+  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  return {start:iso(start),end:iso(end),label:base.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}
+}
+function dateRange(days){
+  const end=new Date(),start=new Date()
+  start.setDate(end.getDate()-Math.max(0,days-1))
+  const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  return {start:iso(start),end:iso(end),label:`Últimos ${days} dias`}
+}
+function paymentMethodLabel(v){
+  return ({PIX:'Pix',CASH:'Dinheiro',DEBIT:'Débito',CREDIT:'Crédito',TRANSFER:'Transferência',OTHER:'Outro'})[v]||'Outro'
+}
+function financeStatusLabel(v){
+  return ({PENDING:'Pendente',PAID:'Pago',CANCELLED:'Cancelado'})[v]||v
+}
+function financeCategoryOptions(kind='EXPENSE'){
+  return kind==='INCOME'
+    ? ['Serviços','Venda de produtos','Sinal/entrada','Outras receitas']
+    : ['Comissões','Produtos e insumos','Aluguel','Água, luz e internet','Marketing','Taxas de cartão','Impostos','Manutenção','Salários','Limpeza','Outras despesas']
+}
+async function loadFinance(force=false){
+  if(!cloudEnabled()||!state.establishment?.id||financeLoading)return
+  if(!financeRange)financeRange=monthRange()
+  if(state.financeData&&!force)return
+  financeLoading=true
+  try{
+    const [dashboard,transactions,accounts]=await Promise.all([
+      getFinanceDashboard(state.establishment.id,financeRange.start,financeRange.end),
+      listFinanceTransactions(state.establishment.id,160),
+      listFinanceAccounts(state.establishment.id),
+    ])
+    state.financeData=dashboard
+    state.financeTransactions=transactions
+    state.financeAccounts=accounts
+  }catch(error){
+    console.error('Finance load failed',error)
+    state.financeData={error:friendlyError(error)}
+  }finally{
+    financeLoading=false
+    if(page==='finance')render()
+  }
+}
 function formatDuration(minutes){
   const m=Math.max(0,Number(minutes||0))
   const h=Math.floor(m/60),r=m%60
@@ -327,7 +382,9 @@ const ICONS={
   plus:'<path d="M12 5v14M5 12h14"/>',
   crown:'<path d="m3 7 4 4 5-7 5 7 4-4-2 11H5z"/><path d="M5 21h14"/>',
   search:'<circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/>',
-  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>'
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  wallet:'<path d="M4 6h14a2 2 0 0 1 2 2v10H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12"/><path d="M20 10h-5a2 2 0 0 0 0 4h5"/><circle cx="15" cy="12" r=".5"/>',
+  trend:'<path d="M3 17l6-6 4 4 8-9"/><path d="M15 6h6v6"/>'
 };
 function icon(name,size=20,cls=''){
   return '<svg class="ui-icon '+cls+'" width="'+size+'" height="'+size+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+(ICONS[name]||ICONS.sparkle)+'</svg>'
