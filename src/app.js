@@ -605,7 +605,51 @@ function promotionsPage(){
 function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon">${icon('bell',20)}</span><div class="item-main"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div><b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button><button class="item" data-page="promotions"><span class="settings-icon">${icon('sparkle',20)}</span><div class="item-main"><strong>Promoções</strong><div class="meta">Ofertas para clientes na ZAIA</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
 function modalHtml(){
   const close='<button type="button" class="x" data-close aria-label="Fechar">×</button>'
-  if(modal==='zaiaPro')return `<div class="modal-backdrop"><div class="modal pro-modal"><div class="modal-head"><div><span class="eyebrow">ZAIA PRO</span><h3>Personalize a experiência</h3><div class="helper">Sua marca na frente. ZAIA trabalhando por trás.</div></div>${close}</div><div class="pro-preview"><div class="pro-preview-icon">${zaiaLogo(true)}</div><div><strong>${esc(state.establishment.name)}</strong><span>Preview da identidade personalizada</span></div></div><div class="pro-feature-grid"><div><span>${icon('sparkle',20)}</span><strong>Logo própria</strong><small>Marca do estabelecimento no app</small></div><div><span>${icon('settings',20)}</span><strong>Cores da marca</strong><small>Primária, secundária e detalhes</small></div><div><span>${icon('box',20)}</span><strong>Ícone do app</strong><small>PWA com identidade do negócio</small></div><div><span>${icon('crown',20)}</span><strong>White label</strong><small>ZAIA discreta na experiência</small></div></div><div class="notice"><strong>Estrutura do ZAIA Pro pronta para personalização.</strong><span>A ativação comercial e o upload definitivo da identidade entram no próximo bloco do plano Pro.</span></div><button type="button" class="btn primary wide" data-close>Entendi</button></div></div>`
+  if(modal==='zaiaPro'){
+    const est=state.establishment
+    const logo=est.brandLogoUrl||''
+    const primary=est.brandPrimaryColor||ZAIA_COLORS.primary
+    const secondary=est.brandSecondaryColor||ZAIA_COLORS.secondary
+    const accent=est.brandAccentColor||ZAIA_COLORS.accent
+    const loginUrl=`https://nethanel-beauty.vercel.app/?loja=${encodeURIComponent(est.slug||'')}`
+    return `<div class="modal-backdrop"><div class="modal pro-modal brand-config-modal"><div class="modal-head"><div><span class="eyebrow">PERSONALIZAÇÃO</span><h3>Sua marca na ZAIA</h3><div class="helper">Logo, cores e identidade do estabelecimento na frente. ZAIA permanece como tecnologia da operação.</div></div>${close}</div>
+      <form class="form brand-form" id="brandForm">
+        <label class="toggle-row brand-toggle"><input type="checkbox" name="enabled" id="brandEnabled" ${est.brandEnabled?'checked':''}><span><strong>Ativar identidade do estabelecimento</strong><small>Aplica sua marca no painel, login e vitrine vista pelos clientes.</small></span></label>
+
+        <div class="brand-live-preview" id="brandLivePreview" style="--preview-primary:${esc(primary)};--preview-secondary:${esc(secondary)};--preview-accent:${esc(accent)}">
+          <div class="brand-preview-sidebar">
+            <div class="brand-preview-logo" id="brandPreviewLogo">${logo?`<img src="${esc(logo)}" alt="">`:`<span>${esc((est.name||'Z')[0].toUpperCase())}</span>`}</div>
+            <div><strong>${esc(est.name)}</strong><small>ZAIA</small></div>
+          </div>
+          <div class="brand-preview-content"><span></span><span></span><button type="button">Agendar</button></div>
+        </div>
+
+        <div class="field">
+          <label>Logo do estabelecimento</label>
+          <div class="brand-upload-row">
+            <div class="brand-current-logo" id="brandCurrentLogo">${logo?`<img src="${esc(logo)}" alt="${esc(est.name)}">`:`${zaiaLogo(true)}`}</div>
+            <div class="brand-upload-copy"><input id="brandLogoFile" type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml"><span class="helper">PNG, JPG, WEBP ou SVG • até 5 MB. Prefira fundo transparente.</span></div>
+          </div>
+        </div>
+
+        <div class="brand-color-grid">
+          <label class="brand-color-field"><span>Cor principal</span><div><input type="color" id="brandPrimary" name="primary" value="${esc(primary)}"><input class="brand-hex" id="brandPrimaryHex" value="${esc(primary)}" maxlength="7"></div></label>
+          <label class="brand-color-field"><span>Cor secundária</span><div><input type="color" id="brandSecondary" name="secondary" value="${esc(secondary)}"><input class="brand-hex" id="brandSecondaryHex" value="${esc(secondary)}" maxlength="7"></div></label>
+          <label class="brand-color-field"><span>Cor de destaque</span><div><input type="color" id="brandAccent" name="accent" value="${esc(accent)}"><input class="brand-hex" id="brandAccentHex" value="${esc(accent)}" maxlength="7"></div></label>
+        </div>
+
+        <div class="field">
+          <label>Link de acesso personalizado</label>
+          <div class="brand-login-link"><input id="brandLoginUrl" readonly value="${esc(loginUrl)}"><button type="button" class="btn small" id="copyBrandLogin">Copiar</button></div>
+          <span class="helper">Ao abrir este link, a tela de login já assume a identidade do estabelecimento.</span>
+        </div>
+
+        <div class="notice brand-info"><strong>Onde sua marca aparece</strong><span>Painel do lojista, login personalizado, cards da busca, página do estabelecimento e agendamento do cliente. A assinatura “ZAIA” fica discreta e integrada.</span></div>
+
+        <div class="brand-form-actions"><button type="button" class="btn ghost" id="brandDefaults">Cores ZAIA</button><button type="submit" class="btn primary">Salvar personalização</button></div>
+      </form>
+    </div></div>`
+  }
 
   if(modal==='promotion'){
     const editId=modalData?.promotionId||null
