@@ -478,7 +478,7 @@ window.addEventListener('popstate',()=>{
 
 async function boot(){
   applyClientTheme()
-  if(!cloudEnabled(){
+  if(!cloudEnabled()){
     state.error='A busca pública ainda não está conectada ao servidor.'
     render();return
   }
