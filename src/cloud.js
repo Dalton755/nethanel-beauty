@@ -130,7 +130,7 @@ export async function loadCloudState() {
 
   const est = establishments[0]
   const eid = est.id
-  const [segments, services, products, clients, appointments, professionals, serviceMaterials, appointmentMaterials, professionalServices, workingHours, timeBlocks] = await Promise.all([
+  const [segments, services, products, clients, appointments, professionals, serviceMaterials, appointmentMaterials, professionalServices, workingHours, timeBlocks, promotions] = await Promise.all([
     rest(`establishment_segments?select=segment_code,active&establishment_id=eq.${eid}&active=eq.true&order=created_at.asc`),
     rest(`services?select=id,segment_code,name,description,duration_minutes,price,estimated_cost,return_interval_days,requires_deposit,active&establishment_id=eq.${eid}&order=name.asc`),
     rest(`products?select=id,segment_code,name,category,usage_type,unit,stock_quantity,minimum_stock,unit_cost,sale_price,active,starter_template_key&establishment_id=eq.${eid}&active=eq.true&order=name.asc`),
@@ -142,6 +142,7 @@ export async function loadCloudState() {
     rest(`professional_services?select=professional_id,service_id,custom_price,custom_duration_minutes,active&establishment_id=eq.${eid}`),
     rest(`professional_working_hours?select=id,professional_id,weekday,start_time,end_time,active&establishment_id=eq.${eid}&active=eq.true&order=weekday.asc,start_time.asc`),
     rest(`professional_time_blocks?select=id,professional_id,starts_at,ends_at,reason&establishment_id=eq.${eid}&order=starts_at.asc`),
+    rest(`promotions?select=id,establishment_id,service_id,title,description,offer_text,image_url,starts_at,ends_at,active&establishment_id=eq.${eid}&order=created_at.desc`),
   ])
 
   const serviceMaterialMap = {}
@@ -260,6 +261,11 @@ export async function loadCloudState() {
         materials: appointmentMaterialMap[a.id] || [],
       }
     }),
+    promotions: (promotions || []).map(p => ({
+      id:p.id, establishmentId:p.establishment_id, serviceId:p.service_id,
+      title:p.title, description:p.description || '', offerText:p.offer_text,
+      imageUrl:p.image_url || '', startsAt:p.starts_at, endsAt:p.ends_at, active:p.active,
+    })),
     professionals: professionals.map(p => ({
       id: p.id, userId: p.user_id, name: p.name, phone: p.phone || '', email: p.email || '',
       jobTitle: p.job_title || '', avatarUrl: p.avatar_url || '', active: p.active,
@@ -434,6 +440,124 @@ export async function publicBookAppointment(payload) {
       p_customer_note: payload.customerNote || null,
     },
   })
+}
+
+export async function customerUpsertProfile(profile) {
+  return rest('rpc/customer_upsert_profile', {
+    method: 'POST',
+    body: {
+      p_full_name: profile.fullName,
+      p_phone: profile.phone || null,
+      p_birth_date: profile.birthDate || null,
+      p_marketing_opt_in: profile.marketingOptIn !== false,
+    },
+  })
+}
+
+export async function customerDashboard() {
+  return rest('rpc/customer_my_dashboard', { method: 'POST', body: {} })
+}
+
+export async function customerMarkNotificationsRead() {
+  return rest('rpc/customer_mark_notifications_read', { method: 'POST', body: {} })
+}
+
+export async function customerRegisterPush(subscription) {
+  return rest('rpc/customer_register_push', {
+    method: 'POST',
+    body: {
+      p_endpoint: subscription.endpoint,
+      p_p256dh: subscription.keys?.p256dh,
+      p_auth_secret: subscription.keys?.auth,
+      p_user_agent: navigator.userAgent || null,
+    },
+  })
+}
+
+export async function publicPromotions({ establishmentId = null, lat = null, long = null, radiusKm = 50 } = {}) {
+  return rest('rpc/public_promotions', {
+    method: 'POST',
+    body: {
+      p_establishment_id: establishmentId,
+      p_lat: lat == null ? null : Number(lat),
+      p_long: long == null ? null : Number(long),
+      p_radius_km: Number(radiusKm || 50),
+    },
+  })
+}
+
+export async function getZaiaPushPublicKey() {
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-customer-push`, {
+    headers: { apikey: apiKey(), 'Content-Type': 'application/json' },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data?.publicKey) throw new Error(data?.error || 'Não foi possível obter a chave de notificações.')
+  return data.publicKey
+}
+
+export async function sendZaiaPushTest() {
+  const session = await ensureSession()
+  if (!session?.access_token) throw new Error('Entre na sua conta ZAIA.')
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-customer-push`, {
+    method: 'POST',
+    headers: {
+      apikey: apiKey(),
+      Authorization: `Bearer ${session.access_token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ mode: 'test' }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error || 'Não foi possível testar as notificações.')
+  return data
+}
+
+export async function listPromotions(establishmentId) {
+  const rows = await rest(`promotions?select=id,establishment_id,service_id,title,description,offer_text,image_url,starts_at,ends_at,active&establishment_id=eq.${q(establishmentId)}&order=created_at.desc`)
+  return (rows || []).map(p => ({
+    id:p.id, establishmentId:p.establishment_id, serviceId:p.service_id,
+    title:p.title, description:p.description || '', offerText:p.offer_text,
+    imageUrl:p.image_url || '', startsAt:p.starts_at, endsAt:p.ends_at, active:p.active,
+  }))
+}
+
+export async function insertPromotion(establishmentId, promotion) {
+  const [row] = await rest('promotions?select=*', {
+    method:'POST',
+    body:{
+      establishment_id:establishmentId,
+      service_id:promotion.serviceId || null,
+      title:promotion.title,
+      description:promotion.description || null,
+      offer_text:promotion.offerText,
+      starts_at:promotion.startsAt,
+      ends_at:promotion.endsAt,
+      active:promotion.active !== false,
+    },
+    prefer:'return=representation',
+  })
+  return row
+}
+
+export async function updatePromotion(promotionId, promotion) {
+  const rows = await rest(`promotions?id=eq.${q(promotionId)}&select=*`, {
+    method:'PATCH',
+    body:{
+      service_id:promotion.serviceId || null,
+      title:promotion.title,
+      description:promotion.description || null,
+      offer_text:promotion.offerText,
+      starts_at:promotion.startsAt,
+      ends_at:promotion.endsAt,
+      active:promotion.active !== false,
+    },
+    prefer:'return=representation',
+  })
+  return rows?.[0] || null
+}
+
+export async function deletePromotion(promotionId) {
+  return rest(`promotions?id=eq.${q(promotionId)}`, { method:'DELETE', prefer:'return=minimal' })
 }
 
 export async function createEstablishment({ name, segments, services }) {
