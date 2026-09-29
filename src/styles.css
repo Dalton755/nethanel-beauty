@@ -645,3 +645,283 @@ input:focus,select:focus,textarea:focus{border-color:#a97a8f;box-shadow:0 0 0 4p
   .client-store-hero h1{font-size:23px}.client-slots{grid-template-columns:repeat(3,1fr)}
   .discovery-settings-card{grid-template-columns:auto 1fr}.discovery-settings-card .btn{grid-column:1/-1;width:100%}
 }
+
+
+/* =========================================================
+   ZAIA — Mobile fluidity audit
+   No page-level horizontal dragging on phones
+   ========================================================= */
+html,body,#app,.shell,.content,.client-app,.client-main,.client-store-page{
+  max-width:100%;
+  overflow-x:clip;
+}
+body{overscroll-behavior-x:none}
+*,*::before,*::after{min-width:0}
+img,svg{max-width:100%}
+.item-main,.meta,.subtitle,.notice,.helper,.brandtext,.client-store-main{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.toolbar{
+  overflow:visible!important;
+  flex-wrap:wrap!important;
+}
+.toolbar .btn{
+  white-space:normal!important;
+}
+.appointment-item{
+  display:grid;
+  grid-template-columns:62px minmax(0,1fr);
+  align-items:start;
+  gap:12px;
+  padding:15px 14px 14px 17px;
+}
+.appointment-item>.service-dot{display:none}
+.appointment-body{min-width:0;display:grid;gap:7px}
+.appointment-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap
+}
+.appointment-head>strong{
+  font-size:15px;line-height:1.25;overflow-wrap:anywhere
+}
+.online-badge{background:#f3e1ca;color:#7c5226;border-color:#e4c59d}
+.appointment-service-line{
+  display:flex;align-items:center;gap:7px;flex-wrap:wrap;
+  color:var(--muted);font-size:11.5px;line-height:1.35
+}
+.appointment-service-line strong{color:var(--ink);font-size:12px}
+.appointment-detail-line{
+  display:grid;grid-template-columns:auto minmax(0,1fr);gap:8px;
+  font-size:11px;line-height:1.4;align-items:start
+}
+.appointment-detail-line>span:first-child{color:var(--muted)}
+.appointment-detail-line>strong{text-align:left;overflow-wrap:anywhere}
+.appointment-detail-line.compact{
+  display:flex;gap:6px;align-items:center;flex-wrap:wrap;color:var(--muted)
+}
+.appointment-actions{
+  margin-top:3px;
+  width:100%;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;
+  justify-content:stretch;
+}
+.appointment-actions .btn{width:100%}
+.agenda-list>div>.tag{
+  display:inline-flex!important;
+  margin:15px 2px 7px!important;
+  padding:6px 10px;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:#f5eee9;
+  color:var(--ink-2);
+  letter-spacing:.04em
+}
+
+/* Consistent card actions */
+.service-card,.inventory-item,.pro-card,.client-card{
+  max-width:100%;
+}
+.service-card .item-actions{
+  flex:0 0 auto;
+}
+.product-actions,.pro-actions{
+  max-width:100%;
+}
+.client-card>.btn{flex:0 0 auto}
+
+/* Forms and modals */
+.modal{max-width:min(650px,100vw)}
+.modal .row,.form .row{min-width:0}
+.modal-head>div{min-width:0}
+.modal-head h3{overflow-wrap:anywhere}
+.material-row,.materials-head,.toggle-row,.day-row{max-width:100%}
+.material-info{overflow-wrap:anywhere}
+.material-qty{max-width:46%}
+.material-qty input{max-width:86px;width:100%}
+.service-overrides{min-width:0}
+
+/* Dashboard mobile density */
+@media(max-width:700px){
+  .content{padding-left:14px!important;padding-right:14px!important}
+  .dashboard-hero{align-items:flex-start}
+  .dashboard-hero .title{font-size:29px}
+  .grid.stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .stat-card{min-width:0}
+  .stat-card>div:last-child{min-width:0}
+  .stat-label,.stat-note{overflow-wrap:anywhere}
+  .quick.zaia-quick{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  .quick-action{min-height:72px}
+}
+
+/* Phone layouts */
+@media(max-width:560px){
+  .title{font-size:27px}
+  .subtitle{font-size:13px}
+  .section-head{align-items:flex-start}
+  .section-head h2{font-size:16px}
+
+  .appointment-item{
+    grid-template-columns:58px minmax(0,1fr)!important;
+    gap:10px!important;
+  }
+  .appointment-time{
+    width:auto!important;
+    flex:unset!important;
+    padding-left:1px;
+  }
+  .appointment-time strong{font-size:15px}
+  .appointment-time span{
+    font-size:10px;
+    white-space:normal!important;
+    line-height:1.25
+  }
+  .appointment-item .item-main{min-width:0!important}
+  .appointment-item .item-actions{
+    width:100%!important;
+    padding-left:0!important;
+    margin-left:0!important;
+  }
+
+  .client-card{
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    gap:10px
+  }
+  .client-card>.btn{
+    width:100%;
+    justify-self:stretch
+  }
+
+  .service-card{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:start
+  }
+  .service-card>.item-actions{
+    grid-column:1/-1;
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:7px
+  }
+  .service-card>.item-actions .pill{
+    grid-column:1/-1;
+    justify-self:start
+  }
+  .service-card>.item-actions .btn{width:100%}
+
+  .inventory-item{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    align-items:start
+  }
+  .inventory-item .item-main{grid-column:1/-1}
+  .inventory-item>.pill{
+    grid-row:1;
+    grid-column:2;
+    justify-self:end;
+    max-width:100%
+  }
+  .product-tags{padding-right:92px}
+  .product-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .product-actions .btn{width:100%}
+
+  .pro-card{
+    display:grid;
+    grid-template-columns:auto minmax(0,1fr);
+    align-items:start
+  }
+  .pro-card .pro-actions{
+    width:100%;
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+  .pro-card .pro-actions .btn{
+    width:100%;
+    white-space:normal;
+    line-height:1.2
+  }
+
+  .discovery-settings-card{
+    grid-template-columns:auto minmax(0,1fr)!important
+  }
+  .discovery-settings-card>.btn{
+    grid-column:1/-1!important;
+    width:100%
+  }
+
+  .feature-card{
+    grid-template-columns:auto minmax(0,1fr) auto!important
+  }
+
+  .form>.row:not(.keep-row),
+  .modal .form>.row:not(.keep-row){
+    grid-template-columns:1fr;
+    gap:12px
+  }
+  .day-times{
+    grid-template-columns:minmax(0,1fr) auto minmax(0,1fr)!important
+  }
+  .duration-picker{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important
+  }
+
+  .material-row{
+    display:grid!important;
+    grid-template-columns:minmax(0,1fr) minmax(105px,42%);
+    align-items:end!important
+  }
+  .material-info span{max-width:none!important}
+  .material-qty{
+    width:100%;
+    max-width:none;
+    justify-content:flex-end
+  }
+
+  .toolbar>.btn{
+    flex:1 1 160px
+  }
+
+  .client-searchbar{max-width:100%}
+  .client-store-card{max-width:100%}
+  .client-store-name{align-items:flex-start;flex-wrap:wrap}
+  .client-store-footer{align-items:flex-start;flex-wrap:wrap}
+}
+
+/* Very narrow devices */
+@media(max-width:380px){
+  .content{padding-left:11px!important;padding-right:11px!important}
+  .grid.stats{grid-template-columns:1fr}
+  .stat-card{min-height:auto}
+  .appointment-item{grid-template-columns:52px minmax(0,1fr)!important;padding-left:13px;padding-right:11px}
+  .appointment-actions{grid-template-columns:1fr}
+  .service-card>.item-actions,.product-actions,.pro-card .pro-actions{grid-template-columns:1fr}
+  .client-slots{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .pro-feature-grid{grid-template-columns:1fr}
+}
+
+/* Desktop keeps compact horizontal actions */
+@media(min-width:561px){
+  .appointment-item{
+    grid-template-columns:68px minmax(0,1fr) auto;
+    align-items:center
+  }
+  .appointment-actions{
+    width:auto;
+    display:flex;
+    grid-column:auto;
+    margin-top:0
+  }
+  .appointment-body{
+    grid-template-columns:minmax(0,1fr);
+  }
+  .appointment-body .appointment-actions{
+    justify-self:end;
+  }
+}
