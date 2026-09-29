@@ -72,6 +72,29 @@ function icon(name){
 
 function logo(){return '<img src="/zaia-logo.svg" class="client-logo" alt="ZAIA">'}
 function mark(){return '<img src="/icon.svg" class="client-mark" alt="">'}
+const CLIENT_ZAIA_COLORS={primary:'#3b172b',secondary:'#6b3149',accent:'#c89a61'}
+function normalizeStoreBrand(brand){
+  if(!brand)return null
+  return {
+    enabled:brand.enabled===true||brand.brandEnabled===true,
+    logoUrl:brand.logo_url||brand.logoUrl||'',
+    primary:brand.primary_color||brand.primary||CLIENT_ZAIA_COLORS.primary,
+    secondary:brand.secondary_color||brand.secondary||CLIENT_ZAIA_COLORS.secondary,
+    accent:brand.accent_color||brand.accent||CLIENT_ZAIA_COLORS.accent,
+  }
+}
+function storeBrandMark(store,cls='client-mark'){
+  const b=normalizeStoreBrand(store?.brand)
+  if(b?.enabled&&b.logoUrl)return `<img src="${esc(b.logoUrl)}" class="${cls} merchant-client-logo" alt="${esc(store?.name||'Estabelecimento')}">`
+  return mark()
+}
+function applyClientTheme(brand=null){
+  const b=normalizeStoreBrand(brand)
+  const root=document.documentElement
+  root.style.setProperty('--brand',b?.enabled?b.primary:CLIENT_ZAIA_COLORS.primary)
+  root.style.setProperty('--brand-2',b?.enabled?b.secondary:CLIENT_ZAIA_COLORS.secondary)
+  root.style.setProperty('--champagne',b?.enabled?b.accent:CLIENT_ZAIA_COLORS.accent)
+}
 function setLoading(v,msg='Carregando...'){state.loading=v;state.loadingText=msg;render()}
 function clientHeader(){
   const name=state.customerData?.profile?.full_name||state.session?.user?.email?.split('@')[0]||''
@@ -131,6 +154,7 @@ async function openStore(id){
   state.loading=true;state.loadingText='Abrindo estabelecimento...';render()
   try{
     state.store=await publicStorefront(id)
+    applyClientTheme(state.store?.brand)
     state.screen='store';state.serviceObj=null;state.professional=null;state.slots=[];state.slot=null
     history.pushState({clientStore:id},'',`/cliente?loja=${encodeURIComponent(id)}`)
   }catch(error){state.error=String(error.message||error)}
@@ -236,7 +260,7 @@ function storeCard(x){
   const seg=(x.segments||[]).map(s=>s.name).slice(0,2).join(' • ')
   const services=(x.service_names||[]).slice(0,4)
   return `<button class="client-store-card" data-store="${x.id}">
-    <div class="client-store-mark">${mark()}</div>
+    <div class="client-store-mark">${storeBrandMark(x)}</div>
     <div class="client-store-main"><div class="client-store-name"><strong>${esc(x.name)}</strong>${x.distance_km!=null?`<span>${String(x.distance_km).replace('.',',')} km</span>`:''}</div>
     <p>${esc(seg||'Serviços de beleza')}</p><div class="client-address">${icon('pin')}${esc(x.address||x.address_city||'')}</div>
     <div class="client-service-tags">${services.map(s=>`<span>${esc(s)}</span>`).join('')}</div>
@@ -253,7 +277,7 @@ function storePage(){
   return `<div class="client-app">
     <header class="client-top store-top"><button class="client-back" id="clientBack">${icon('arrow')} Voltar</button><a href="/cliente" class="client-brand">${logo()}</a><span></span></header>
     <main class="client-store-page">
-      <section class="client-store-hero"><div class="client-store-logo">${mark()}</div><div><span class="client-kicker">${esc((st.segments||[]).map(x=>x.name).join(' • '))}</span><h1>${esc(st.name)}</h1><p>${esc(st.description||'Escolha um serviço e encontre um horário disponível.')}</p><div class="client-address big">${icon('pin')}${esc(st.address||'')}</div></div></section>
+      <section class="client-store-hero ${normalizeStoreBrand(st.brand)?.enabled?'merchant-store-hero':''}"><div class="client-store-logo">${storeBrandMark(st)}</div><div><span class="client-kicker">${esc((st.segments||[]).map(x=>x.name).join(' • '))}</span><h1>${esc(st.name)}</h1><p>${esc(st.description||'Escolha um serviço e encontre um horário disponível.')}</p><div class="client-address big">${icon('pin')}${esc(st.address||'')}</div></div></section>
 
       <div class="client-booking-grid">
         <section>
@@ -361,7 +385,7 @@ function bind(){
   })
   document.querySelectorAll('[data-client-tab]').forEach(b=>b.onclick=async()=>{
     const tab=b.dataset.clientTab
-    if(tab==='buscar'){state.tab='buscar';state.screen='search';history.pushState({},'', '/cliente');render();return}
+    if(tab==='buscar'){applyClientTheme();state.tab='buscar';state.screen='search';history.pushState({},'', '/cliente');render();return}
     if(!state.session){state.authMode='login';state.authMessage='Entre para acessar sua área ZAIA.';render();return}
     state.tab=tab;state.screen='account'
     if(tab==='agenda'){await customerMarkNotificationsRead().catch(()=>{});await refreshCustomer()}
@@ -379,7 +403,7 @@ function bind(){
   $$('[data-segment]').forEach(b=>b.onclick=()=>{state.segment=state.segment===b.dataset.segment?'':b.dataset.segment;search()})
   $$('[data-service]').forEach(b=>b.onclick=()=>{state.service=state.service===b.dataset.service?'':b.dataset.service;search()})
   $$('[data-store]').forEach(b=>b.onclick=()=>openStore(b.dataset.store))
-  $('#clientBack')?.addEventListener('click',()=>{state.screen='search';state.store=null;state.serviceObj=null;state.professional=null;state.slots=[];state.slot=null;history.pushState({},'', '/cliente');render()})
+  $('#clientBack')?.addEventListener('click',()=>{applyClientTheme();state.screen='search';state.store=null;state.serviceObj=null;state.professional=null;state.slots=[];state.slot=null;history.pushState({},'', '/cliente');render()})
   $$('[data-client-service]').forEach(b=>b.onclick=()=>selectService(b.dataset.clientService))
   $$('[data-client-pro]').forEach(b=>b.onclick=()=>selectProfessional(b.dataset.clientPro))
   $$('[data-client-date]').forEach(b=>b.onclick=()=>selectDate(b.dataset.clientDate))
@@ -453,7 +477,8 @@ window.addEventListener('popstate',()=>{
 })
 
 async function boot(){
-  if(!cloudEnabled()){
+  applyClientTheme()
+  if(!cloudEnabled(){
     state.error='A busca pública ainda não está conectada ao servidor.'
     render();return
   }
