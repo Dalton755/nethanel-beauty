@@ -666,14 +666,16 @@ function appointmentItem(a){
   const duration=Number(a.durationMinutes||config?.customDuration||svc?.duration||0)
   const endTime=a.endTime||addMinutesToTime(a.time,duration)
   const sourceBadge=a.bookingSource==='PUBLIC'?'<span class="pill online-badge">ZAIA Online</span>':''
-  return `<div class="item appointment-item">
+  const closed=['CONCLUIDO','CANCELADO','NAO_COMPARECEU'].includes(a.status)
+  const statusBadge=a.status==='CANCELADO'?'<span class="pill cancel-badge">Cancelado</span>':a.status==='CONCLUIDO'?'<span class="pill good">Concluído</span>':''
+  return `<div class="item appointment-item ${a.status==='CANCELADO'?'appointment-cancelled':''}">
     <div class="appointment-time"><strong>${a.time}</strong><span>até ${endTime}</span></div>
     <div class="appointment-body">
-      <div class="appointment-head"><strong>${esc(a.clientName)}</strong>${sourceBadge}</div>
+      <div class="appointment-head"><strong>${esc(a.clientName)}</strong><div class="appointment-badges">${sourceBadge}${statusBadge}</div></div>
       <div class="appointment-service-line"><span class="service-dot"></span><strong>${esc(svc?.name||'Serviço')}</strong><span>• ${formatDuration(duration)}</span></div>
       <div class="appointment-detail-line"><span>Profissional</span><strong>${esc(pro?.name||'Profissional')}</strong></div>
       <div class="appointment-detail-line compact"><span>${fmtMoney(a.price)}</span>${mats.length?`<span>• ${mats.length} material${mats.length>1?'is':''}</span>`:''}</div>
-      <div class="item-actions appointment-actions"><button class="btn small ghost" data-appointment-materials="${a.id}" ${a.status==='CONCLUIDO'?'disabled':''}>Materiais</button><button class="btn small ${a.status==='CONCLUIDO'?'ghost':''}" data-complete="${a.id}" ${a.status==='CONCLUIDO'?'disabled':''}>${a.status==='CONCLUIDO'?'Concluído':'Concluir'}</button></div>
+      <div class="item-actions appointment-actions"><button class="btn small ghost" data-appointment-materials="${a.id}" ${closed?'disabled':''}>Materiais</button><button class="btn small ${closed?'ghost':''}" data-complete="${a.id}" ${closed?'disabled':''}>${a.status==='CONCLUIDO'?'Concluído':a.status==='CANCELADO'?'Cancelado':'Concluir'}</button>${!closed?`<button class="btn small danger-soft" data-cancel-appointment="${a.id}">Cancelar</button>`:''}</div>
     </div>
   </div>`
 }
@@ -1064,6 +1066,18 @@ function bindPage(){
     }catch(error){setBusy(button,false);alert(friendlyError(error))}
   })
 
+  document.querySelectorAll('[data-cancel-appointment]').forEach(b=>b.onclick=async()=>{
+    const appointment=state.appointments.find(a=>a.id===b.dataset.cancelAppointment)
+    if(!appointment)return
+    const reason=prompt('Motivo do cancelamento (opcional):','') ?? null
+    if(reason===null)return
+    if(!confirm('Cancelar este agendamento? O cliente será avisado se tiver conta ZAIA.'))return
+    try{
+      await cancelAppointment(appointment.id,reason)
+      await boot()
+    }catch(error){alert(friendlyError(error))}
+  })
+
   $('#seedAgenda')?.addEventListener('click',seedAgenda)
   $('#notifyBtn')?.addEventListener('click',openBusinessNotifications)
   $('#notifyTopBtn')?.addEventListener('click',openBusinessNotifications)
@@ -1189,6 +1203,8 @@ function bindModal(){
       }
     })
   }
+
+  $('#activateStorePush')?.addEventListener('click',enableNotifications)
 
   const financeEntryStatus=$('#financeEntryStatus')
   const financePaidFields=$('#financePaidFields')
