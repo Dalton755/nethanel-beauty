@@ -779,6 +779,53 @@ function modalHtml(){
     </div></div>`
   }
 
+  if(modal==='financeEntry'){
+    const kind=modalData?.kind==='INCOME'?'INCOME':'EXPENSE'
+    const categories=financeCategoryOptions(kind)
+    const accounts=state.financeAccounts||[]
+    return `<div class="modal-backdrop"><div class="modal finance-modal"><div class="modal-head"><div><span class="eyebrow">ZAIA PRO • FINANCEIRO</span><h3>${kind==='INCOME'?'Nova receita':'Nova despesa'}</h3><div class="helper">Registre valores avulsos que não vieram automaticamente dos atendimentos.</div></div>${close}</div><form class="form" id="financeEntryForm">
+      <input type="hidden" name="kind" value="${kind}">
+      <div class="field"><label>Descrição</label><input name="description" required maxlength="120" placeholder="${kind==='INCOME'?'Ex.: Venda de produto':'Ex.: Compra de shampoo profissional'}"></div>
+      <div class="row"><div class="field"><label>Valor</label><input name="amount" type="number" min="0.01" step="0.01" inputmode="decimal" required placeholder="0,00"></div><div class="field"><label>Vencimento</label><input name="dueDate" type="date" value="${todayISO()}" required></div></div>
+      <div class="field"><label>Categoria</label><select name="category" required>${categories.map(c=>`<option value="${esc(c)}">${esc(c)}</option>`).join('')}</select></div>
+      <div class="field"><label>Status</label><select name="status" id="financeEntryStatus"><option value="PENDING">Pendente</option><option value="PAID">Já ${kind==='INCOME'?'recebido':'pago'}</option></select></div>
+      <div id="financePaidFields" class="finance-paid-fields is-hidden"><div class="row"><div class="field"><label>Forma de pagamento</label><select name="paymentMethod">${[['PIX','Pix'],['CASH','Dinheiro'],['DEBIT','Débito'],['CREDIT','Crédito'],['TRANSFER','Transferência'],['OTHER','Outro']].map(([v,l])=>`<option value="${v}">${l}</option>`).join('')}</select></div><div class="field"><label>Conta</label><select name="accountId"><option value="">Sem conta definida</option>${accounts.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join('')}</select></div></div></div>
+      <div class="field"><label>Observação <small>(opcional)</small></label><textarea name="notes" rows="2" maxlength="300"></textarea></div>
+      <button class="btn primary wide" type="submit">Salvar lançamento</button>
+    </form></div></div>`
+  }
+
+  if(modal==='financePay'){
+    const id=modalData?.transactionId
+    const t=(state.financeTransactions||[]).find(x=>x.id===id)||(state.financeData?.upcoming||[]).find(x=>x.id===id)
+    if(!t)return ''
+    const accounts=state.financeAccounts||[]
+    return `<div class="modal-backdrop"><div class="modal finance-modal compact-finance-modal"><div class="modal-head"><div><span class="eyebrow">${t.kind==='INCOME'?'RECEBIMENTO':'PAGAMENTO'}</span><h3>${esc(t.description)}</h3></div>${close}</div><div class="finance-pay-total"><span>${t.kind==='INCOME'?'Valor a receber':'Valor a pagar'}</span><strong>${fmtMoney(t.amount)}</strong><small>Vencimento ${fmtDate(t.due_date||t.dueDate)}</small></div><form class="form" id="financePayForm" data-transaction-id="${t.id}">
+      <div class="field"><label>Forma de pagamento</label><select name="paymentMethod" required><option value="PIX">Pix</option><option value="CASH">Dinheiro</option><option value="DEBIT">Débito</option><option value="CREDIT">Crédito</option><option value="TRANSFER">Transferência</option><option value="OTHER">Outro</option></select></div>
+      <div class="field"><label>Conta</label><select name="accountId"><option value="">Sem conta definida</option>${accounts.map(a=>`<option value="${a.id}">${esc(a.name)}</option>`).join('')}</select></div>
+      <button class="btn primary wide" type="submit">${t.kind==='INCOME'?'Confirmar recebimento':'Confirmar pagamento'}</button>
+    </form></div></div>`
+  }
+
+  if(modal==='financeSettings'){
+    const fs=state.financeData?.settings||{}
+    return `<div class="modal-backdrop"><div class="modal finance-modal"><div class="modal-head"><div><span class="eyebrow">METAS FINANCEIRAS</span><h3>Defina onde quer chegar</h3><div class="helper">As metas ajudam a comparar resultado real e objetivo mensal.</div></div>${close}</div><form class="form" id="financeSettingsForm">
+      <div class="field"><label>Meta mensal de faturamento</label><input name="monthlyRevenueTarget" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(fs.monthly_revenue_target||0)}"></div>
+      <div class="field"><label>Meta mensal de lucro</label><input name="monthlyProfitTarget" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(fs.monthly_profit_target||0)}"></div>
+      <div class="field"><label>Reserva financeira desejada</label><input name="reserveTarget" type="number" min="0" step="0.01" inputmode="decimal" value="${Number(fs.reserve_target||0)}"></div>
+      <button class="btn primary wide" type="submit">Salvar metas</button>
+    </form></div></div>`
+  }
+
+  if(modal==='financeAccount'){
+    return `<div class="modal-backdrop"><div class="modal finance-modal compact-finance-modal"><div class="modal-head"><div><span class="eyebrow">CONTA FINANCEIRA</span><h3>Nova conta</h3></div>${close}</div><form class="form" id="financeAccountForm">
+      <div class="field"><label>Nome</label><input name="name" required maxlength="60" placeholder="Ex.: Conta Mercado Pago"></div>
+      <div class="field"><label>Tipo</label><select name="type"><option value="CASH">Caixa</option><option value="BANK">Banco</option><option value="DIGITAL">Carteira digital</option><option value="OTHER">Outra</option></select></div>
+      <div class="field"><label>Saldo inicial</label><input name="openingBalance" type="number" step="0.01" inputmode="decimal" value="0"></div>
+      <button class="btn primary wide" type="submit">Criar conta</button>
+    </form></div></div>`
+  }
+
   if(modal==='promotion'){
     const editId=modalData?.promotionId||null
     const p=(state.promotions||[]).find(x=>x.id===editId)||{}
