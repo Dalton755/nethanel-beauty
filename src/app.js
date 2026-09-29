@@ -109,7 +109,7 @@ function formatCommission(type,value){
   return ''
 }
 function bindPhoneMasks(root=document){
-  $('[data-mask="phone"]',root).forEach(input=>{
+  $$('[data-mask="phone"]',root).forEach(input=>{
     input.value=maskPhone(input.value)
     input.addEventListener('input',()=>{input.value=maskPhone(input.value)})
   })
@@ -335,16 +335,16 @@ function modalHtml(){
 }
 
 function bindGlobal(){
-  $('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;modal=null;render()})
-  $('[data-open]').forEach(b=>b.onclick=()=>openModal(b.dataset.open))
+  $$('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;modal=null;render()})
+  $$('[data-open]').forEach(b=>b.onclick=()=>openModal(b.dataset.open))
   $$('[data-wa]').forEach(b=>b.onclick=()=>openWhatsApp(b.dataset.wa))
-  $('[data-service-materials]').forEach(b=>b.onclick=()=>openModal(`serviceMaterials:${b.dataset.serviceMaterials}`))
-  $('[data-appointment-materials]').forEach(b=>b.onclick=()=>openModal(`appointmentMaterials:${b.dataset.appointmentMaterials}`))
-  $('[data-complete]').forEach(b=>b.onclick=()=>completeAppointment(b.dataset.complete,b))
-  $('[data-pro-edit]').forEach(b=>b.onclick=()=>openModal(`professionalEdit:${b.dataset.proEdit}`))
-  $('[data-pro-services]').forEach(b=>b.onclick=()=>openModal(`professionalServices:${b.dataset.proServices}`))
-  $('[data-pro-hours]').forEach(b=>b.onclick=()=>openModal(`professionalHours:${b.dataset.proHours}`))
-  $('[data-pro-block]').forEach(b=>b.onclick=()=>openModal(`professionalBlock:${b.dataset.proBlock}`))
+  $$('[data-service-materials]').forEach(b=>b.onclick=()=>openModal(`serviceMaterials:${b.dataset.serviceMaterials}`))
+  $$('[data-appointment-materials]').forEach(b=>b.onclick=()=>openModal(`appointmentMaterials:${b.dataset.appointmentMaterials}`))
+  $$('[data-complete]').forEach(b=>b.onclick=()=>completeAppointment(b.dataset.complete,b))
+  $$('[data-pro-edit]').forEach(b=>b.onclick=()=>openModal(`professionalEdit:${b.dataset.proEdit}`))
+  $$('[data-pro-services]').forEach(b=>b.onclick=()=>openModal(`professionalServices:${b.dataset.proServices}`))
+  $$('[data-pro-hours]').forEach(b=>b.onclick=()=>openModal(`professionalHours:${b.dataset.proHours}`))
+  $$('[data-pro-block]').forEach(b=>b.onclick=()=>openModal(`professionalBlock:${b.dataset.proBlock}`))
 }
 function bindPage(){
   $('#seedAgenda')?.addEventListener('click',seedAgenda)
@@ -353,7 +353,7 @@ function bindPage(){
   $('#logoutBtn')?.addEventListener('click',()=>{clearSession();state=emptyState();currentUser=null;page='home';authMessage='';render()})
 }
 function bindModal(){
-  $('[data-close]').forEach(b=>b.onclick=closeModal)
+  $$('[data-close]').forEach(b=>b.onclick=closeModal)
   $('.modal-backdrop')?.addEventListener('click',e=>{if(e.target.classList.contains('modal-backdrop'))closeModal()})
   bindPhoneMasks($('.modal-backdrop')||document)
 
@@ -515,8 +515,8 @@ function bindModal(){
   const allServicesToggle=$('#professionalAllServices')
   const syncServiceInputs=()=>{
     const all=allServicesToggle?.checked
-    $('[data-pro-service]').forEach(x=>{x.disabled=!!all})
-    $('[data-pro-price], [data-pro-duration]').forEach(x=>{x.disabled=!!all})
+    $$('[data-pro-service]').forEach(x=>{x.disabled=!!all})
+    $$('[data-pro-price], [data-pro-duration]').forEach(x=>{x.disabled=!!all})
   }
   allServicesToggle?.addEventListener('change',syncServiceInputs);syncServiceInputs()
 
@@ -556,7 +556,7 @@ function bindModal(){
     }catch(error){setBusy(button,false);alert(`Não foi possível criar o bloqueio. ${friendlyError(error)}`)}
   })
 
-  $('[data-delete-block]').forEach(b=>b.onclick=async()=>{
+  $$('[data-delete-block]').forEach(b=>b.onclick=async()=>{
     if(!confirm('Remover este bloqueio?'))return
     const id=b.dataset.deleteBlock,professionalId=b.dataset.professionalId
     try{
@@ -565,7 +565,7 @@ function bindModal(){
     }catch(error){alert(`Não foi possível remover o bloqueio. ${friendlyError(error)}`)}
   })
 
-  $('[data-toggle-seg]').forEach(b=>b.onclick=()=>{
+  $$('[data-toggle-seg]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.toggleSeg;const a=state.establishment.segments
     if(a.includes(k)){if(a.length===1){alert('O estabelecimento precisa manter pelo menos um segmento ativo.');return}a.splice(a.indexOf(k),1)}else a.push(k)
     render()
