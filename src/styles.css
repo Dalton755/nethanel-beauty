@@ -1382,3 +1382,14 @@ img,svg{max-width:100%}
   .brand-current-logo{width:68px;height:68px}
   .merchant-nav-brand .merchant-brand strong{font-size:12px}
 }
+
+.merchant-powered-client{
+  display:inline-flex;
+  width:max-content;
+  margin:2px 0 5px;
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.18em;
+  color:var(--champagne);
+  opacity:.82;
+}
