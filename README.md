@@ -1,10 +1,12 @@
-# Beauty OS — MVP web/PWA
+# Nethanel Beauty — MVP web/PWA
 
-MVP de gestão multiestabelecimento para negócios de beleza, com experiência personalizada por segmento.
+MVP multiestabelecimento para negócios de beleza, com experiência personalizada por segmento.
 
 ## Estado atual
 
-A aplicação já está conectada ao projeto Supabase **Dalton Pessoal**, usando o schema dedicado `beleza`. A chave usada no frontend é somente a **publishable key**; o isolamento dos dados é garantido por RLS.
+A aplicação usa o projeto Supabase **Dalton Pessoal**, no schema dedicado `beleza`.
+
+As credenciais públicas de conexão não ficam versionadas no GitHub. O Vercel gera `dist/config.js` durante o build usando variáveis de ambiente.
 
 ### Fluxo implementado
 
@@ -30,42 +32,43 @@ A aplicação já está conectada ao projeto Supabase **Dalton Pessoal**, usando
 - Depilação
 - Maquiagem
 
-O banco também mantém subdivisões futuras de estética facial e corporal.
-
-## Personalização por estabelecimento
-
-Cada estabelecimento possui seus próprios clientes, profissionais, serviços, produtos, estoque e agenda. Um Studio pode ativar múltiplos segmentos. Quando um segmento é desativado, seus cadastros não são apagados: ficam fora da operação e reaparecem quando o segmento é reativado.
-
 ## Banco
 
 Projeto: `Dalton Pessoal`  
 Schema: `beleza`
 
-O schema contém tabelas para estabelecimentos, segmentos, membros, profissionais, serviços, clientes, produtos, consumo por serviço, agenda, estoque e notificações. As relações usam `establishment_id` e chaves compostas para bloquear vínculos cruzados entre empresas.
+Cada estabelecimento possui seus próprios clientes, profissionais, serviços, produtos, estoque e agenda, isolados por RLS e `establishment_id`.
 
-## Rodar localmente
+## Importar no Vercel
 
-```bash
-python3 -m http.server 4173
-```
+Importe este repositório e configure estas variáveis em **Environment Variables**:
 
-Abra `http://localhost:4173`.
+- `SUPABASE_URL`
+- `SUPABASE_PUBLISHABLE_KEY`
+- `SUPABASE_SCHEMA=beleza`
 
-## Publicar na Vercel
+O `vercel.json` já define:
 
-O projeto é estático e já contém `vercel.json`; não há etapa de build. Publique a pasta raiz do projeto.
+- Build Command: `npm run build`
+- Output Directory: `dist`
+
+O build reconstrói os arquivos web, injeta a configuração pública e publica a PWA.
+
+## Segurança do repositório
+
+Nenhuma chave administrativa ou `service_role` é armazenada aqui. A publishable key deve ser configurada no Vercel.
 
 ## PWA / Play Store
 
-O projeto já possui manifest e service worker. Depois da validação comercial, a mesma aplicação poderá ser empacotada com Capacitor ou TWA para Android, mantendo o backend atual.
+O projeto já possui manifest e service worker. Depois da validação comercial, a mesma aplicação poderá ser empacotada com Capacitor ou TWA para Android mantendo o backend atual.
 
 ## Próximas camadas
 
-- Gestão completa de profissionais e disponibilidade.
-- Profissional ↔ serviços.
-- Comissão e fechamento.
-- Consumo automático de estoque por serviço.
-- Caixa/financeiro.
-- Push real com subscriptions e servidor de envio.
-- Link público de agendamento.
-- Fichas específicas por vertical (ficha capilar, mapping de cílios, protocolos de estética etc.).
+- Gestão completa de profissionais e disponibilidade
+- Profissional ↔ serviços
+- Comissão e fechamento
+- Consumo automático de estoque por serviço
+- Caixa/financeiro
+- Push real
+- Link público de agendamento
+- Fichas específicas por vertical
