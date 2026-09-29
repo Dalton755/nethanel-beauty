@@ -362,9 +362,9 @@ function bindGlobal(){
   $$('[data-pro-edit]').forEach(b=>b.onclick=()=>openModal(`professionalEdit:${b.dataset.proEdit}`))
   $$('[data-pro-services]').forEach(b=>b.onclick=()=>openModal(`professionalServices:${b.dataset.proServices}`))
   $$('[data-pro-hours]').forEach(b=>b.onclick=()=>openModal(`professionalHours:${b.dataset.proHours}`))
-  $('[data-pro-block]').forEach(b=>b.onclick=()=>openModal(`professionalBlock:${b.dataset.proBlock}`))
-  $('[data-product-edit]').forEach(b=>b.onclick=()=>openModal(`productEdit:${b.dataset.productEdit}`))
-  $('[data-product-remove]').forEach(b=>b.onclick=async()=>{
+  $$('[data-pro-block]').forEach(b=>b.onclick=()=>openModal(`professionalBlock:${b.dataset.proBlock}`))
+  $$('[data-product-edit]').forEach(b=>b.onclick=()=>openModal(`productEdit:${b.dataset.productEdit}`))
+  $$('[data-product-remove]').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.productRemove;const p=productById(id);if(!p)return
     if(!confirm(`Remover "${p.name}" do estoque? Atendimentos já agendados preservam o histórico de material.`))return
     try{
