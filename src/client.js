@@ -318,7 +318,7 @@ function bind(){
   $('#bookingLogin')?.addEventListener('click',()=>{state.authMode='login';state.authMessage='';render()})
   $('#clientGoogleLogin')?.addEventListener('click',()=>{
     localStorage.setItem('zaia_google_return_to', location.pathname + location.search)
-    signInWithGoogle(location.origin + '/cliente')
+    signInWithGoogle('https://nethanel-beauty.vercel.app/cliente')
   })
   document.querySelectorAll('[data-auth-close]').forEach(b=>b.onclick=()=>{state.authMode=null;state.authMessage='';render()})
   $('#authSwitch')?.addEventListener('click',()=>{state.authMode=state.authMode==='signup'?'login':'signup';state.authMessage='';render()})
