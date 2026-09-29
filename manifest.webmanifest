@@ -1,0 +1,12 @@
+{
+  "name": "Beauty OS MVP",
+  "short_name": "Beauty OS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f7f7fb",
+  "theme_color": "#17151f",
+  "description": "Gestão inteligente e personalizada para negócios de beleza.",
+  "icons": [
+    {"src":"/icon.svg","sizes":"512x512","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
