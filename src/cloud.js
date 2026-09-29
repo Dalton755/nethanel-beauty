@@ -117,7 +117,7 @@ export async function loadCloudState() {
   const session = await ensureSession()
   if (!session) return { authenticated: false }
 
-  const establishments = await rest('establishments?select=id,name,slug,timezone,currency,active,primary_segment_code&active=eq.true&order=created_at.asc')
+  const establishments = await rest('establishments?select=id,name,slug,timezone,currency,active,primary_segment_code,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_postal_code,latitude,longitude,marketplace_enabled,public_booking_enabled,public_description,public_cover_url&active=eq.true&order=created_at.asc')
   if (!establishments?.length) {
     return {
       authenticated: true,
@@ -204,6 +204,21 @@ export async function loadCloudState() {
       currency: est.currency,
       segments: segments.map(s => s.segment_code),
       primarySegment: est.primary_segment_code,
+      address: {
+        street: est.address_street || '',
+        number: est.address_number || '',
+        complement: est.address_complement || '',
+        neighborhood: est.address_neighborhood || '',
+        city: est.address_city || '',
+        state: est.address_state || '',
+        postalCode: est.address_postal_code || '',
+        latitude: est.latitude == null ? null : Number(est.latitude),
+        longitude: est.longitude == null ? null : Number(est.longitude),
+      },
+      marketplaceEnabled: est.marketplace_enabled === true,
+      publicBookingEnabled: est.public_booking_enabled !== false,
+      publicDescription: est.public_description || '',
+      publicCoverUrl: est.public_cover_url || '',
     },
     services: visibleServices.map(s => ({
       id: s.id, name: s.name, segment: s.segment_code, price: Number(s.price),
@@ -362,6 +377,63 @@ export async function getAvailableSlots(professionalId, serviceId, date, stepMin
     endTime: isoToLocal(r.ends_at).time,
     durationMinutes: Math.max(0, Math.round((new Date(r.ends_at)-new Date(r.starts_at))/60000)),
   }))
+}
+
+export async function publicSearchEstablishments({ query = '', segment = null, service = null, lat = null, long = null, radiusKm = 25 } = {}) {
+  return rest('rpc/public_search_establishments', {
+    method: 'POST',
+    body: {
+      p_query: query || null,
+      p_segment: segment || null,
+      p_service: service || null,
+      p_lat: lat == null ? null : Number(lat),
+      p_long: long == null ? null : Number(long),
+      p_radius_km: Number(radiusKm || 25),
+    },
+  })
+}
+
+export async function publicStorefront(establishmentId) {
+  return rest('rpc/public_storefront', {
+    method: 'POST',
+    body: { p_establishment_id: establishmentId },
+  })
+}
+
+export async function publicAvailableSlots(professionalId, serviceId, date, stepMinutes = 15) {
+  const rows = await rest('rpc/public_available_slots', {
+    method: 'POST',
+    body: {
+      p_professional_id: professionalId,
+      p_service_id: serviceId,
+      p_date: date,
+      p_step_minutes: stepMinutes,
+    },
+  })
+  return (rows || []).map(r => ({
+    startsAt: r.starts_at,
+    endsAt: r.ends_at,
+    price: Number(r.price || 0),
+    time: isoToLocal(r.starts_at).time,
+    endTime: isoToLocal(r.ends_at).time,
+    durationMinutes: Math.max(0, Math.round((new Date(r.ends_at)-new Date(r.starts_at))/60000)),
+  }))
+}
+
+export async function publicBookAppointment(payload) {
+  return rest('rpc/public_book_appointment', {
+    method: 'POST',
+    body: {
+      p_establishment_id: payload.establishmentId,
+      p_service_id: payload.serviceId,
+      p_professional_id: payload.professionalId,
+      p_starts_at: payload.startsAt,
+      p_customer_name: payload.customerName,
+      p_customer_phone: payload.customerPhone,
+      p_customer_email: payload.customerEmail || null,
+      p_customer_note: payload.customerNote || null,
+    },
+  })
 }
 
 export async function createEstablishment({ name, segments, services }) {
@@ -604,9 +676,26 @@ export async function completeCloudAppointment(establishmentId, appointment) {
   })
 }
 
-export async function updateEstablishment(establishmentId, { name, primarySegment }) {
-  const body = { name }
-  if (primarySegment) body.primary_segment_code = primarySegment
+export async function updateEstablishment(establishmentId, data = {}) {
+  const body = {}
+  if (data.name !== undefined) body.name = data.name
+  if (data.primarySegment) body.primary_segment_code = data.primarySegment
+  if (data.address) {
+    body.address_street = data.address.street || null
+    body.address_number = data.address.number || null
+    body.address_complement = data.address.complement || null
+    body.address_neighborhood = data.address.neighborhood || null
+    body.address_city = data.address.city || null
+    body.address_state = data.address.state || null
+    body.address_postal_code = data.address.postalCode || null
+    body.latitude = data.address.latitude == null ? null : Number(data.address.latitude)
+    body.longitude = data.address.longitude == null ? null : Number(data.address.longitude)
+  }
+  if (data.marketplaceEnabled !== undefined) body.marketplace_enabled = Boolean(data.marketplaceEnabled)
+  if (data.publicBookingEnabled !== undefined) body.public_booking_enabled = Boolean(data.publicBookingEnabled)
+  if (data.publicDescription !== undefined) body.public_description = data.publicDescription || null
+  if (data.publicCoverUrl !== undefined) body.public_cover_url = data.publicCoverUrl || null
+  body.updated_at = new Date().toISOString()
   await rest(`establishments?id=eq.${q(establishmentId)}`, {
     method: 'PATCH', body, prefer: 'return=minimal'
   })
