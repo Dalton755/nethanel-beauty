@@ -498,6 +498,10 @@ async function boot(){
         state.notificationsEnabled=false
       }
     }
+    const requestedPage=new URLSearchParams(location.search).get('page')
+    if(['home','agenda','clients','services','professionals','inventory','finance','promotions','more'].includes(requestedPage)){
+      page=requestedPage
+    }
   }catch(error){
     authMessage=`Não foi possível carregar os dados: ${friendlyError(error)}`
     state=emptyState()
