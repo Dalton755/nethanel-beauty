@@ -8,6 +8,8 @@ import {
   ensureSession,
   signIn,
   signUp,
+  signInWithGoogle,
+  consumeOAuthSessionFromUrl,
   clearSession,
   customerUpsertProfile,
   customerDashboard,
@@ -97,7 +99,7 @@ function authModal(){
   const profile=state.authMode==='profile'
   const p=state.customerData?.profile||{}
   if(profile)return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><span class="client-kicker">SEU PERFIL ZAIA</span><h2>Complete seus dados</h2><p>Usaremos essas informações nos seus agendamentos.</p><form id="clientProfileForm" class="client-auth-form"><div class="field"><label>Nome completo</label><input name="name" required value="${esc(p.full_name||'')}"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" value="${esc(maskPhone(p.phone||''))}"></div><div class="field"><label>Data de nascimento <small>(opcional)</small></label><input name="birthDate" type="date" value="${esc(p.birth_date||'')}"></div><label class="client-check"><input type="checkbox" name="marketing" ${p.marketing_opt_in!==false?'checked':''}><span>Quero receber promoções relevantes na ZAIA</span></label><button class="client-primary wide" type="submit">Salvar perfil</button></form></div></div>`
-  return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><div class="client-auth-logo">${mark()}</div><span class="client-kicker">${signup?'CRIAR CONTA':'MINHA ZAIA'}</span><h2>${signup?'Crie sua conta ZAIA':'Entre na sua conta'}</h2><p>${signup?'Seus agendamentos, histórico e lembretes em um só lugar.':'Continue de onde parou em qualquer estabelecimento.'}</p>${state.authMessage?`<div class="client-alert">${esc(state.authMessage)}</div>`:''}<form id="clientAuthForm" class="client-auth-form">${signup?`<div class="field"><label>Nome completo</label><input name="name" required minlength="2"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" placeholder="(11) 99999-9999"></div>`:''}<div class="field"><label>E-mail</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>Senha</label><div class="client-password-field"><input id="clientAuthPassword" name="password" type="password" required minlength="6" autocomplete="${signup?'new-password':'current-password'}"><button type="button" class="client-password-toggle" data-password-toggle aria-label="Mostrar senha">Mostrar</button></div></div><button class="client-primary wide" type="submit">${signup?'Criar conta':'Entrar'}</button></form><button class="client-auth-switch" id="authSwitch">${signup?'Já tenho conta':'Ainda não tenho conta'}</button></div></div>`
+  return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><div class="client-auth-logo">${mark()}</div><span class="client-kicker">${signup?'CRIAR CONTA':'MINHA ZAIA'}</span><h2>${signup?'Crie sua conta ZAIA':'Entre na sua conta'}</h2><p>${signup?'Seus agendamentos, histórico e lembretes em um só lugar.':'Continue de onde parou em qualquer estabelecimento.'}</p>${state.authMessage?`<div class="client-alert">${esc(state.authMessage)}</div>`:''}<button type="button" class="client-google-btn" id="clientGoogleLogin"><span class="google-g">G</span><span>Continuar com Google</span></button><div class="client-auth-divider"><span>ou</span></div><form id="clientAuthForm" class="client-auth-form">${signup?`<div class="field"><label>Nome completo</label><input name="name" required minlength="2"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" placeholder="(11) 99999-9999"></div>`:''}<div class="field"><label>E-mail</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>Senha</label><div class="client-password-field"><input id="clientAuthPassword" name="password" type="password" required minlength="6" autocomplete="${signup?'new-password':'current-password'}"><button type="button" class="client-password-toggle" data-password-toggle aria-label="Mostrar senha">Mostrar</button></div></div><button class="client-primary wide" type="submit">${signup?'Criar conta':'Entrar'}</button></form><button class="client-auth-switch" id="authSwitch">${signup?'Já tenho conta':'Ainda não tenho conta'}</button></div></div>`
 }
 
 
@@ -314,6 +316,10 @@ function render(){
 function bind(){
   $('#clientLogin')?.addEventListener('click',()=>{state.authMode='login';state.authMessage='';render()})
   $('#bookingLogin')?.addEventListener('click',()=>{state.authMode='login';state.authMessage='';render()})
+  $('#clientGoogleLogin')?.addEventListener('click',()=>{
+    localStorage.setItem('zaia_google_return_to', location.pathname + location.search)
+    signInWithGoogle(location.origin + '/cliente')
+  })
   document.querySelectorAll('[data-auth-close]').forEach(b=>b.onclick=()=>{state.authMode=null;state.authMessage='';render()})
   $('#authSwitch')?.addEventListener('click',()=>{state.authMode=state.authMode==='signup'?'login':'signup';state.authMessage='';render()})
   $('#authPhone')?.addEventListener('input',e=>e.target.value=maskPhone(e.target.value))
@@ -451,9 +457,39 @@ async function boot(){
     state.error='A busca pública ainda não está conectada ao servidor.'
     render();return
   }
-  state.session=await ensureSession()
+
+  let oauthSession=null
+  try{oauthSession=await consumeOAuthSessionFromUrl()}catch(error){
+    state.authMessage=String(error.message||error)
+    state.authMode='login'
+  }
+
+  state.session=oauthSession||await ensureSession()
   if(state.session)await refreshCustomer()
+
+  if(oauthSession&&!state.customerData?.profile){
+    const meta=state.session?.user?.user_metadata||{}
+    const suggestedName=meta.full_name||meta.name||''
+    if(suggestedName){
+      try{
+        await customerUpsertProfile({fullName:suggestedName,phone:null,marketingOptIn:true})
+        await refreshCustomer()
+      }catch{}
+    }
+    if(!state.customerData?.profile?.phone)state.authMode='profile'
+  }
+
   await refreshPromotions()
+
+  const savedReturn=oauthSession?localStorage.getItem('zaia_google_return_to'):null
+  if(savedReturn){
+    localStorage.removeItem('zaia_google_return_to')
+    try{
+      const u=new URL(savedReturn,location.origin)
+      if(u.origin===location.origin&&u.pathname.startsWith('/cliente'))history.replaceState({},'',u.pathname+u.search)
+    }catch{}
+  }
+
   const params=new URLSearchParams(location.search)
   const tab=params.get('tab')
   const loja=params.get('loja')
