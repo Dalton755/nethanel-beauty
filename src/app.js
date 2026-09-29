@@ -255,8 +255,14 @@ function zaiaLogo(compact=false){
 
 function setBusy(button, busy, text='Salvando...'){
   if(!button)return
-  if(busy){button.dataset.oldText=button.textContent;button.textContent=text;button.disabled=true}
-  else{button.textContent=button.dataset.oldText||button.textContent;button.disabled=false}
+  if(busy){
+    if(!button.dataset.oldText)button.dataset.oldText=button.textContent
+    button.textContent=text;button.disabled=true
+  }else{
+    button.textContent=button.dataset.oldText||button.textContent
+    delete button.dataset.oldText
+    button.disabled=false
+  }
 }
 function friendlyError(error){
   const raw=String(error?.message||error||'Erro inesperado')
