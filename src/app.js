@@ -14,6 +14,7 @@ import {
   seedStarterCatalog,
   insertAppointment,
   saveServiceMaterials,
+  suggestServiceMaterials,
   saveAppointmentMaterials,
   completeCloudAppointment,
   updateEstablishment,
@@ -133,6 +134,43 @@ window.addEventListener('popstate',()=>{
 function fmtQty(n){return Number(n||0).toLocaleString('pt-BR',{maximumFractionDigits:3})}
 function materialCost(materials=[]){return materials.reduce((sum,m)=>sum+Number(m.quantity||0)*Number(productById(m.productId)?.cost||0),0)}
 function eligibleProducts(segment){return state.products.filter(p=>p.active!==false&&(!p.segment||p.segment===segment))}
+function averageConfidence(materials=[]){
+  if(!materials.length)return 0
+  return materials.reduce((sum,m)=>sum+Number(m.confidence||0),0)/materials.length
+}
+function localLearnedSuggestion(svc){
+  const source=state.services
+    .filter(s=>s.id!==svc.id&&s.segment===svc.segment&&s.materials?.length&&!s.materialsEstimated)
+    .slice(-1)[0]
+  if(!source)return null
+  return {
+    learnedServices:1,
+    lastServiceName:source.name,
+    source:'local_learning',
+    materials:(source.materials||[]).map(m=>({...m,confidence:.65,support:1,usedInLastService:true})),
+  }
+}
+async function openServiceMaterials(id){
+  const svc=serviceById(id);if(!svc)return
+  svc._learningSuggestion=null
+  svc._learningLoading=false
+  openModal(`serviceMaterials:${id}`)
+  if(!(svc.materialsEstimated||!svc.materials?.length))return
+  if(!cloudEnabled()){
+    svc._learningSuggestion=localLearnedSuggestion(svc)
+    render();return
+  }
+  svc._learningLoading=true;render()
+  try{
+    const learned=await suggestServiceMaterials(id)
+    if(learned?.materials?.length)svc._learningSuggestion=learned
+  }catch(error){
+    console.warn('Material learning suggestion failed',error)
+  }finally{
+    svc._learningLoading=false
+    if(modal===`serviceMaterials:${id}`)render()
+  }
+}
 function materialsEditorHtml(materials=[],segment){
   const values=Object.fromEntries(materials.map(m=>[m.productId,Number(m.quantity||0)]))
   const products=eligibleProducts(segment)
@@ -292,7 +330,7 @@ function appointmentItem(a){
 
 function clientsPage(){return `<div class="eyebrow">Relacionamento</div><h1 class="title">Clientes</h1><p class="subtitle">Histórico e retorno ficam vinculados somente a ${esc(state.establishment.name)}.</p><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="client">+ Novo cliente</button></div><div class="section-head"><h2>${state.clients.length} cadastrados</h2></div>${state.clients.length?`<div class="list">${state.clients.map(c=>`<div class="item"><div class="item-main"><strong>${esc(c.name)}</strong><div class="meta">${esc(c.phone||'Sem telefone')} ${c.lastService?'• '+esc(c.lastService):''}</div></div>${c.phone?`<button class="btn small" data-wa="${c.id}">WhatsApp</button>`:''}</div>`).join('')}</div>`:`<div class="empty"><b>Nenhum cliente ainda</b>Clientes também são criados automaticamente ao agendar.</div>`}<button class="fab" data-open="client">+</button>`}
 function catalogPage(){return `<div class="eyebrow">Catálogo</div><h1 class="title">Seu negócio, suas regras.</h1><p class="subtitle">Você pode alterar os modelos sugeridos e criar serviços e produtos próprios.</p><div class="two-col" style="margin-top:20px"><button class="card" data-page="services" style="text-align:left;border:1px solid var(--line)"><div style="font-size:26px">✦</div><h2>Serviços</h2><p class="subtitle">${state.services.filter(s=>s.active).length} ativos • preços, duração e retorno.</p></button><button class="card" data-page="inventory" style="text-align:left;border:1px solid var(--line)"><div style="font-size:26px">▦</div><h2>Produtos & estoque</h2><p class="subtitle">${state.products.length} produtos • categorias específicas do segmento.</p></button></div>`}
-function servicesPage(){return `<div class="eyebrow">Catálogo</div><h1 class="title">Serviços</h1><p class="subtitle">Cada serviço pode ter uma estimativa inicial de materiais. Ajuste para refletir como o seu estabelecimento realmente trabalha.</p><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="service">+ Adicionar serviço</button></div><div class="section-head"><h2>Serviços cadastrados</h2><span class="pill">${state.services.length}</span></div><div class="list">${state.services.map(s=>`<div class="item"><div class="service-dot"></div><div class="item-main"><strong>${esc(s.name)}</strong><div class="meta">${fmtMoney(s.price)} • ${s.duration} min ${s.returnDays?`• retorno ${s.returnDays} dias`:''}</div><div class="meta material-summary">${s.materials?.length?`${s.materials.length} material${s.materials.length>1?'is':''} • custo previsto ${fmtMoney(s.estimatedCost||materialCost(s.materials))}`:'Sem materiais configurados'} ${s.materialsEstimated?'<span class="pill estimate">Estimativa inicial</span>':''}</div></div><div class="item-actions"><button class="btn small" data-service-materials="${s.id}">Materiais</button><span class="pill ${s.active?'good':''}">${s.active?'Ativo':'Inativo'}</span></div></div>`).join('')}</div><button class="fab" data-open="service">+</button>`}
+function servicesPage(){return `<div class="eyebrow">Catálogo</div><h1 class="title">Serviços</h1><p class="subtitle">Cada serviço pode ter uma estimativa inicial de materiais. Quando você corrige e salva, o Beauty aprende e usa esse padrão para pré-preencher os próximos serviços.</p><div class="notice learning-notice"><strong>Aprendizado de materiais ativo</strong><span>O aprendizado fica isolado neste estabelecimento e neste segmento.</span></div><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="service">+ Adicionar serviço</button></div><div class="section-head"><h2>Serviços cadastrados</h2><span class="pill">${state.services.length}</span></div><div class="list">${state.services.map(s=>`<div class="item"><div class="service-dot"></div><div class="item-main"><strong>${esc(s.name)}</strong><div class="meta">${fmtMoney(s.price)} • ${s.duration} min ${s.returnDays?`• retorno ${s.returnDays} dias`:''}</div><div class="meta material-summary">${s.materials?.length?`${s.materials.length} material${s.materials.length>1?'is':''} • custo previsto ${fmtMoney(s.estimatedCost||materialCost(s.materials))}`:'Sem materiais configurados'} ${s.materialsEstimated?'<span class="pill estimate">Estimativa inicial</span>':''}</div></div><div class="item-actions"><button class="btn small" data-service-materials="${s.id}">Materiais</button><span class="pill ${s.active?'good':''}">${s.active?'Ativo':'Inativo'}</span></div></div>`).join('')}</div><button class="fab" data-open="service">+</button>`}
 function inventoryPage(){
   const suggested=state.products.filter(p=>p.suggested).length
   return `<div class="eyebrow">Operação</div><h1 class="title">Produtos & estoque</h1><p class="subtitle">O modelo inicial traz os itens mais comuns do seu segmento. Quantidade, custo e consumo são apenas pontos de partida e ficam totalmente editáveis.</p><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="product">+ Adicionar produto</button>${cloudEnabled()?'<button class="btn" id="seedStarterCatalog">Adicionar sugestões do segmento</button>':''}</div>${suggested?`<div class="notice starter-notice"><strong>${suggested} itens vieram da base sugerida.</strong><span>Informe seu estoque e custo reais. Você pode editar ou remover qualquer item.</span></div>`:''}<div class="section-head"><h2>Estoque atual</h2><span class="pill">${state.products.length}</span></div>${state.products.length?`<div class="list inventory-list">${state.products.map(p=>{
@@ -325,7 +363,23 @@ function modalHtml(){
     const allCats=p?.category&&!cats.includes(p.category)?[p.category,...cats]:cats
     return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><div><h3>${p?'Editar produto':'Novo produto'}</h3>${p?.suggested?'<div class="helper">Item criado pela base sugerida — personalize livremente.</div>':''}</div>${close}</div><form class="form" id="productForm" data-product-id="${p?.id||''}"><div class="field"><label>Área</label><select name="segment"><option value="" ${!p?.segment?'selected':''}>Compartilhado pelo estabelecimento</option>${segmentKeys().map(k=>`<option value="${k}" ${p?.segment===k?'selected':''}>${SEGMENTS[k].name}</option>`).join('')}</select></div><div class="field"><label>Nome</label><input name="name" required value="${esc(p?.name||'')}"></div><div class="field"><label>Categoria</label><select name="category" required>${allCats.map(c=>`<option ${p?.category===c?'selected':''}>${esc(c)}</option>`).join('')}<option value="Outros" ${p?.category==='Outros'?'selected':''}>Outros</option></select></div><div class="row"><div class="field"><label>Estoque atual</label><input name="stock" type="number" step="0.001" inputmode="decimal" value="${p?.stock??0}" required></div><div class="field"><label>Estoque mínimo</label><input name="minStock" type="number" step="0.001" inputmode="decimal" value="${p?.minStock??0}" required></div></div><div class="row"><div class="field"><label>Unidade</label><select name="unit">${['un','ml','g','kg','L','m'].map(u=>`<option ${(p?.unit||'un')===u?'selected':''}>${u}</option>`).join('')}</select></div><div class="field"><label>Custo unitário</label><input name="cost" type="number" min="0" step="0.01" inputmode="decimal" value="${p?.cost??0}" required></div></div>${p?.suggested?'<div class="notice compact-notice">Os valores vieram zerados porque o sistema não deve adivinhar seu estoque ou custo real.</div>':''}<button class="btn primary wide">${p?'Salvar alterações':'Adicionar produto'}</button></form></div></div>`
   }
-  if(typeof modal==='string'&&modal.startsWith('serviceMaterials:')){const id=modal.split(':')[1];const svc=serviceById(id);if(!svc)return '';return `<div class="modal-backdrop"><div class="modal modal-tall"><div class="modal-head"><div><h3>Materiais do serviço</h3><div class="helper">${esc(svc.name)} • custo calculado automaticamente</div></div>${close}</div><form class="form" id="serviceMaterialsForm" data-service-id="${svc.id}"><div class="notice material-notice">${svc.materialsEstimated?'Esta é uma estimativa inicial de consumo. Ajuste, zere ou acrescente materiais conforme sua operação. Ao salvar, ela passa a ser sua configuração.':'Defina quanto normalmente é usado em um atendimento. Essa receita será copiada para novos agendamentos.'}</div>${materialsEditorHtml(svc.materials||[],svc.segment)}<div class="material-total">Custo estimado: <strong id="materialCostPreview">${fmtMoney(materialCost(svc.materials||[]))}</strong></div><button class="btn primary wide">Salvar materiais</button></form></div></div>`}
+  if(typeof modal==='string'&&modal.startsWith('serviceMaterials:')){
+    const id=modal.split(':')[1];const svc=serviceById(id);if(!svc)return ''
+    const learned=svc._learningSuggestion
+    const editorMaterials=learned?.materials?.length?learned.materials:(svc.materials||[])
+    const confidence=learned?.materials?.length?Math.round(averageConfidence(learned.materials)*100):0
+    const learningBanner=svc._learningLoading
+      ? '<div class="notice learning-card"><strong>Aprendendo com seus serviços...</strong><span>Buscando os padrões já ensinados neste estabelecimento.</span></div>'
+      : learned?.materials?.length
+        ? `<div class="notice learning-card learned"><div><strong>✦ Sugestão aprendida</strong><span>Pré-preenchido com base em ${learned.learnedServices} serviço${learned.learnedServices===1?'':'s'} configurado${learned.learnedServices===1?'':'s'}${learned.lastServiceName?` • último: ${esc(learned.lastServiceName)}`:''}.</span></div><span class="pill good">${confidence}% confiança</span></div>`
+        : ''
+    const notice=learned?.materials?.length
+      ? 'Revise a sugestão da máquina. Ao salvar, suas correções viram um novo exemplo de aprendizado.'
+      : svc.materialsEstimated
+        ? 'Esta é uma estimativa inicial de consumo. Ajuste, zere ou acrescente materiais. Ao salvar, o Beauty aprende com sua configuração.'
+        : 'Defina quanto normalmente é usado em um atendimento. Ao salvar, o Beauty aprende este padrão.'
+    return `<div class="modal-backdrop"><div class="modal modal-tall"><div class="modal-head"><div><h3>Materiais do serviço</h3><div class="helper">${esc(svc.name)} • custo calculado automaticamente</div></div>${close}</div><form class="form" id="serviceMaterialsForm" data-service-id="${svc.id}">${learningBanner}<div class="notice material-notice">${notice}</div>${materialsEditorHtml(editorMaterials,svc.segment)}<div class="material-total">Custo estimado: <strong id="materialCostPreview">${fmtMoney(materialCost(editorMaterials))}</strong></div><button class="btn primary wide">Salvar e ensinar ao Beauty</button></form></div></div>`
+  }
   if(typeof modal==='string'&&modal.startsWith('appointmentMaterials:')){const id=modal.split(':')[1];const appt=state.appointments.find(a=>a.id===id);const svc=appt&&serviceById(appt.serviceId);if(!appt||!svc)return '';const mats=appt.materials?.length?appt.materials:(svc.materials||[]);return `<div class="modal-backdrop"><div class="modal modal-tall"><div class="modal-head"><div><h3>Materiais do atendimento</h3><div class="helper">${esc(appt.clientName)} • ${esc(svc.name)}</div></div>${close}</div><form class="form" id="appointmentMaterialsForm" data-appointment-id="${appt.id}"><div class="notice material-notice">${svc.materialsEstimated?'Os valores abaixo são uma estimativa inicial. Ajuste o que realmente será usado neste atendimento.':'Ajuste o que realmente será usado. A baixa no estoque acontece somente ao concluir.'}</div>${materialsEditorHtml(mats,svc.segment)}<button class="btn primary wide">Salvar materiais do atendimento</button></form></div></div>`}
   if(modal==='professional'||modal.startsWith('professionalEdit:')){
     const id=modal.includes(':')?modal.split(':')[1]:null
@@ -356,7 +410,7 @@ function bindGlobal(){
   $$('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;modal=null;render()})
   $$('[data-open]').forEach(b=>b.onclick=()=>openModal(b.dataset.open))
   $$('[data-wa]').forEach(b=>b.onclick=()=>openWhatsApp(b.dataset.wa))
-  $$('[data-service-materials]').forEach(b=>b.onclick=()=>openModal(`serviceMaterials:${b.dataset.serviceMaterials}`))
+  $$('[data-service-materials]').forEach(b=>b.onclick=()=>openServiceMaterials(b.dataset.serviceMaterials))
   $$('[data-appointment-materials]').forEach(b=>b.onclick=()=>openModal(`appointmentMaterials:${b.dataset.appointmentMaterials}`))
   $$('[data-complete]').forEach(b=>b.onclick=()=>completeAppointment(b.dataset.complete,b))
   $$('[data-pro-edit]').forEach(b=>b.onclick=()=>openModal(`professionalEdit:${b.dataset.proEdit}`))
@@ -501,7 +555,7 @@ function bindModal(){
         const row=await insertService(state.establishment.id,s)
         s={id:row.id,name:row.name,price:Number(row.price),duration:row.duration_minutes,segment:row.segment_code,returnDays:Number(row.return_interval_days||0),estimatedCost:Number(row.estimated_cost||0),materials:[],active:row.active}
       }
-      state.services.push(s);persistLocal();modal=null;render()
+      state.services.push(s);persistLocal();await openServiceMaterials(s.id)
     }catch(error){setBusy(button,false);alert(`Não foi possível salvar o serviço. ${friendlyError(error)}`)}
   })
 
@@ -528,7 +582,7 @@ function bindModal(){
     const serviceId=e.target.dataset.serviceId;const svc=serviceById(serviceId);const materials=readMaterials(e.target)
     try{
       if(cloudEnabled())await saveServiceMaterials(serviceId,materials)
-      svc.materials=materials;svc.materialsEstimated=false;svc.estimatedCost=materialCost(materials);persistLocal();modal=null;render()
+      svc.materials=materials;svc.materialsEstimated=false;svc.estimatedCost=materialCost(materials);svc._learningSuggestion=null;persistLocal();modal=null;render()
     }catch(error){setBusy(button,false);alert(`Não foi possível salvar os materiais. ${friendlyError(error)}`)}
   })
 
