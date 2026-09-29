@@ -3,6 +3,8 @@ import {
   getSession,
   signIn,
   signUp,
+  signInWithGoogle,
+  consumeOAuthSessionFromUrl,
   clearSession,
   loadCloudState,
   createEstablishment,
@@ -305,6 +307,7 @@ async function boot(){
     state=localLoad();loading=false;render();return
   }
   try{
+    try{await consumeOAuthSessionFromUrl()}catch(error){authMessage=friendlyError(error)}
     const loaded=await loadCloudState()
     if(!loaded.authenticated){
       currentUser=null;state=emptyState();loading=false;render();return
@@ -333,10 +336,13 @@ function loadingPage(){
 }
 
 function authPage(){
-  return '<section class="onboard zaia-auth"><div class="auth-shell"><div class="auth-visual"><div class="auth-brand">'+zaiaLogo()+'</div><div class="auth-copy"><span class="step">GESTÃO PARA NEGÓCIOS DE BELEZA</span><h1>Mais que beleza.<br>Mais possibilidades.</h1><p>Agenda, equipe, clientes, estoque e inteligência em uma experiência feita para o seu negócio.</p></div><div class="auth-powered">by Nethanel</div></div><div class="auth-panel"><div class="mobile-auth-brand">'+zaiaLogo()+'</div><div class="step">BEM-VINDO À ZAIA</div><h1>Entre no seu espaço.</h1><p class="subtitle">Sua operação organizada, elegante e sempre à mão.</p>'+(authMessage?'<div class="warning-box" style="margin-top:18px">'+esc(authMessage)+'</div>':'')+'<div class="auth-card"><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="seu@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Sua senha"></div><button class="btn primary wide" name="action" value="login">Entrar '+icon('arrow',18)+'</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper auth-helper">No primeiro acesso, a ZAIA monta uma base inicial de acordo com o segmento do estabelecimento.</p><div class="auth-client-entry"><span>Quer agendar um serviço?</span><a class="btn ghost wide" href="/cliente">Encontrar profissionais e horários</a></div></div><div class="mobile-powered">by Nethanel</div></div></div></section>'
+  return '<section class="onboard zaia-auth"><div class="auth-shell"><div class="auth-visual"><div class="auth-brand">'+zaiaLogo()+'</div><div class="auth-copy"><span class="step">GESTÃO PARA NEGÓCIOS DE BELEZA</span><h1>Mais que beleza.<br>Mais possibilidades.</h1><p>Agenda, equipe, clientes, estoque e inteligência em uma experiência feita para o seu negócio.</p></div><div class="auth-powered">by Nethanel</div></div><div class="auth-panel"><div class="mobile-auth-brand">'+zaiaLogo()+'</div><div class="step">BEM-VINDO À ZAIA</div><h1>Entre no seu espaço.</h1><p class="subtitle">Sua operação organizada, elegante e sempre à mão.</p>'+(authMessage?'<div class="warning-box" style="margin-top:18px">'+esc(authMessage)+'</div>':'')+'<div class="auth-card"><button type="button" class="google-auth-btn" id="googleLogin"><span class="google-g">G</span><span>Continuar com Google</span></button><div class="auth-divider"><span>ou</span></div><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="seu@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Sua senha"></div><button class="btn primary wide" name="action" value="login">Entrar '+icon('arrow',18)+'</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper auth-helper">No primeiro acesso, a ZAIA monta uma base inicial de acordo com o segmento do estabelecimento.</p><div class="auth-client-entry"><span>Quer agendar um serviço?</span><a class="btn ghost wide" href="/cliente">Encontrar profissionais e horários</a></div></div><div class="mobile-powered">by Nethanel</div></div></div></section>'
 }
 function bindAuth(){
   const form=$('#authForm')
+  $('#googleLogin')?.addEventListener('click',()=>{
+    signInWithGoogle(location.origin + '/')
+  })
   form?.addEventListener('submit',async e=>{
     e.preventDefault();authMessage=''
     const btn=form.querySelector('button[name="action"]');setBusy(btn,true,'Entrando...')
