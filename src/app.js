@@ -58,6 +58,7 @@ let modal=null
 let loading=true
 let authMessage=''
 let currentUser=null
+let businessLocationDraft=null
 
 function localLoad(){
   try{return JSON.parse(localStorage.getItem(storageKey))||emptyState()}catch{return emptyState()}
@@ -161,6 +162,14 @@ function bindPhoneMasks(root=document){
 }
 function openModal(name){
   modal=name
+  if(name==='business'){
+    const a=state.establishment?.address||{}
+    businessLocationDraft={
+      latitude:a.latitude==null?null:Number(a.latitude),
+      longitude:a.longitude==null?null:Number(a.longitude),
+      displayName:publicAddressLabel(state.establishment)
+    }
+  }
   if(!history.state?.beautyModal)history.pushState({...history.state,beautyModal:true},'',location.href)
   render()
 }
@@ -512,7 +521,9 @@ function modalHtml(){
   }
   if(modal==='business'){
     const a=state.establishment.address||{}
-    const located=Number.isFinite(Number(a.latitude))&&Number.isFinite(Number(a.longitude))
+    const draftLat=businessLocationDraft?.latitude??a.latitude
+    const draftLong=businessLocationDraft?.longitude??a.longitude
+    const located=Number.isFinite(Number(draftLat))&&Number.isFinite(Number(draftLong))
     return `<div class="modal-backdrop"><div class="modal modal-tall business-modal"><div class="modal-head"><div><span class="eyebrow">ESTABELECIMENTO</span><h3>Perfil e localização</h3><div class="helper">Essas informações alimentam a busca pública da ZAIA.</div></div>${close}</div>
     <div class="form">
       <div class="field"><label>Nome do estabelecimento</label><input id="businessName" value="${esc(state.establishment.name)}"></div>
@@ -523,8 +534,8 @@ function modalHtml(){
       <div class="row"><div class="field"><label>Número</label><input id="businessNumber" value="${esc(a.number||'')}"></div><div class="field"><label>Complemento</label><input id="businessComplement" value="${esc(a.complement||'')}"></div></div>
       <div class="field"><label>Bairro</label><input id="businessNeighborhood" value="${esc(a.neighborhood||'')}"></div>
       <div class="row"><div class="field"><label>Cidade</label><input id="businessCity" value="${esc(a.city||'')}"></div><div class="field"><label>UF</label><input id="businessState" maxlength="2" value="${esc(a.state||'')}" placeholder="SP"></div></div>
-      <input type="hidden" id="businessLat" value="${a.latitude??''}"><input type="hidden" id="businessLong" value="${a.longitude??''}">
-      <div class="location-actions"><button type="button" class="btn" id="locateBusinessAddress">${icon('search',17)} Localizar este endereço</button><button type="button" class="btn ghost" id="useBusinessLocation">Usar localização atual</button></div>
+      <input type="hidden" id="businessLat" value="${draftLat??''}"><input type="hidden" id="businessLong" value="${draftLong??''}">
+      <div class="location-actions"><button type="button" class="btn" id="locateBusinessAddress">${icon('search',17)} Localizar este endereço</button><button type="button" class="btn ghost" id="useBusinessLocation">Usar localização atual <small>(opcional)</small></button></div>
       <div class="notice location-status ${located?'location-ready':''}" id="businessLocationStatus"><strong>${located?'Localização pronta para o mapa':'Localização ainda não definida'}</strong><span>${located?esc(publicAddressLabel()):'Localize o endereço antes de publicar para clientes.'}</span></div>
       <div class="section-head form-section-head"><div><span class="eyebrow">ZAIA CLIENTES</span><h2>Descoberta e agendamento</h2></div></div>
       <label class="toggle-row"><input type="checkbox" id="businessMarketplace" ${state.establishment.marketplaceEnabled?'checked':''}><span><strong>Aparecer na busca ZAIA</strong><small>Clientes poderão encontrar este estabelecimento por nome, segmento, serviço e proximidade.</small></span></label>
@@ -829,10 +840,14 @@ function bindModal(){
     }catch(error){alert(`Não foi possível remover o bloqueio. ${friendlyError(error)}`)}
   })
 
-  $$('[data-toggle-seg]').forEach(b=>b.onclick=()=>{
+  $('[data-toggle-seg]').forEach(b=>b.onclick=()=>{
     const k=b.dataset.toggleSeg;const a=state.establishment.segments
-    if(a.includes(k)){if(a.length===1){alert('O estabelecimento precisa manter pelo menos um segmento ativo.');return}a.splice(a.indexOf(k),1)}else a.push(k)
-    render()
+    if(a.includes(k)){
+      if(a.length===1){alert('O estabelecimento precisa manter pelo menos um segmento ativo.');return}
+      a.splice(a.indexOf(k),1);b.classList.remove('on')
+    }else{
+      a.push(k);b.classList.add('on')
+    }
   })
 
   $('#locateBusinessAddress')?.addEventListener('click',async e=>{
@@ -845,6 +860,7 @@ function bindModal(){
         city:$('#businessCity')?.value.trim(),
         state:$('#businessState')?.value.trim(),
       })
+      businessLocationDraft={latitude:found.latitude,longitude:found.longitude,displayName:found.displayName}
       $('#businessLat').value=found.latitude
       $('#businessLong').value=found.longitude
       const box=$('#businessLocationStatus')
@@ -858,6 +874,7 @@ function bindModal(){
     if(!navigator.geolocation)return alert('Este navegador não permite acesso à localização.')
     setBusy(button,true,'Localizando...')
     navigator.geolocation.getCurrentPosition(pos=>{
+      businessLocationDraft={latitude:pos.coords.latitude,longitude:pos.coords.longitude,displayName:'Localização atual do estabelecimento'}
       $('#businessLat').value=pos.coords.latitude
       $('#businessLong').value=pos.coords.longitude
       const box=$('#businessLocationStatus')
@@ -880,23 +897,42 @@ function bindModal(){
       city:$('#businessCity')?.value.trim()||'',
       state:($('#businessState')?.value.trim()||'').toUpperCase(),
       postalCode:$('#businessPostalCode')?.value.trim()||'',
-      latitude:$('#businessLat')?.value===''?null:Number($('#businessLat').value),
-      longitude:$('#businessLong')?.value===''?null:Number($('#businessLong').value),
+      latitude:businessLocationDraft?.latitude??($('#businessLat')?.value===''?null:Number($('#businessLat').value)),
+      longitude:businessLocationDraft?.longitude??($('#businessLong')?.value===''?null:Number($('#businessLong').value)),
     }
     const marketplaceEnabled=$('#businessMarketplace')?.checked===true
     const publicBookingEnabled=$('#businessPublicBooking')?.checked!==false
     const publicDescription=$('#businessDescription')?.value.trim()||''
-    if(marketplaceEnabled&&!(address.street&&address.number&&address.city&&address.state&&Number.isFinite(address.latitude)&&Number.isFinite(address.longitude))){
+
+    if(marketplaceEnabled&&!(address.street&&address.number&&address.city&&address.state)){
       setBusy(button,false)
-      return alert('Para aparecer na busca ZAIA, preencha o endereço e localize o ponto no mapa.')
+      return alert('Para aparecer na busca ZAIA, preencha rua, número, cidade e UF.')
     }
+
+    if(marketplaceEnabled&&!(Number.isFinite(Number(address.latitude))&&Number.isFinite(Number(address.longitude)))){
+      try{
+        setBusy(button,true,'Localizando e salvando...')
+        const found=await locateAddressByText(address)
+        address.latitude=found.latitude
+        address.longitude=found.longitude
+        businessLocationDraft={latitude:found.latitude,longitude:found.longitude,displayName:found.displayName}
+        if($('#businessLat'))$('#businessLat').value=found.latitude
+        if($('#businessLong'))$('#businessLong').value=found.longitude
+      }catch(error){
+        setBusy(button,false)
+        return alert('O endereço está preenchido, mas não conseguimos localizar o ponto no mapa. Revise o endereço e tente novamente.')
+      }
+    }
+
     try{
       if(cloudEnabled()){
         await updateEstablishment(state.establishment.id,{name,address,marketplaceEnabled,publicBookingEnabled,publicDescription})
         await setSegments(state.establishment.id,state.establishment.segments)
+        businessLocationDraft=null
         modal=null;await boot();return
       }
       Object.assign(state.establishment,{name,address,marketplaceEnabled,publicBookingEnabled,publicDescription})
+      businessLocationDraft=null
       persistLocal();modal=null;render()
     }catch(error){setBusy(button,false);alert(`Não foi possível atualizar o estabelecimento. ${friendlyError(error)}`)}
   })
