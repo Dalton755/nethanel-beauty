@@ -135,7 +135,7 @@ export async function loadCloudState() {
     rest(`services?select=id,segment_code,name,description,duration_minutes,price,estimated_cost,return_interval_days,requires_deposit,active&establishment_id=eq.${eid}&order=name.asc`),
     rest(`products?select=id,segment_code,name,category,usage_type,unit,stock_quantity,minimum_stock,unit_cost,sale_price,active,starter_template_key&establishment_id=eq.${eid}&active=eq.true&order=name.asc`),
     rest(`clients?select=id,name,phone,email,birth_date,notes,last_visit_at,next_return_at,active&establishment_id=eq.${eid}&active=eq.true&order=name.asc`),
-    rest(`appointments?select=id,client_id,professional_id,service_id,starts_at,ends_at,status,price,notes,completed_at&establishment_id=eq.${eid}&order=starts_at.asc`),
+    rest(`appointments?select=id,client_id,professional_id,service_id,starts_at,ends_at,status,price,notes,completed_at,booking_source&establishment_id=eq.${eid}&order=starts_at.asc`),
     rest(`professionals?select=id,user_id,name,phone,email,job_title,avatar_url,accepts_all_services,commission_type,commission_value,active&establishment_id=eq.${eid}&active=eq.true&order=name.asc`),
     rest(`service_product_consumption?select=service_id,product_id,quantity,is_estimate&establishment_id=eq.${eid}`),
     rest(`appointment_materials?select=appointment_id,product_id,planned_quantity,used_quantity,unit_cost_snapshot&establishment_id=eq.${eid}`),
@@ -256,7 +256,7 @@ export async function loadCloudState() {
         startsAt: a.starts_at, endsAt: a.ends_at,
         durationMinutes: Math.max(0, Math.round((new Date(a.ends_at)-new Date(a.starts_at))/60000)),
         price: Number(a.price),
-        status: appStatus(a.status), completedAt: a.completed_at,
+        status: appStatus(a.status), completedAt: a.completed_at, bookingSource: a.booking_source || 'STAFF',
         materials: appointmentMaterialMap[a.id] || [],
       }
     }),
