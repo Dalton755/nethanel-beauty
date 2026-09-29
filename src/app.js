@@ -483,6 +483,13 @@ async function boot(){
     state={...emptyState(),...loaded}
     if(state.establishment){
       cacheBusinessBrand(state.establishment)
+      try{
+        businessPushState=await businessPushStatus(state.establishment.id)
+        state.notificationsEnabled=Number(businessPushState?.devices||0)>0
+      }catch{
+        businessPushState={plan:state.establishment.planCode||'FREE',devices:0,unread:0}
+        state.notificationsEnabled=false
+      }
     }
   }catch(error){
     authMessage=`Não foi possível carregar os dados: ${friendlyError(error)}`
