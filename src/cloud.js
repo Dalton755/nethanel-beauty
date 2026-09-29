@@ -161,7 +161,7 @@ export async function loadCloudState() {
   const session = await ensureSession()
   if (!session) return { authenticated: false }
 
-  const establishments = await rest('establishments?select=id,name,slug,timezone,currency,active,primary_segment_code,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_postal_code,latitude,longitude,marketplace_enabled,public_booking_enabled,public_description,public_cover_url&active=eq.true&order=created_at.asc')
+  const establishments = await rest('establishments?select=id,name,slug,timezone,currency,active,primary_segment_code,address_street,address_number,address_complement,address_neighborhood,address_city,address_state,address_postal_code,latitude,longitude,marketplace_enabled,public_booking_enabled,public_description,public_cover_url,brand_enabled,brand_logo_url,brand_primary_color,brand_secondary_color,brand_accent_color&active=eq.true&order=created_at.asc')
   if (!establishments?.length) {
     return {
       authenticated: true,
@@ -264,6 +264,11 @@ export async function loadCloudState() {
       publicBookingEnabled: est.public_booking_enabled !== false,
       publicDescription: est.public_description || '',
       publicCoverUrl: est.public_cover_url || '',
+      brandEnabled: est.brand_enabled === true,
+      brandLogoUrl: est.brand_logo_url || '',
+      brandPrimaryColor: est.brand_primary_color || '#3b172b',
+      brandSecondaryColor: est.brand_secondary_color || '#6b3149',
+      brandAccentColor: est.brand_accent_color || '#c89a61',
     },
     services: visibleServices.map(s => ({
       id: s.id, name: s.name, segment: s.segment_code, price: Number(s.price),
@@ -427,6 +432,46 @@ export async function getAvailableSlots(professionalId, serviceId, date, stepMin
     endTime: isoToLocal(r.ends_at).time,
     durationMinutes: Math.max(0, Math.round((new Date(r.ends_at)-new Date(r.starts_at))/60000)),
   }))
+}
+
+export async function publicBusinessBranding(slug) {
+  return rest('rpc/public_business_branding', {
+    method:'POST',
+    body:{ p_slug: slug },
+  })
+}
+
+export async function uploadBrandLogo(establishmentId, file) {
+  const session = await ensureSession()
+  if (!session?.access_token) throw new Error('Entre novamente para enviar a logo.')
+  if (!file) throw new Error('Selecione uma imagem.')
+  if (!/^image\/(png|jpeg|webp|svg\+xml)$/i.test(file.type || '')) {
+    throw new Error('Use uma imagem PNG, JPG, WEBP ou SVG.')
+  }
+  if (Number(file.size || 0) > 5 * 1024 * 1024) {
+    throw new Error('A logo deve ter no máximo 5 MB.')
+  }
+
+  const ext = ({
+    'image/png':'png',
+    'image/jpeg':'jpg',
+    'image/webp':'webp',
+    'image/svg+xml':'svg',
+  })[file.type] || 'png'
+  const path = `${establishmentId}/logo.${ext}`
+  const res = await fetch(`${baseUrl()}/storage/v1/object/zaia-branding/${path}`, {
+    method:'POST',
+    headers:{
+      apikey:apiKey(),
+      Authorization:`Bearer ${session.access_token}`,
+      'Content-Type':file.type || 'application/octet-stream',
+      'x-upsert':'true',
+    },
+    body:file,
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.message || data?.error || 'Não foi possível enviar a logo.')
+  return `${baseUrl()}/storage/v1/object/public/zaia-branding/${path}?v=${Date.now()}`
 }
 
 export async function publicSearchEstablishments({ query = '', segment = null, service = null, lat = null, long = null, radiusKm = 25 } = {}) {
@@ -863,6 +908,11 @@ export async function updateEstablishment(establishmentId, data = {}) {
   if (data.publicBookingEnabled !== undefined) body.public_booking_enabled = Boolean(data.publicBookingEnabled)
   if (data.publicDescription !== undefined) body.public_description = data.publicDescription || null
   if (data.publicCoverUrl !== undefined) body.public_cover_url = data.publicCoverUrl || null
+  if (data.brandEnabled !== undefined) body.brand_enabled = Boolean(data.brandEnabled)
+  if (data.brandLogoUrl !== undefined) body.brand_logo_url = data.brandLogoUrl || null
+  if (data.brandPrimaryColor !== undefined) body.brand_primary_color = data.brandPrimaryColor
+  if (data.brandSecondaryColor !== undefined) body.brand_secondary_color = data.brandSecondaryColor
+  if (data.brandAccentColor !== undefined) body.brand_accent_color = data.brandAccentColor
   body.updated_at = new Date().toISOString()
   await rest(`establishments?id=eq.${q(establishmentId)}`, {
     method: 'PATCH', body, prefer: 'return=minimal'
