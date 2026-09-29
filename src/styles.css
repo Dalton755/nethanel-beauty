@@ -1710,3 +1710,116 @@ img,svg{max-width:100%}
   .finance-inline-actions{width:100%}
   .finance-inline-actions .btn{flex:1}
 }
+
+
+/* =========================================================
+   ZAIA PRO — Store notifications / free client alerts
+   ========================================================= */
+.notification-count{
+  min-width:22px;height:22px;border-radius:999px;padding:0 6px;
+  display:inline-grid;place-items:center;
+  background:var(--brand);color:#fff;
+  font-size:8px;font-weight:900;
+}
+.icon-button .notification-dot{
+  position:absolute!important;
+  width:8px!important;height:8px!important;
+  min-width:8px!important;border-radius:50%!important;
+  right:7px!important;top:7px!important;
+  background:#d75d66!important;
+  border:2px solid #fff!important;
+}
+.notification-modal{max-width:620px!important}
+.notification-pro-lock{
+  display:grid;justify-items:center;text-align:center;gap:10px;
+  padding:10px 4px 2px;
+}
+.notification-lock-icon{
+  width:58px;height:58px;border-radius:18px;
+  display:grid;place-items:center;
+  background:linear-gradient(145deg,var(--brand),var(--brand-2));
+  color:#fff;
+}
+.notification-pro-lock h2{font-size:21px;letter-spacing:-.035em;margin:2px 0 0}
+.notification-pro-lock p{font-size:11px;line-height:1.5;color:var(--muted);max-width:430px;margin:0}
+.notification-feature-list{
+  width:100%;display:grid;grid-template-columns:1fr 1fr;gap:8px;
+  margin:6px 0 9px;text-align:left;
+}
+.notification-feature-list>div{
+  border:1px solid var(--line);background:#fffdfb;border-radius:13px;
+  padding:10px;font-size:10px;font-weight:750;
+}
+.push-status-card{
+  display:grid;grid-template-columns:auto minmax(0,1fr) auto;
+  gap:11px;align-items:center;
+  border:1px solid var(--line);background:#f8f1ed;
+  border-radius:17px;padding:13px;
+}
+.push-status-card.active{background:#edf6f0;border-color:#d2e7d9}
+.push-status-icon{
+  width:42px;height:42px;border-radius:13px;
+  display:grid;place-items:center;
+  background:#fff;color:var(--brand);
+}
+.push-status-card .item-main{display:grid;gap:3px}
+.push-status-card .item-main strong{font-size:12px}
+.push-status-card .item-main span{font-size:9.5px;line-height:1.35;color:var(--muted)}
+.notification-rules{
+  display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:11px;
+}
+.notification-rules>div{
+  display:flex;gap:9px;align-items:flex-start;
+  border:1px solid var(--line);border-radius:15px;padding:11px;
+}
+.notification-rules>div>span:last-child{display:grid;gap:2px}
+.notification-rules strong{font-size:10.5px}
+.notification-rules small{font-size:8.8px;color:var(--muted);line-height:1.35}
+.notification-rule-icon{
+  width:31px;height:31px;border-radius:10px;
+  display:grid;place-items:center;flex:0 0 31px;
+}
+.notification-rule-icon.new{background:#eaf5ee;color:#247148}
+.notification-rule-icon.cancel{background:#fbefef;color:#a13b43;font-size:18px;font-weight:700}
+.notification-history-head{margin-top:18px}
+.business-notification-list{display:grid;gap:7px;max-height:330px;overflow:auto}
+.business-notification-item{
+  display:grid;grid-template-columns:34px minmax(0,1fr);gap:9px;
+  padding:10px 0;border-top:1px solid var(--line);
+}
+.business-notification-item:first-child{border-top:0}
+.business-notification-icon{
+  width:31px;height:31px;border-radius:10px;
+  display:grid;place-items:center;background:#f3e9e5;color:var(--brand);
+}
+.business-notification-item.cancel .business-notification-icon{background:#fbefef;color:#a13b43;font-size:18px}
+.business-notification-item>div{display:grid;gap:2px}
+.business-notification-item strong{font-size:10.5px}
+.business-notification-item p{font-size:9.5px;color:var(--muted);line-height:1.35;margin:0}
+.business-notification-item small{font-size:8px;color:#a09296}
+.appointment-badges{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.cancel-badge{background:#fbefef!important;color:#a13b43!important}
+.appointment-cancelled{opacity:.72}
+.danger-soft{background:#fbefef!important;color:#9f3942!important;border-color:#efd2d5!important}
+.client-account-footer{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;
+}
+.client-account-footer .client-account-price{margin-top:0}
+.client-cancel-booking{
+  border:1px solid #ecd3d5;background:#fff7f7;color:#9d3e46;
+  border-radius:10px;padding:7px 9px;font-size:9px;font-weight:800;
+}
+.client-free-badge{
+  margin-left:auto;
+  border-radius:999px;padding:4px 6px;
+  background:#e9f5ed;color:#2c714a;
+  font-size:7px;letter-spacing:.08em;
+}
+@media(max-width:520px){
+  .notification-feature-list{grid-template-columns:1fr}
+  .push-status-card{grid-template-columns:auto minmax(0,1fr)}
+  .push-status-card>.btn{grid-column:1/-1;width:100%}
+  .notification-rules{grid-template-columns:1fr}
+  .client-account-footer{align-items:flex-end;flex-direction:column}
+  .client-cancel-booking{width:100%}
+}
