@@ -15,10 +15,12 @@ for (const file of ['src/app.js','src/client.js','src/cloud.js']) {
 }
 
 await mkdir('dist', { recursive: true })
+await mkdir('dist/cliente', { recursive: true })
 
 for (const file of ['index.html','manifest.webmanifest','icon.svg','zaia-logo.svg','sw.js']) {
   await cp(file, `dist/${file}`)
 }
+await cp('index.html','dist/cliente/index.html')
 
 await cp('src/app.js', 'dist/app.js')
 await cp('src/client.js', 'dist/client.js')
