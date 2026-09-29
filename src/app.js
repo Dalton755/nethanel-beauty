@@ -389,13 +389,13 @@ function modalHtml(){
   if(modal.startsWith('professionalServices:')){
     const p=professionalById(modal.split(':')[1]);if(!p)return ''
     const configs=Object.fromEntries((p.services||[]).map(x=>[x.serviceId,x]))
-    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Serviços de ${esc(p.name)}</h3>${close}</div><form class="form" id="professionalServicesForm" data-professional-id="${p.id}"><label class="toggle-row"><input type="checkbox" id="professionalAllServices" ${p.acceptsAllServices!==false?'checked':''}><span><strong>Atende todos os serviços</strong><small>Novos serviços também ficam disponíveis automaticamente.</small></span></label><div class="service-config-list">${state.services.filter(s=>s.active).map(s=>{const c=configs[s.id];return `<div class="service-config-row"><label class="service-check"><input type="checkbox" data-pro-service="${s.id}" ${p.acceptsAllServices!==false||c?'checked':''}><span><strong>${esc(s.name)}</strong><small>${fmtMoney(s.price)} • ${s.duration} min</small></span></label><div class="service-overrides"><input data-pro-price="${s.id}" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Preço padrão" value="${c?.customPrice??''}"><input data-pro-duration="${s.id}" type="number" min="5" step="5" inputmode="numeric" placeholder="Minutos" value="${c?.customDuration??''}"></div></div>`}).join('')}</div><button class="btn primary wide">Salvar serviços</button></form></div></div>`
+    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Serviços de ${esc(p.name)}</h3>${close}</div><form class="form" id="professionalServicesForm" data-professional-id="${p.id}"><label class="toggle-row"><input type="checkbox" id="professionalAllServices" ${p.acceptsAllServices!==false?'checked':''}><span><strong>Atende todos os serviços</strong><small>Novos serviços também ficam disponíveis automaticamente.</small></span></label><div class="service-config-list">${state.services.filter(s=>s.active).map(s=>{const c=configs[s.id];return `<div class="service-config-row"><label class="service-check"><input type="checkbox" data-pro-service="${s.id}" ${p.acceptsAllServices!==false||c?'checked':''}><span><strong>${esc(s.name)}</strong><small>${fmtMoney(s.price)} • ${s.duration} min</small></span></label><div class="service-overrides"><input data-pro-price="${s.id}" type="number" min="0" step="0.01" inputmode="decimal" placeholder="Preço padrão" value="${c?.customPrice??''}"><input data-pro-duration="${s.id}" type="number" min="5" step="5" inputmode="numeric" placeholder="Minutos" value="${c?.customDuration??''}"></div></div>`}).join('')}</div><button type="submit" class="btn primary wide">Salvar serviços</button></form></div></div>`
   }
   if(modal.startsWith('professionalHours:')){
     const p=professionalById(modal.split(':')[1]);if(!p)return ''
     const hours=Object.fromEntries((p.workingHours||[]).map(h=>[h.weekday,h]))
     const days=[1,2,3,4,5,6,0]
-    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Jornada de ${esc(p.name)}</h3>${close}</div><form class="form" id="professionalHoursForm" data-professional-id="${p.id}"><div class="notice">Marque os dias trabalhados. Depois de salvar, a agenda só aceitará horários dentro desta jornada.</div><div class="schedule-grid">${days.map(d=>{const h=hours[d];return `<div class="day-row"><label class="day-toggle"><input type="checkbox" data-work-day="${d}" ${h?'checked':''}><strong>${DAY_LONG[d]}</strong></label><div class="day-times"><input data-work-start="${d}" type="time" value="${h?.start||'09:00'}"><span>até</span><input data-work-end="${d}" type="time" value="${h?.end||'18:00'}"></div></div>`}).join('')}</div><button class="btn primary wide">Salvar jornada</button></form></div></div>`
+    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Jornada de ${esc(p.name)}</h3>${close}</div><form class="form" id="professionalHoursForm" data-professional-id="${p.id}"><div class="notice">Marque os dias trabalhados. Depois de salvar, a agenda só aceitará horários dentro desta jornada.</div><div class="schedule-grid">${days.map(d=>{const h=hours[d];return `<div class="day-row"><label class="day-toggle"><input type="checkbox" data-work-day="${d}" ${h?'checked':''}><strong>${DAY_LONG[d]}</strong></label><div class="day-times"><input data-work-start="${d}" type="time" value="${h?.start||'09:00'}"><span>até</span><input data-work-end="${d}" type="time" value="${h?.end||'18:00'}"></div></div>`}).join('')}</div><button type="submit" class="btn primary wide">Salvar jornada</button></form></div></div>`
   }
   if(modal.startsWith('professionalBlock:')){
     const p=professionalById(modal.split(':')[1]);if(!p)return ''
@@ -617,7 +617,7 @@ function bindModal(){
   $('#professionalServicesForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const button=e.target.querySelector('button[type="submit"]');setBusy(button,true)
     const id=e.target.dataset.professionalId;const acceptsAll=$('#professionalAllServices')?.checked!==false
-    const services=acceptsAll?[]:$('[data-pro-service]',e.target).filter(x=>x.checked).map(x=>({
+    const services=acceptsAll?[]:$$('[data-pro-service]',e.target).filter(x=>x.checked).map(x=>({
       serviceId:x.dataset.proService,
       customPrice:$('[data-pro-price="'+x.dataset.proService+'"]',e.target)?.value||null,
       customDuration:$('[data-pro-duration="'+x.dataset.proService+'"]',e.target)?.value||null,
@@ -631,7 +631,7 @@ function bindModal(){
   $('#professionalHoursForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const button=e.target.querySelector('button[type="submit"]');setBusy(button,true)
     const id=e.target.dataset.professionalId
-    const hours=$('[data-work-day]',e.target).filter(x=>x.checked).map(x=>({weekday:Number(x.dataset.workDay),start:$('[data-work-start="'+x.dataset.workDay+'"]',e.target).value,end:$('[data-work-end="'+x.dataset.workDay+'"]',e.target).value}))
+    const hours=$$('[data-work-day]',e.target).filter(x=>x.checked).map(x=>({weekday:Number(x.dataset.workDay),start:$('[data-work-start="'+x.dataset.workDay+'"]',e.target).value,end:$('[data-work-end="'+x.dataset.workDay+'"]',e.target).value}))
     if(hours.some(h=>h.end<=h.start)){setBusy(button,false);return alert('O horário final precisa ser depois do horário inicial.')}
     try{
       if(cloudEnabled()){await saveProfessionalWorkingHours(id,hours);modal=null;page='professionals';await boot();return}
