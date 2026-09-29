@@ -3,6 +3,13 @@
   "outputDirectory": "dist",
   "cleanUrls": true,
   "rewrites": [
-    { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
+    {
+      "source": "/cliente",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/cliente/:path*",
+      "destination": "/index.html"
+    }
   ]
 }
