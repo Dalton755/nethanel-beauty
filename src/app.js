@@ -111,6 +111,25 @@ function fmtDateTime(iso){
   if(!iso)return ''
   return new Date(iso).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})
 }
+function hasPublicAddress(est=state.establishment){
+  const a=est?.address||{}
+  return Boolean(a.street&&a.number&&a.city&&a.state&&Number.isFinite(Number(a.latitude))&&Number.isFinite(Number(a.longitude)))
+}
+function publicAddressLabel(est=state.establishment){
+  const a=est?.address||{}
+  return [a.street,a.number,a.neighborhood,a.city,a.state].filter(Boolean).join(', ')
+}
+async function locateAddressByText(address){
+  const q=[address.street,address.number,address.neighborhood,address.city,address.state,'Brasil'].filter(Boolean).join(', ')
+  if(!q)throw new Error('Preencha o endereço antes de localizar.')
+  const url='https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&accept-language=pt-BR&q='+encodeURIComponent(q)
+  const res=await fetch(url,{headers:{Accept:'application/json'}})
+  if(!res.ok)throw new Error('Não foi possível localizar este endereço.')
+  const rows=await res.json()
+  if(!rows?.length)throw new Error('Endereço não encontrado no mapa. Revise rua, número, cidade e estado.')
+  return {latitude:Number(rows[0].lat),longitude:Number(rows[0].lon),displayName:rows[0].display_name}
+}
+
 function normalizePhone(p=''){return String(p||'').replace(/\D/g,'').replace(/^55(?=\d{10,11}$)/,'')}
 function maskPhone(value=''){
   let d=normalizePhone(value).slice(0,11)
@@ -272,7 +291,7 @@ function loadingPage(){
 }
 
 function authPage(){
-  return '<section class="onboard zaia-auth"><div class="auth-shell"><div class="auth-visual"><div class="auth-brand">'+zaiaLogo()+'</div><div class="auth-copy"><span class="step">GESTÃO PARA NEGÓCIOS DE BELEZA</span><h1>Mais que beleza.<br>Mais possibilidades.</h1><p>Agenda, equipe, clientes, estoque e inteligência em uma experiência feita para o seu negócio.</p></div><div class="auth-powered">by Nethanel</div></div><div class="auth-panel"><div class="mobile-auth-brand">'+zaiaLogo()+'</div><div class="step">BEM-VINDO À ZAIA</div><h1>Entre no seu espaço.</h1><p class="subtitle">Sua operação organizada, elegante e sempre à mão.</p>'+(authMessage?'<div class="warning-box" style="margin-top:18px">'+esc(authMessage)+'</div>':'')+'<div class="auth-card"><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="seu@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Sua senha"></div><button class="btn primary wide" name="action" value="login">Entrar '+icon('arrow',18)+'</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper auth-helper">No primeiro acesso, a ZAIA monta uma base inicial de acordo com o segmento do estabelecimento.</p></div><div class="mobile-powered">by Nethanel</div></div></div></section>'
+  return '<section class="onboard zaia-auth"><div class="auth-shell"><div class="auth-visual"><div class="auth-brand">'+zaiaLogo()+'</div><div class="auth-copy"><span class="step">GESTÃO PARA NEGÓCIOS DE BELEZA</span><h1>Mais que beleza.<br>Mais possibilidades.</h1><p>Agenda, equipe, clientes, estoque e inteligência em uma experiência feita para o seu negócio.</p></div><div class="auth-powered">by Nethanel</div></div><div class="auth-panel"><div class="mobile-auth-brand">'+zaiaLogo()+'</div><div class="step">BEM-VINDO À ZAIA</div><h1>Entre no seu espaço.</h1><p class="subtitle">Sua operação organizada, elegante e sempre à mão.</p>'+(authMessage?'<div class="warning-box" style="margin-top:18px">'+esc(authMessage)+'</div>':'')+'<div class="auth-card"><form class="form" id="authForm"><div class="field"><label>E-mail</label><input type="email" name="email" autocomplete="email" required placeholder="seu@email.com"></div><div class="field"><label>Senha</label><input type="password" name="password" autocomplete="current-password" minlength="6" required placeholder="Sua senha"></div><button class="btn primary wide" name="action" value="login">Entrar '+icon('arrow',18)+'</button><button class="btn ghost wide" type="button" id="signupBtn">Criar conta</button></form><p class="helper auth-helper">No primeiro acesso, a ZAIA monta uma base inicial de acordo com o segmento do estabelecimento.</p><div class="auth-client-entry"><span>Quer agendar um serviço?</span><a class="btn ghost wide" href="/cliente">Encontrar profissionais e horários</a></div></div><div class="mobile-powered">by Nethanel</div></div></div></section>'
 }
 function bindAuth(){
   const form=$('#authForm')
@@ -432,7 +451,7 @@ function professionalsPage(){
     return `<div class="item pro-card"><div class="avatar pro-avatar">${esc((p.name||'P')[0].toUpperCase())}</div><div class="item-main"><div class="pro-title"><strong>${esc(p.name)}</strong><span class="pill good">Ativo</span></div><div class="meta">${esc(p.jobTitle||'Profissional')} • ${p.acceptsAllServices!==false?'Todos os serviços':serviceCount+' serviço'+(serviceCount===1?'':'s')}</div><div class="meta">${esc(scheduleSummary(p))}</div><div class="meta">${esc(commissionText(p))}${futureBlocks?` • ${futureBlocks} bloqueio${futureBlocks>1?'s':''}`:''}</div><div class="pro-actions"><button class="btn small" data-pro-edit="${p.id}">Editar</button><button class="btn small" data-pro-services="${p.id}">Serviços</button><button class="btn small" data-pro-hours="${p.id}">Jornada</button><button class="btn small ghost" data-pro-block="${p.id}">Bloquear horário</button></div></div></div>`
   }).join('')}</div>`:`<div class="empty"><b>Nenhum profissional cadastrado</b>Cadastre a equipe para organizar disponibilidade e serviços.</div>`}<div class="notice">A agenda já impede choque de horários, horários fora da jornada e serviços não habilitados para o profissional.</div><button class="fab" data-open="professional">+</button>`
 }
-function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon">${icon('bell',20)}</span><div class="item-main"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div><b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button></div><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
+function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon">${icon('bell',20)}</span><div class="item-main"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div><b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
 function modalHtml(){
   const close='<button type="button" class="x" data-close aria-label="Fechar">×</button>'
   if(modal==='zaiaPro')return `<div class="modal-backdrop"><div class="modal pro-modal"><div class="modal-head"><div><span class="eyebrow">ZAIA PRO</span><h3>Personalize a experiência</h3><div class="helper">Sua marca na frente. ZAIA trabalhando por trás.</div></div>${close}</div><div class="pro-preview"><div class="pro-preview-icon">${zaiaLogo(true)}</div><div><strong>${esc(state.establishment.name)}</strong><span>Preview da identidade personalizada</span></div></div><div class="pro-feature-grid"><div><span>${icon('sparkle',20)}</span><strong>Logo própria</strong><small>Marca do estabelecimento no app</small></div><div><span>${icon('settings',20)}</span><strong>Cores da marca</strong><small>Primária, secundária e detalhes</small></div><div><span>${icon('box',20)}</span><strong>Ícone do app</strong><small>PWA com identidade do negócio</small></div><div><span>${icon('crown',20)}</span><strong>White label</strong><small>ZAIA discreta na experiência</small></div></div><div class="notice"><strong>Estrutura do ZAIA Pro pronta para personalização.</strong><span>A ativação comercial e o upload definitivo da identidade entram no próximo bloco do plano Pro.</span></div><button type="button" class="btn primary wide" data-close>Entendi</button></div></div>`
@@ -491,7 +510,29 @@ function modalHtml(){
     const upcoming=(p.blocks||[]).filter(b=>new Date(b.endsAt)>new Date()).sort((a,b)=>new Date(a.startsAt)-new Date(b.startsAt))
     return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Bloquear horário</h3>${close}</div><form class="form" id="professionalBlockForm" data-professional-id="${p.id}"><p class="subtitle">${esc(p.name)}</p><div class="row"><div class="field"><label>Início</label><input name="startsAt" type="datetime-local" value="${todayISO()}T12:00" required></div><div class="field"><label>Fim</label><input name="endsAt" type="datetime-local" value="${todayISO()}T13:00" required></div></div><div class="field"><label>Motivo</label><input name="reason" placeholder="Ex.: Almoço, folga, compromisso"></div><button class="btn primary wide">Adicionar bloqueio</button></form>${upcoming.length?`<div class="section-head"><h2>Próximos bloqueios</h2></div><div class="block-list">${upcoming.map(b=>`<div class="item compact-item"><div class="item-main"><strong>${fmtDateTime(b.startsAt)} – ${new Date(b.endsAt).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</strong><div class="meta">${esc(b.reason||'Indisponível')}</div></div><button class="btn small ghost" data-delete-block="${b.id}" data-professional-id="${p.id}">Remover</button></div>`).join('')}</div>`:''}</div></div>`
   }
-  if(modal==='business')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Estabelecimento</h3>${close}</div><div class="field"><label>Nome</label><input id="businessName" value="${esc(state.establishment.name)}"></div><div class="field" style="margin-top:14px"><label>Segmentos ativos</label><div class="chips">${Object.entries(SEGMENTS).map(([k,s])=>`<button type="button" class="chip ${segmentKeys().includes(k)?'on':''}" data-toggle-seg="${k}">${s.icon} ${s.name}</button>`).join('')}</div><span class="helper">Ao ativar um segmento, novas categorias ficam disponíveis; seus cadastros existentes não são apagados.</span></div><button class="btn primary wide" id="saveBusiness" style="margin-top:18px">Salvar</button></div></div>`
+  if(modal==='business'){
+    const a=state.establishment.address||{}
+    const located=Number.isFinite(Number(a.latitude))&&Number.isFinite(Number(a.longitude))
+    return `<div class="modal-backdrop"><div class="modal modal-tall business-modal"><div class="modal-head"><div><span class="eyebrow">ESTABELECIMENTO</span><h3>Perfil e localização</h3><div class="helper">Essas informações alimentam a busca pública da ZAIA.</div></div>${close}</div>
+    <div class="form">
+      <div class="field"><label>Nome do estabelecimento</label><input id="businessName" value="${esc(state.establishment.name)}"></div>
+      <div class="field"><label>Descrição para clientes</label><textarea id="businessDescription" rows="3" placeholder="Ex.: Especialistas em cortes, tratamentos e coloração.">${esc(state.establishment.publicDescription||'')}</textarea></div>
+      <div class="section-head form-section-head"><div><span class="eyebrow">ENDEREÇO</span><h2>Onde os clientes encontram você</h2></div></div>
+      <div class="field"><label>CEP</label><input id="businessPostalCode" inputmode="numeric" value="${esc(a.postalCode||'')}" placeholder="00000-000"></div>
+      <div class="field"><label>Rua / avenida</label><input id="businessStreet" value="${esc(a.street||'')}" placeholder="Rua, avenida..."></div>
+      <div class="row"><div class="field"><label>Número</label><input id="businessNumber" value="${esc(a.number||'')}"></div><div class="field"><label>Complemento</label><input id="businessComplement" value="${esc(a.complement||'')}"></div></div>
+      <div class="field"><label>Bairro</label><input id="businessNeighborhood" value="${esc(a.neighborhood||'')}"></div>
+      <div class="row"><div class="field"><label>Cidade</label><input id="businessCity" value="${esc(a.city||'')}"></div><div class="field"><label>UF</label><input id="businessState" maxlength="2" value="${esc(a.state||'')}" placeholder="SP"></div></div>
+      <input type="hidden" id="businessLat" value="${a.latitude??''}"><input type="hidden" id="businessLong" value="${a.longitude??''}">
+      <div class="location-actions"><button type="button" class="btn" id="locateBusinessAddress">${icon('search',17)} Localizar este endereço</button><button type="button" class="btn ghost" id="useBusinessLocation">Usar localização atual</button></div>
+      <div class="notice location-status ${located?'location-ready':''}" id="businessLocationStatus"><strong>${located?'Localização pronta para o mapa':'Localização ainda não definida'}</strong><span>${located?esc(publicAddressLabel()):'Localize o endereço antes de publicar para clientes.'}</span></div>
+      <div class="section-head form-section-head"><div><span class="eyebrow">ZAIA CLIENTES</span><h2>Descoberta e agendamento</h2></div></div>
+      <label class="toggle-row"><input type="checkbox" id="businessMarketplace" ${state.establishment.marketplaceEnabled?'checked':''}><span><strong>Aparecer na busca ZAIA</strong><small>Clientes poderão encontrar este estabelecimento por nome, segmento, serviço e proximidade.</small></span></label>
+      <label class="toggle-row"><input type="checkbox" id="businessPublicBooking" ${state.establishment.publicBookingEnabled!==false?'checked':''}><span><strong>Aceitar agendamento online</strong><small>Horários livres são conectados diretamente à agenda da equipe.</small></span></label>
+      <div class="field"><label>Segmentos ativos</label><div class="chips">${Object.entries(SEGMENTS).map(([k,x])=>`<button type="button" class="chip ${segmentKeys().includes(k)?'on':''}" data-toggle-seg="${k}">${x.icon} ${x.name}</button>`).join('')}</div><span class="helper">Os segmentos também são usados como filtros na busca dos clientes.</span></div>
+      <button class="btn primary wide" id="saveBusiness">Salvar estabelecimento</button>
+    </div></div></div>`
+  }
   return ''
 }
 
@@ -794,15 +835,69 @@ function bindModal(){
     render()
   })
 
+  $('#locateBusinessAddress')?.addEventListener('click',async e=>{
+    const button=e.currentTarget;setBusy(button,true,'Localizando...')
+    try{
+      const found=await locateAddressByText({
+        street:$('#businessStreet')?.value.trim(),
+        number:$('#businessNumber')?.value.trim(),
+        neighborhood:$('#businessNeighborhood')?.value.trim(),
+        city:$('#businessCity')?.value.trim(),
+        state:$('#businessState')?.value.trim(),
+      })
+      $('#businessLat').value=found.latitude
+      $('#businessLong').value=found.longitude
+      const box=$('#businessLocationStatus')
+      if(box){box.classList.add('location-ready');box.innerHTML='<strong>Localização encontrada</strong><span>'+esc(found.displayName)+'</span>'}
+    }catch(error){alert(friendlyError(error))}
+    finally{setBusy(button,false)}
+  })
+
+  $('#useBusinessLocation')?.addEventListener('click',e=>{
+    const button=e.currentTarget
+    if(!navigator.geolocation)return alert('Este navegador não permite acesso à localização.')
+    setBusy(button,true,'Localizando...')
+    navigator.geolocation.getCurrentPosition(pos=>{
+      $('#businessLat').value=pos.coords.latitude
+      $('#businessLong').value=pos.coords.longitude
+      const box=$('#businessLocationStatus')
+      if(box){box.classList.add('location-ready');box.innerHTML='<strong>Localização capturada</strong><span>O ponto do estabelecimento está pronto para aparecer no mapa.</span>'}
+      setBusy(button,false)
+    },err=>{
+      setBusy(button,false)
+      alert(err.code===1?'Permissão de localização não concedida. Você pode preencher o endereço e usar “Localizar este endereço”.':'Não foi possível obter a localização.')
+    },{enableHighAccuracy:true,timeout:12000,maximumAge:60000})
+  })
+
   $('#saveBusiness')?.addEventListener('click',async e=>{
     const button=e.currentTarget;setBusy(button,true)
     const name=$('#businessName').value.trim()||state.establishment.name
+    const address={
+      street:$('#businessStreet')?.value.trim()||'',
+      number:$('#businessNumber')?.value.trim()||'',
+      complement:$('#businessComplement')?.value.trim()||'',
+      neighborhood:$('#businessNeighborhood')?.value.trim()||'',
+      city:$('#businessCity')?.value.trim()||'',
+      state:($('#businessState')?.value.trim()||'').toUpperCase(),
+      postalCode:$('#businessPostalCode')?.value.trim()||'',
+      latitude:$('#businessLat')?.value===''?null:Number($('#businessLat').value),
+      longitude:$('#businessLong')?.value===''?null:Number($('#businessLong').value),
+    }
+    const marketplaceEnabled=$('#businessMarketplace')?.checked===true
+    const publicBookingEnabled=$('#businessPublicBooking')?.checked!==false
+    const publicDescription=$('#businessDescription')?.value.trim()||''
+    if(marketplaceEnabled&&!(address.street&&address.number&&address.city&&address.state&&Number.isFinite(address.latitude)&&Number.isFinite(address.longitude))){
+      setBusy(button,false)
+      return alert('Para aparecer na busca ZAIA, preencha o endereço e localize o ponto no mapa.')
+    }
     try{
       if(cloudEnabled()){
-        await updateEstablishment(state.establishment.id,{name})
+        await updateEstablishment(state.establishment.id,{name,address,marketplaceEnabled,publicBookingEnabled,publicDescription})
         await setSegments(state.establishment.id,state.establishment.segments)
+        modal=null;await boot();return
       }
-      state.establishment.name=name;persistLocal();modal=null;render()
+      Object.assign(state.establishment,{name,address,marketplaceEnabled,publicBookingEnabled,publicDescription})
+      persistLocal();modal=null;render()
     }catch(error){setBusy(button,false);alert(`Não foi possível atualizar o estabelecimento. ${friendlyError(error)}`)}
   })
 }
