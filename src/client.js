@@ -18,6 +18,7 @@ import {
   publicPromotions,
   getZaiaPushPublicKey,
   sendZaiaPushTest,
+  customerCancelAppointment,
 } from './cloud.js'
 
 const $=(s,e=document)=>e.querySelector(s)
@@ -302,7 +303,8 @@ function storePage(){
 }
 
 function appointmentAccountCard(a){
-  return `<div class="client-account-card"><div class="client-account-card-top"><div><strong>${esc(a.service_name)}</strong><span>${esc(a.establishment_name)}</span></div><span class="client-status">${esc(a.status)}</span></div><div class="client-account-meta">${icon('calendar')}<span>${new Date(a.starts_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})} • ${formatTime(a.starts_at)}</span></div><div class="client-account-meta">${icon('user')}<span>${esc(a.professional_name)}</span></div>${a.address?`<div class="client-account-meta">${icon('pin')}<span>${esc(a.address)}</span></div>`:''}<div class="client-account-price">${fmtMoney(a.price)}</div></div>`
+  const canCancel=['SCHEDULED','CONFIRMED'].includes(a.status)&&new Date(a.starts_at)>new Date()
+  return `<div class="client-account-card"><div class="client-account-card-top"><div><strong>${esc(a.service_name)}</strong><span>${esc(a.establishment_name)}</span></div><span class="client-status">${esc(a.status)}</span></div><div class="client-account-meta">${icon('calendar')}<span>${new Date(a.starts_at).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})} • ${formatTime(a.starts_at)}</span></div><div class="client-account-meta">${icon('user')}<span>${esc(a.professional_name)}</span></div>${a.address?`<div class="client-account-meta">${icon('pin')}<span>${esc(a.address)}</span></div>`:''}<div class="client-account-footer"><div class="client-account-price">${fmtMoney(a.price)}</div>${canCancel?`<button class="client-cancel-booking" data-client-cancel="${a.id}">Cancelar agendamento</button>`:''}</div></div>`
 }
 function promotionCard(p){
   return `<button class="client-promotion-card" data-promo-store="${p.establishment_id}" data-promo-service="${p.service_id||''}"><div class="promotion-badge">${icon('gift')}</div><div><span class="client-kicker">${esc(p.establishment_name)}</span><strong>${esc(p.title)}</strong><b>${esc(p.offer_text)}</b><p>${esc(p.description||p.service_name||'Oferta por tempo limitado')}</p>${p.distance_km!=null?`<small>${String(p.distance_km).replace('.',',')} km de você</small>`:''}</div></button>`
@@ -320,7 +322,7 @@ function accountPage(){
     body=`<div class="client-account-head"><span class="client-kicker">OFERTAS</span><h1>Promoções para você</h1><p>Ofertas ativas dos estabelecimentos ZAIA.</p></div>${state.promotions.length?`<div class="client-promotions-grid">${state.promotions.map(promotionCard).join('')}</div>`:'<div class="client-empty"><strong>Nenhuma promoção ativa agora.</strong><p>Novas ofertas aparecerão aqui.</p></div>'}`
   }else{
     const p=d.profile||{}
-    body=`<div class="client-account-head"><span class="client-kicker">PERFIL</span><h1>${esc(p.full_name||'Minha conta')}</h1><p>${esc(state.session?.user?.email||'')}</p></div><div class="client-profile-card"><div class="client-profile-avatar">${esc((p.full_name||'Z')[0].toUpperCase())}</div><div><strong>${esc(p.full_name||'Complete seu perfil')}</strong><span>${esc(maskPhone(p.phone||''))}</span></div><button class="client-secondary" id="editClientProfile">Editar</button></div><div class="client-profile-actions"><button class="client-profile-action" id="enableClientPush">${icon('bell')}<span><strong>${p.push_enabled?'Notificações ativadas':'Ativar notificações'}</strong><small>Confirmações e lembretes de 24h e 1h</small></span></button><button class="client-profile-action" id="clientLogout">${icon('arrow')}<span><strong>Sair da conta</strong><small>Encerrar sessão neste aparelho</small></span></button></div>`
+    body=`<div class="client-account-head"><span class="client-kicker">PERFIL</span><h1>${esc(p.full_name||'Minha conta')}</h1><p>${esc(state.session?.user?.email||'')}</p></div><div class="client-profile-card"><div class="client-profile-avatar">${esc((p.full_name||'Z')[0].toUpperCase())}</div><div><strong>${esc(p.full_name||'Complete seu perfil')}</strong><span>${esc(maskPhone(p.phone||''))}</span></div><button class="client-secondary" id="editClientProfile">Editar</button></div><div class="client-profile-actions"><button class="client-profile-action" id="enableClientPush">${icon('bell')}<span><strong>${p.push_enabled?'Notificações ativadas':'Ativar notificações'}</strong><small>Confirmações, lembretes e promoções autorizadas</small></span><b class="client-free-badge">GRÁTIS</b></button><button class="client-profile-action" id="clientLogout">${icon('arrow')}<span><strong>Sair da conta</strong><small>Encerrar sessão neste aparelho</small></span></button></div>`
   }
   return `<div class="client-app">${clientHeader()}<main class="client-account-main">${body}</main>${clientNav()}</div>`
 }
@@ -396,6 +398,17 @@ function bind(){
   $('#editClientProfile')?.addEventListener('click',()=>{state.authMode='profile';render()})
   $('#clientLogout')?.addEventListener('click',()=>{clearSession();state.session=null;state.customerData=null;state.tab='buscar';state.screen='search';render()})
   $('#enableClientPush')?.addEventListener('click',enableCustomerPush)
+  document.querySelectorAll('[data-client-cancel]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.clientCancel
+    const reason=prompt('Quer informar o motivo do cancelamento? (opcional)','') ?? null
+    if(reason===null)return
+    if(!confirm('Cancelar este agendamento? O estabelecimento será avisado.'))return
+    try{
+      await customerCancelAppointment(id,reason)
+      await refreshCustomer()
+      state.tab='agenda';state.screen='account';render()
+    }catch(error){alert(String(error.message||error))}
+  })
   $('#clientSearchForm')?.addEventListener('submit',e=>{e.preventDefault();state.query=$('#clientSearch').value.trim();search()})
   $('#clientNear')?.addEventListener('click',useLocation)
   $('#emptyNear')?.addEventListener('click',useLocation)
