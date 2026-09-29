@@ -522,6 +522,7 @@ function bindGlobal(){
 function bindPage(){
   $('#seedAgenda')?.addEventListener('click',seedAgenda)
   $('#notifyBtn')?.addEventListener('click',enableNotifications)
+  $('#notifyTopBtn')?.addEventListener('click',enableNotifications)
   $('#seedStarterCatalog')?.addEventListener('click',async e=>{
     const button=e.currentTarget
     setBusy(button,true,'Adicionando...')
