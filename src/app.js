@@ -512,12 +512,13 @@ function topbar(){
     ['services','sparkle','Serviços'],
     ['professionals','briefcase','Profissionais'],
     ['inventory','box','Estoque'],
+    ['finance','wallet','Financeiro'],
     ['more','menu','Mais']
   ]
   const brand=businessBrandHtml(state.establishment)
   return `<nav class="nav"><div class="nav-brand merchant-nav-brand">${brand}</div><div class="nav-items">${items.map(([p,i,l])=>`<button data-page="${p}" class="${page===p?'active':''}">${icon(i,20)}<span>${l}</span></button>`).join('')}</div><button class="zaia-pro-card" data-open="zaiaPro"><span class="pro-icon">${icon('crown',20)}</span><span><strong>Personalização</strong><small>${state.establishment.brandEnabled?'Identidade ativa':'Configure sua marca'}</small></span><b>›</b></button><div class="nav-powered">Tecnologia <strong>ZAIA</strong> <small>by Nethanel</small></div></nav>`
 }
-function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage,promotions:promotionsPage})[page]?.()||homePage()}
+function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage,promotions:promotionsPage,finance:financePage})[page]?.()||homePage()}
 
 function onboarding(){
   const current=state._onboarding||{step:1,type:null,segments:[]};state._onboarding=current
@@ -646,6 +647,76 @@ function professionalsPage(){
     return `<div class="item pro-card"><div class="avatar pro-avatar">${esc((p.name||'P')[0].toUpperCase())}</div><div class="item-main"><div class="pro-title"><strong>${esc(p.name)}</strong><span class="pill good">Ativo</span></div><div class="meta">${esc(p.jobTitle||'Profissional')} • ${p.acceptsAllServices!==false?'Todos os serviços':serviceCount+' serviço'+(serviceCount===1?'':'s')}</div><div class="meta">${esc(scheduleSummary(p))}</div><div class="meta">${esc(commissionText(p))}${futureBlocks?` • ${futureBlocks} bloqueio${futureBlocks>1?'s':''}`:''}</div><div class="pro-actions"><button class="btn small" data-pro-edit="${p.id}">Editar</button><button class="btn small" data-pro-services="${p.id}">Serviços</button><button class="btn small" data-pro-hours="${p.id}">Jornada</button><button class="btn small ghost" data-pro-block="${p.id}">Bloquear horário</button></div></div></div>`
   }).join('')}</div>`:`<div class="empty"><b>Nenhum profissional cadastrado</b>Cadastre a equipe para organizar disponibilidade e serviços.</div>`}<div class="notice">A agenda já impede choque de horários, horários fora da jornada e serviços não habilitados para o profissional.</div><button class="fab" data-open="professional">+</button>`
 }
+function financePage(){
+  if(financeLoading&&!state.financeData){
+    return `<div class="page-heading"><span class="eyebrow">ZAIA PRO</span><h1 class="title">Financeiro</h1><p class="subtitle">Carregando a saúde financeira do seu negócio...</p></div><div class="finance-loading"><div class="loading-ring"></div></div>`
+  }
+  if(!state.financeData){
+    return `<div class="page-heading"><span class="eyebrow">ZAIA PRO</span><h1 class="title">Financeiro</h1><p class="subtitle">Transforme atendimentos, custos e comissões em decisões financeiras.</p></div><section class="card finance-empty-card"><div class="finance-hero-icon">${icon('wallet',26)}</div><div><h2>Seu painel financeiro está pronto.</h2><p>Os atendimentos concluídos entram automaticamente como valores a receber e a ZAIA calcula materiais e comissões.</p></div><button class="btn primary" id="loadFinanceNow">Abrir financeiro</button></section>`
+  }
+  if(state.financeData.error){
+    return `<div class="page-heading"><span class="eyebrow">ZAIA PRO</span><h1 class="title">Financeiro</h1><p class="subtitle">Não foi possível carregar os dados.</p></div><div class="warning-box">${esc(state.financeData.error)}</div><button class="btn primary" id="loadFinanceNow">Tentar novamente</button>`
+  }
+
+  const d=state.financeData
+  const x=d.summary||{}
+  const gross=Number(x.gross_revenue||0)
+  const received=Number(x.received||0)
+  const paidExpenses=Number(x.expenses_paid||0)
+  const accruedExpenses=Number(x.expenses_accrued||0)
+  const materials=Number(x.materials||0)
+  const commissions=Number(x.commissions||0)
+  const receivable=Number(x.receivable||0)
+  const payable=Number(x.payable||0)
+  const completed=Number(x.completed_count||0)
+  const cashResult=received-paidExpenses
+  const estimatedProfit=gross-materials-accruedExpenses
+  const margin=gross>0?(estimatedProfit/gross)*100:0
+  const ticket=completed?gross/completed:0
+  const target=Number(d.settings?.monthly_revenue_target||0)
+  const targetPct=target>0?Math.max(0,Math.min(100,gross/target*100)):0
+  const upcoming=d.upcoming||[]
+  const txs=(state.financeTransactions||[]).slice(0,12)
+  const accounts=d.accounts||[]
+  const professionals=d.professionals||[]
+  const services=d.services||[]
+  const cashflow=d.cashflow||[]
+  const maxFlow=Math.max(1,...cashflow.map(v=>Math.max(Number(v.income||0),Number(v.expense||0))))
+  const period=financeRange||monthRange()
+
+  return `<div class="page-heading finance-heading"><div><span class="eyebrow">ZAIA PRO • FINANCEIRO</span><h1 class="title">Seu negócio em números.</h1><p class="subtitle">Receitas, despesas, lucro, caixa e rentabilidade em uma visão gerencial.</p></div><div class="finance-heading-actions"><button class="btn ghost" id="financeSettingsBtn">${icon('settings',16)} Metas</button><button class="btn primary" data-finance-new="EXPENSE">+ Despesa</button></div></div>
+
+  <div class="finance-period-bar"><div><strong>${esc(period.label||'Período')}</strong><span>${fmtDate(period.start)} — ${fmtDate(period.end)}</span></div><div class="finance-period-actions"><button data-finance-range="month" class="${period.preset==='month'?'on':''}">Mês</button><button data-finance-range="7" class="${period.preset==='7'?'on':''}">7 dias</button><button data-finance-range="30" class="${period.preset==='30'?'on':''}">30 dias</button><button data-finance-range="90" class="${period.preset==='90'?'on':''}">90 dias</button></div></div>
+
+  <section class="finance-kpis">
+    <article class="finance-kpi featured"><span>Faturamento</span><strong>${fmtMoney(gross)}</strong><small>${completed} atendimento${completed===1?'':'s'} concluído${completed===1?'':'s'}</small></article>
+    <article class="finance-kpi"><span>Recebido</span><strong>${fmtMoney(received)}</strong><small>Entradas já confirmadas</small></article>
+    <article class="finance-kpi"><span>Despesas pagas</span><strong>${fmtMoney(paidExpenses)}</strong><small>Saídas efetivas no período</small></article>
+    <article class="finance-kpi ${cashResult<0?'negative':''}"><span>Resultado de caixa</span><strong>${fmtMoney(cashResult)}</strong><small>Recebido menos despesas pagas</small></article>
+  </section>
+
+  <section class="finance-health-grid">
+    <article class="card finance-profit-card"><div class="finance-card-head"><div><span class="eyebrow">RESULTADO</span><h2>Lucro estimado</h2></div><span class="finance-margin ${margin<0?'negative':''}">${margin.toLocaleString('pt-BR',{maximumFractionDigits:1})}% margem</span></div><strong class="finance-profit-value ${estimatedProfit<0?'negative':''}">${fmtMoney(estimatedProfit)}</strong><div class="finance-cost-stack"><div><span>Materiais</span><b>${fmtMoney(materials)}</b></div><div><span>Comissões</span><b>${fmtMoney(commissions)}</b></div><div><span>Despesas do período</span><b>${fmtMoney(accruedExpenses)}</b></div><div><span>Ticket médio</span><b>${fmtMoney(ticket)}</b></div></div></article>
+    <article class="card finance-receivables-card"><div class="finance-card-head"><div><span class="eyebrow">COMPROMISSOS</span><h2>A receber e a pagar</h2></div></div><div class="finance-dual-total"><div class="income"><span>A receber</span><strong>${fmtMoney(receivable)}</strong></div><div class="expense"><span>A pagar</span><strong>${fmtMoney(payable)}</strong></div></div><button class="btn ghost wide" data-finance-new="INCOME">+ Receita avulsa</button></article>
+  </section>
+
+  ${target>0?`<section class="card finance-goal-card"><div><span class="eyebrow">META DE FATURAMENTO</span><h2>${fmtMoney(gross)} de ${fmtMoney(target)}</h2><p>${targetPct.toLocaleString('pt-BR',{maximumFractionDigits:0})}% da meta mensal alcançada.</p></div><div class="finance-goal-track"><i style="width:${targetPct}%"></i></div></section>`:''}
+
+  <section class="card finance-pending-card"><div class="section-head"><div><span class="eyebrow">PRÓXIMOS VENCIMENTOS</span><h2>Pendências financeiras</h2></div><span class="pill">${upcoming.length}</span></div>${upcoming.length?`<div class="finance-pending-list">${upcoming.map(t=>`<div class="finance-pending-item ${t.kind==='INCOME'?'income':'expense'}"><div class="finance-pending-date"><strong>${String(t.due_date).slice(8,10)}</strong><span>${new Date(t.due_date+'T12:00:00').toLocaleDateString('pt-BR',{month:'short'}).replace('.','')}</span></div><div class="item-main"><strong>${esc(t.description)}</strong><div class="meta">${esc(t.category)} • ${t.source==='APPOINTMENT'?'Atendimento':t.source==='COMMISSION'?'Comissão':'Manual'}</div></div><b class="finance-pending-value">${t.kind==='EXPENSE'?'- ':'+ '}${fmtMoney(t.amount)}</b><button class="btn small ${t.kind==='INCOME'?'primary':'ghost'}" data-finance-pay="${t.id}">${t.kind==='INCOME'?'Receber':'Pagar'}</button></div>`).join('')}</div>`:'<div class="empty compact"><b>Nenhuma pendência.</b>Seu contas a pagar e receber está em dia.</div>'}</section>
+
+  <section class="finance-chart-grid">
+    <article class="card"><div class="section-head"><div><span class="eyebrow">FLUXO DE CAIXA</span><h2>Entradas e saídas</h2></div></div>${cashflow.length?`<div class="finance-flow-chart">${cashflow.slice(-12).map(v=>`<div class="finance-flow-row"><span>${fmtDate(v.date)}</span><div class="flow-bars"><i class="income" style="width:${Math.max(2,Number(v.income||0)/maxFlow*100)}%"></i><i class="expense" style="width:${Math.max(2,Number(v.expense||0)/maxFlow*100)}%"></i></div><b>${fmtMoney(Number(v.net||0))}</b></div>`).join('')}</div><div class="finance-chart-legend"><span><i class="income"></i>Entradas</span><span><i class="expense"></i>Saídas</span></div>`:'<div class="empty compact"><b>Sem movimentação paga no período.</b>Ao receber ou pagar lançamentos, o fluxo aparece aqui.</div>'}</article>
+    <article class="card"><div class="section-head"><div><span class="eyebrow">CONTAS</span><h2>Saldos</h2></div><button class="btn small ghost" id="financeNewAccount">+ Conta</button></div><div class="finance-accounts">${accounts.map(a=>`<div><span>${esc(a.name)}<small>${a.type==='CASH'?'Caixa':a.type==='BANK'?'Banco':a.type==='DIGITAL'?'Carteira digital':'Outra'}</small></span><strong>${fmtMoney(a.balance)}</strong></div>`).join('')||'<div class="meta">Nenhuma conta cadastrada.</div>'}</div></article>
+  </section>
+
+  <section class="finance-performance-grid">
+    <article class="card"><div class="section-head"><div><span class="eyebrow">RENTABILIDADE</span><h2>Por profissional</h2></div></div>${professionals.length?`<div class="finance-ranking">${professionals.slice(0,8).map((p,i)=>`<div><span class="rank">${i+1}</span><div class="item-main"><strong>${esc(p.name)}</strong><small>${p.appointments} atendimento${Number(p.appointments)===1?'':'s'} • comissão ${fmtMoney(p.commission)}</small></div><div><strong>${fmtMoney(p.revenue)}</strong><small>contrib. ${fmtMoney(p.contribution)}</small></div></div>`).join('')}</div>`:'<div class="empty compact">Conclua atendimentos para gerar a análise.</div>'}</article>
+    <article class="card"><div class="section-head"><div><span class="eyebrow">SERVIÇOS</span><h2>O que mais gera resultado</h2></div></div>${services.length?`<div class="finance-ranking">${services.slice(0,8).map((p,i)=>`<div><span class="rank">${i+1}</span><div class="item-main"><strong>${esc(p.name)}</strong><small>${p.appointments} atendimento${Number(p.appointments)===1?'':'s'} • materiais ${fmtMoney(p.materials)}</small></div><div><strong>${fmtMoney(p.revenue)}</strong><small>contrib. ${fmtMoney(p.contribution)}</small></div></div>`).join('')}</div>`:'<div class="empty compact">Ainda não há serviços concluídos no período.</div>'}</article>
+  </section>
+
+  <section class="card finance-transactions-card"><div class="section-head"><div><span class="eyebrow">MOVIMENTAÇÕES</span><h2>Últimos lançamentos</h2></div><div class="finance-inline-actions"><button class="btn small ghost" data-finance-new="INCOME">+ Receita</button><button class="btn small" data-finance-new="EXPENSE">+ Despesa</button></div></div>${txs.length?`<div class="finance-transactions-list">${txs.map(t=>`<div class="finance-transaction-row"><span class="finance-type-icon ${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'↑':'↓'}</span><div class="item-main"><strong>${esc(t.description)}</strong><div class="meta">${fmtDate(t.dueDate)} • ${esc(t.category)}${t.paymentMethod?' • '+paymentMethodLabel(t.paymentMethod):''}</div></div><div class="finance-tx-right"><strong class="${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'+':'-'} ${fmtMoney(t.amount)}</strong><span class="pill ${t.status==='PAID'?'good':t.status==='CANCELLED'?'':'warn'}">${financeStatusLabel(t.status)}</span></div>${t.status==='PENDING'?`<button class="btn small ghost" data-finance-pay="${t.id}">Baixar</button><button class="finance-icon-action" data-finance-cancel="${t.id}" aria-label="Cancelar">×</button>`:''}</div>`).join('')}</div>`:'<div class="empty compact"><b>Nenhum lançamento ainda.</b>Registre receitas e despesas ou conclua um atendimento.</div>'}</section>`
+}
+
 function promotionsPage(){
   const now=Date.now()
   const list=state.promotions||[]
@@ -659,7 +730,7 @@ function promotionsPage(){
   }).join('')}</div>`:`<div class="empty"><b>Nenhuma promoção ainda</b>Crie uma oferta para aparecer na área de clientes da ZAIA.</div>`}`
 }
 
-function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon">${icon('bell',20)}</span><div class="item-main"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div><b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button><button class="item" data-page="promotions"><span class="settings-icon">${icon('sparkle',20)}</span><div class="item-main"><strong>Promoções</strong><div class="meta">Ofertas para clientes na ZAIA</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
+function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" data-page="finance"><span class="settings-icon pro-settings-mini">${icon('wallet',20)}</span><div class="item-main"><strong>Financeiro <span class="mini-pro-badge">PRO</span></strong><div class="meta">Caixa, contas, lucro e comissões</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon">${icon('bell',20)}</span><div class="item-main"><strong>Notificações</strong><div class="meta">${state.notificationsEnabled?'Ativadas':'Ativar Push neste dispositivo'}</div></div><b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button><button class="item" data-page="promotions"><span class="settings-icon">${icon('sparkle',20)}</span><div class="item-main"><strong>Promoções</strong><div class="meta">Ofertas para clientes na ZAIA</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
 function modalHtml(){
   const close='<button type="button" class="x" data-close aria-label="Fechar">×</button>'
   if(modal==='zaiaPro'){
