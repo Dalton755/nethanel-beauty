@@ -8,6 +8,7 @@ import {
   createEstablishment,
   insertClient,
   insertService,
+  updateService,
   insertProduct,
   updateProduct,
   archiveProduct,
@@ -70,6 +71,27 @@ function categories(){return [...new Set(activeSegments().flatMap(s=>s.productCa
 function serviceById(id){return state.services.find(s=>s.id===id)}
 function professionalById(id){return state.professionals.find(p=>p.id===id)}
 function productById(id){return state.products.find(p=>p.id===id)}
+function formatDuration(minutes){
+  const m=Math.max(0,Number(minutes||0))
+  const h=Math.floor(m/60),r=m%60
+  if(!h)return `${r} min`
+  if(!r)return `${h}h`
+  return `${h}h ${r}min`
+}
+function addMinutesToTime(time,minutes){
+  const [h,m]=String(time||'00:00').split(':').map(Number)
+  const total=h*60+m+Number(minutes||0)
+  const hh=Math.floor((total%1440)/60).toString().padStart(2,'0')
+  const mm=(total%60).toString().padStart(2,'0')
+  return `${hh}:${mm}`
+}
+function durationParts(minutes){
+  const m=Math.max(5,Number(minutes||60))
+  return {hours:Math.floor(m/60),minutes:m%60}
+}
+function durationFromForm(form){
+  return Number(form.durationHours?.value||0)*60+Number(form.durationMinutes?.value||0)
+}
 const DAY_LABELS={0:'Dom',1:'Seg',2:'Ter',3:'Qua',4:'Qui',5:'Sex',6:'Sáb'}
 const DAY_LONG={0:'Domingo',1:'Segunda',2:'Terça',3:'Quarta',4:'Quinta',5:'Sexta',6:'Sábado'}
 function professionalServiceConfig(p,serviceId){return (p?.services||[]).find(x=>x.serviceId===serviceId&&x.active!==false)}
@@ -305,7 +327,20 @@ function bindOnboarding(){
 }
 
 function defaultPrice(n){if(/progressiva|mechas|noiva|mega/i.test(n))return 180;if(/coloração|fibra|volume|protocolo/i.test(n))return 120;if(/manutenção|limpeza|drenagem|massagem/i.test(n))return 80;return 50}
-function defaultDuration(n){if(/progressiva|mechas|noiva/i.test(n))return 150;if(/coloração|fibra|volume|protocolo/i.test(n))return 90;if(/manutenção|limpeza|drenagem|massagem/i.test(n))return 60;return 45}
+function defaultDuration(n){
+  const name=String(n||'').toLowerCase()
+  const exact={
+    'corte feminino':60,'corte masculino':45,'escova':60,'hidratação':60,'coloração':120,'mechas':180,'progressiva':180,'reconstrução':90,
+    'barba':30,'corte + barba':75,'pezinho':15,'pigmentação':45,
+    'design de sobrancelhas':30,'design + henna':45,'design + tintura':45,'brow lamination':60,
+    'clássico fio a fio':120,'volume brasileiro':150,'híbrido':150,'volume russo':180,'mega volume':210,'manutenção':90,'remoção':45,
+    'manicure':60,'pedicure':60,'esmaltação em gel':90,'banho de gel':90,'fibra de vidro':180,
+    'limpeza de pele':60,'peeling':45,'drenagem linfática':60,'massagem modeladora':60,'protocolo facial':60,'protocolo corporal':60,
+    'axilas':20,'meia perna':40,'perna inteira':60,'virilha':40,'rosto':20,'costas':45,'peito':40,
+    'maquiagem social':60,'maquiagem para noiva':120,'maquiagem para festa':75,'teste de maquiagem':60
+  }
+  return exact[name]||60
+}
 
 function homePage(){
   const today=state.appointments.filter(a=>a.date===todayISO()&&a.status!=='CANCELADO').sort((a,b)=>a.time.localeCompare(b.time))
@@ -325,12 +360,15 @@ function appointmentItem(a){
   const svc=serviceById(a.serviceId)
   const pro=professionalById(a.professionalId)
   const mats=a.materials?.length?a.materials:(svc?.materials||[])
-  return `<div class="item appointment-item"><div style="font-weight:900;width:45px">${a.time}</div><div class="service-dot"></div><div class="item-main"><strong>${esc(a.clientName)}</strong><div class="meta">${esc(svc?.name||'Serviço')} • ${esc(pro?.name||'Profissional')} • ${fmtMoney(a.price)} ${mats.length?`• ${mats.length} material${mats.length>1?'is':''}`:''}</div></div><div class="item-actions"><button class="btn small ghost" data-appointment-materials="${a.id}" ${a.status==='CONCLUIDO'?'disabled':''}>Materiais</button><button class="btn small ${a.status==='CONCLUIDO'?'ghost':''}" data-complete="${a.id}" ${a.status==='CONCLUIDO'?'disabled':''}>${a.status==='CONCLUIDO'?'Concluído':'Concluir'}</button></div></div>`
+  const config=professionalServiceConfig(pro,a.serviceId)
+  const duration=Number(a.durationMinutes||config?.customDuration||svc?.duration||0)
+  const endTime=a.endTime||addMinutesToTime(a.time,duration)
+  return `<div class="item appointment-item"><div class="appointment-time"><strong>${a.time}</strong><span>até ${endTime}</span></div><div class="service-dot"></div><div class="item-main"><strong>${esc(a.clientName)}</strong><div class="meta">${esc(svc?.name||'Serviço')} • ${formatDuration(duration)} • ${esc(pro?.name||'Profissional')} • ${fmtMoney(a.price)} ${mats.length?`• ${mats.length} material${mats.length>1?'is':''}`:''}</div></div><div class="item-actions"><button class="btn small ghost" data-appointment-materials="${a.id}" ${a.status==='CONCLUIDO'?'disabled':''}>Materiais</button><button class="btn small ${a.status==='CONCLUIDO'?'ghost':''}" data-complete="${a.id}" ${a.status==='CONCLUIDO'?'disabled':''}>${a.status==='CONCLUIDO'?'Concluído':'Concluir'}</button></div></div>`
 }
 
 function clientsPage(){return `<div class="eyebrow">Relacionamento</div><h1 class="title">Clientes</h1><p class="subtitle">Histórico e retorno ficam vinculados somente a ${esc(state.establishment.name)}.</p><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="client">+ Novo cliente</button></div><div class="section-head"><h2>${state.clients.length} cadastrados</h2></div>${state.clients.length?`<div class="list">${state.clients.map(c=>`<div class="item"><div class="item-main"><strong>${esc(c.name)}</strong><div class="meta">${esc(c.phone||'Sem telefone')} ${c.lastService?'• '+esc(c.lastService):''}</div></div>${c.phone?`<button class="btn small" data-wa="${c.id}">WhatsApp</button>`:''}</div>`).join('')}</div>`:`<div class="empty"><b>Nenhum cliente ainda</b>Clientes também são criados automaticamente ao agendar.</div>`}<button class="fab" data-open="client">+</button>`}
 function catalogPage(){return `<div class="eyebrow">Catálogo</div><h1 class="title">Seu negócio, suas regras.</h1><p class="subtitle">Você pode alterar os modelos sugeridos e criar serviços e produtos próprios.</p><div class="two-col" style="margin-top:20px"><button class="card" data-page="services" style="text-align:left;border:1px solid var(--line)"><div style="font-size:26px">✦</div><h2>Serviços</h2><p class="subtitle">${state.services.filter(s=>s.active).length} ativos • preços, duração e retorno.</p></button><button class="card" data-page="inventory" style="text-align:left;border:1px solid var(--line)"><div style="font-size:26px">▦</div><h2>Produtos & estoque</h2><p class="subtitle">${state.products.length} produtos • categorias específicas do segmento.</p></button></div>`}
-function servicesPage(){return `<div class="eyebrow">Catálogo</div><h1 class="title">Serviços</h1><p class="subtitle">Cada serviço pode ter uma estimativa inicial de materiais. Quando você corrige e salva, o Beauty aprende e usa esse padrão para pré-preencher os próximos serviços.</p><div class="notice learning-notice"><strong>Aprendizado de materiais ativo</strong><span>O aprendizado fica isolado neste estabelecimento e neste segmento.</span></div><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="service">+ Adicionar serviço</button></div><div class="section-head"><h2>Serviços cadastrados</h2><span class="pill">${state.services.length}</span></div><div class="list">${state.services.map(s=>`<div class="item"><div class="service-dot"></div><div class="item-main"><strong>${esc(s.name)}</strong><div class="meta">${fmtMoney(s.price)} • ${s.duration} min ${s.returnDays?`• retorno ${s.returnDays} dias`:''}</div><div class="meta material-summary">${s.materials?.length?`${s.materials.length} material${s.materials.length>1?'is':''} • custo previsto ${fmtMoney(s.estimatedCost||materialCost(s.materials))}`:'Sem materiais configurados'} ${s.materialsEstimated?'<span class="pill estimate">Estimativa inicial</span>':''}</div></div><div class="item-actions"><button class="btn small" data-service-materials="${s.id}">Materiais</button><span class="pill ${s.active?'good':''}">${s.active?'Ativo':'Inativo'}</span></div></div>`).join('')}</div><button class="fab" data-open="service">+</button>`}
+function servicesPage(){return `<div class="eyebrow">Catálogo</div><h1 class="title">Serviços</h1><p class="subtitle">Configure quanto tempo cada serviço ocupa na agenda. O horário fica bloqueado do início ao fim para evitar conflitos.</p><div class="notice duration-notice"><strong>Duração controla a agenda</strong><span>Ex.: um serviço de 3h iniciado às 09:00 reserva o profissional até 12:00.</span></div><div class="notice learning-notice"><strong>Aprendizado de materiais ativo</strong><span>O aprendizado fica isolado neste estabelecimento e neste segmento.</span></div><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="service">+ Adicionar serviço</button></div><div class="section-head"><h2>Serviços cadastrados</h2><span class="pill">${state.services.length}</span></div><div class="list">${state.services.map(s=>`<div class="item"><div class="service-dot"></div><div class="item-main"><strong>${esc(s.name)}</strong><div class="meta">${fmtMoney(s.price)} • <strong>${formatDuration(s.duration)}</strong> de agenda ${s.returnDays?`• retorno ${s.returnDays} dias`:''}</div><div class="meta material-summary">${s.materials?.length?`${s.materials.length} material${s.materials.length>1?'is':''} • custo previsto ${fmtMoney(s.estimatedCost||materialCost(s.materials))}`:'Sem materiais configurados'} ${s.materialsEstimated?'<span class="pill estimate">Estimativa inicial</span>':''}</div></div><div class="item-actions"><button class="btn small" data-service-edit="${s.id}">Editar</button><button class="btn small" data-service-materials="${s.id}">Materiais</button><span class="pill ${s.active?'good':''}">${s.active?'Ativo':'Inativo'}</span></div></div>`).join('')}</div><button class="fab" data-open="service">+</button>`}
 function inventoryPage(){
   const suggested=state.products.filter(p=>p.suggested).length
   return `<div class="eyebrow">Operação</div><h1 class="title">Produtos & estoque</h1><p class="subtitle">O modelo inicial traz os itens mais comuns do seu segmento. Quantidade, custo e consumo são apenas pontos de partida e ficam totalmente editáveis.</p><div class="toolbar" style="margin-top:18px"><button class="btn primary" data-open="product">+ Adicionar produto</button>${cloudEnabled()?'<button class="btn" id="seedStarterCatalog">Adicionar sugestões do segmento</button>':''}</div>${suggested?`<div class="notice starter-notice"><strong>${suggested} itens vieram da base sugerida.</strong><span>Informe seu estoque e custo reais. Você pode editar ou remover qualquer item.</span></div>`:''}<div class="section-head"><h2>Estoque atual</h2><span class="pill">${state.products.length}</span></div>${state.products.length?`<div class="list inventory-list">${state.products.map(p=>{
@@ -355,7 +393,12 @@ function modalHtml(){
   const close='<button type="button" class="x" data-close aria-label="Fechar">×</button>'
   if(modal==='appointment')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo ${vocab().appointment.toLowerCase()}</h3>${close}</div><form class="form" id="appointmentForm"><div class="field"><label>Cliente</label><input name="clientName" required placeholder="Nome da cliente"></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" data-mask="phone" maxlength="15" placeholder="(11) 99999-9999"></div><div class="field"><label>Serviço</label><select name="serviceId" id="appointmentService" required><option value="">Selecione</option>${state.services.filter(s=>s.active).map(s=>`<option value="${s.id}">${esc(s.name)} — ${fmtMoney(s.price)}</option>`).join('')}</select></div><div class="field"><label>Profissional</label><select name="professionalId" id="appointmentProfessional" required><option value="">Selecione o serviço primeiro</option></select></div><div id="appointmentMaterialsBox"></div><div class="row"><div class="field"><label>Data</label><input name="date" id="appointmentDate" type="date" value="${todayISO()}" required></div><div class="field"><label>Horário</label><input name="time" id="appointmentTime" type="time" value="09:00" required></div></div><button type="button" class="btn wide" id="checkAvailability">Ver horários livres</button><div id="availableSlots"></div><button class="btn primary wide" type="submit">Salvar horário</button></form></div></div>`
   if(modal==='client')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo cliente</h3>${close}</div><form class="form" id="clientForm"><div class="field"><label>Nome</label><input name="name" required></div><div class="field"><label>WhatsApp</label><input name="phone" inputmode="tel" data-mask="phone" maxlength="15" placeholder="(11) 99999-9999"></div><button class="btn primary wide">Salvar cliente</button></form></div></div>`
-  if(modal==='service')return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><h3>Novo serviço</h3>${close}</div><form class="form" id="serviceForm"><div class="field"><label>Segmento</label><select name="segment" required>${segmentKeys().map(k=>`<option value="${k}">${SEGMENTS[k].name}</option>`).join('')}</select></div><div class="field"><label>Nome do serviço</label><input name="name" required placeholder="Ex.: Selagem Premium"></div><div class="row"><div class="field"><label>Preço</label><input name="price" type="number" min="0" step="0.01" inputmode="decimal" value="50" required></div><div class="field"><label>Duração (min)</label><input name="duration" type="number" min="5" step="5" inputmode="numeric" value="45" required></div></div><div class="field"><label>Retorno sugerido (dias)</label><input name="returnDays" type="number" min="0" max="3650" inputmode="numeric" value="${activeSegments()[0]?.returnDays||0}"></div><button class="btn primary wide">Adicionar serviço</button></form></div></div>`
+  if(modal==='service'||modal.startsWith('serviceEdit:')){
+    const id=modal.includes(':')?modal.split(':')[1]:null
+    const svc=id?serviceById(id):null
+    const parts=durationParts(svc?.duration||60)
+    return `<div class="modal-backdrop"><div class="modal"><div class="modal-head"><div><h3>${svc?'Editar serviço':'Novo serviço'}</h3><div class="helper">A duração define quanto tempo será bloqueado na agenda.</div></div>${close}</div><form class="form" id="serviceForm" data-service-id="${svc?.id||''}"><div class="field"><label>Segmento</label><select name="segment" required>${segmentKeys().map(k=>`<option value="${k}" ${(svc?.segment||segmentKeys()[0])===k?'selected':''}>${SEGMENTS[k].name}</option>`).join('')}</select></div><div class="field"><label>Nome do serviço</label><input name="name" required value="${esc(svc?.name||'')}" placeholder="Ex.: Selagem Premium"></div><div class="field"><label>Preço</label><input name="price" type="number" min="0" step="0.01" inputmode="decimal" value="${svc?.price??50}" required></div><div class="field"><label>Tempo reservado na agenda</label><div class="duration-picker"><select name="durationHours" id="durationHours">${[0,1,2,3,4,5,6,7,8,9,10,11,12].map(h=>`<option value="${h}" ${parts.hours===h?'selected':''}>${h}h</option>`).join('')}</select><select name="durationMinutes" id="durationMinutes">${[0,5,10,15,20,30,45,50,55].map(m=>`<option value="${m}" ${parts.minutes===m?'selected':''}>${m} min</option>`).join('')}</select></div><div class="duration-presets"><button type="button" data-duration-preset="30">30 min</button><button type="button" data-duration-preset="45">45 min</button><button type="button" data-duration-preset="60">1h</button><button type="button" data-duration-preset="90">1h30</button><button type="button" data-duration-preset="120">2h</button><button type="button" data-duration-preset="180">3h</button></div><span class="helper" id="durationPreview">Este serviço ocupará ${formatDuration(svc?.duration||60)} da agenda.</span></div><div class="field"><label>Retorno sugerido (dias)</label><input name="returnDays" type="number" min="0" max="3650" inputmode="numeric" value="${svc?.returnDays??activeSegments()[0]?.returnDays??0}"></div><button type="submit" class="btn primary wide">${svc?'Salvar serviço':'Adicionar serviço'}</button></form></div></div>`
+  }
   if(modal==='product'||(typeof modal==='string'&&modal.startsWith('productEdit:'))){
     const id=modal.includes(':')?modal.split(':')[1]:null
     const p=id?productById(id):null
@@ -410,6 +453,7 @@ function bindGlobal(){
   $$('[data-page]').forEach(b=>b.onclick=()=>{page=b.dataset.page;modal=null;render()})
   $$('[data-open]').forEach(b=>b.onclick=()=>openModal(b.dataset.open))
   $$('[data-wa]').forEach(b=>b.onclick=()=>openWhatsApp(b.dataset.wa))
+  $$('[data-service-edit]').forEach(b=>b.onclick=()=>openModal(`serviceEdit:${b.dataset.serviceEdit}`))
   $$('[data-service-materials]').forEach(b=>b.onclick=()=>openServiceMaterials(b.dataset.serviceMaterials))
   $$('[data-appointment-materials]').forEach(b=>b.onclick=()=>openModal(`appointmentMaterials:${b.dataset.appointmentMaterials}`))
   $$('[data-complete]').forEach(b=>b.onclick=()=>completeAppointment(b.dataset.complete,b))
@@ -478,6 +522,25 @@ function bindModal(){
   })
   syncCommissionMask(true)
 
+  const serviceForm=$('#serviceForm')
+  const durationHours=$('#durationHours')
+  const durationMinutes=$('#durationMinutes')
+  const durationPreview=$('#durationPreview')
+  const syncDurationPreview=()=>{
+    if(!serviceForm||!durationPreview)return
+    const mins=durationFromForm(serviceForm)
+    durationPreview.textContent=mins>=5?`Este serviço ocupará ${formatDuration(mins)} da agenda.`:'Escolha pelo menos 5 minutos.'
+  }
+  durationHours?.addEventListener('change',syncDurationPreview)
+  durationMinutes?.addEventListener('change',syncDurationPreview)
+  $$('[data-duration-preset]').forEach(b=>b.onclick=()=>{
+    const mins=Number(b.dataset.durationPreset)
+    if(durationHours)durationHours.value=String(Math.floor(mins/60))
+    if(durationMinutes)durationMinutes.value=String(mins%60)
+    syncDurationPreview()
+  })
+  syncDurationPreview()
+
   const apptService=$('#appointmentService')
   const apptProfessional=$('#appointmentProfessional')
   const apptDate=$('#appointmentDate')
@@ -499,8 +562,17 @@ function bindModal(){
     apptMaterialsBox.innerHTML=`<div class="materials-box"><div class="materials-head"><div><strong>Materiais deste atendimento</strong><div class="helper">${svc.materialsEstimated?'Estimativa inicial do segmento. Ajuste para este atendimento se necessário.':'Pré-preenchido pelo serviço. Você pode ajustar agora.'}</div></div><span class="pill">Baixa ao concluir</span></div>${materialsEditorHtml(svc.materials||[],svc.segment)}</div>`
   }
   const clearSlots=()=>{if(slotsBox)slotsBox.innerHTML=''}
-  if(apptService){apptService.addEventListener('change',()=>{refreshProfessionals();refreshAppointmentMaterials();clearSlots()});refreshProfessionals();refreshAppointmentMaterials()}
-  apptProfessional?.addEventListener('change',clearSlots)
+  const refreshServiceDurationHint=()=>{
+    const svc=serviceById(apptService?.value)
+    const pro=professionalById(apptProfessional?.value)
+    const config=professionalServiceConfig(pro,svc?.id)
+    const duration=Number(config?.customDuration||svc?.duration||0)
+    let box=$('#appointmentDurationHint')
+    if(!box&&apptProfessional){box=document.createElement('div');box.id='appointmentDurationHint';box.className='notice compact-notice';apptProfessional.closest('.field')?.after(box)}
+    if(box)box.innerHTML=duration?`<strong>${esc(svc?.name||'Serviço')}</strong><span>Reserva ${formatDuration(duration)} na agenda deste profissional.</span>`:''
+  }
+  if(apptService){apptService.addEventListener('change',()=>{refreshProfessionals();refreshAppointmentMaterials();refreshServiceDurationHint();clearSlots()});refreshProfessionals();refreshAppointmentMaterials();refreshServiceDurationHint()}
+  apptProfessional?.addEventListener('change',()=>{refreshServiceDurationHint();clearSlots()})
   apptDate?.addEventListener('change',clearSlots)
   $('#checkAvailability')?.addEventListener('click',async ()=>{
     const serviceId=apptService?.value,professionalId=apptProfessional?.value,date=apptDate?.value
@@ -510,7 +582,7 @@ function bindModal(){
     slotsBox.innerHTML='<div class="helper">Buscando horários livres...</div>'
     try{
       const slots=cloudEnabled()?await getAvailableSlots(professionalId,serviceId,date,15):[]
-      slotsBox.innerHTML=slots.length?`<div class="slots">${slots.map(x=>`<button type="button" class="slot-chip" data-slot-time="${x.time}">${x.time}</button>`).join('')}</div>`:'<div class="notice compact-notice">Nenhum horário livre nesta data.</div>'
+      slotsBox.innerHTML=slots.length?`<div class="helper slot-caption">Horários que comportam o atendimento completo:</div><div class="slots">${slots.map(x=>`<button type="button" class="slot-chip" data-slot-time="${x.time}"><strong>${x.time}–${x.endTime}</strong><small>${formatDuration(x.durationMinutes)}</small></button>`).join('')}</div>`:'<div class="notice compact-notice">Nenhum horário livre comporta a duração completa deste serviço nesta data.</div>'
       $$('[data-slot-time]',slotsBox).forEach(b=>b.onclick=()=>{apptTime.value=b.dataset.slotTime;$$('[data-slot-time]',slotsBox).forEach(x=>x.classList.remove('on'));b.classList.add('on')})
     }catch(error){slotsBox.innerHTML=`<div class="warning-box">${esc(friendlyError(error))}</div>`}
   })
@@ -529,9 +601,10 @@ function bindModal(){
       const materials=readMaterials(e.target)
       const pro=professionalById(f.professionalId)
       const config=professionalServiceConfig(pro,f.serviceId)
-      const appt={id:uid(),clientId:c.id,clientName:c.name,phone:c.phone,professionalId:f.professionalId,serviceId:f.serviceId,date:f.date,time:f.time,price:config?.customPrice??s.price,status:'AGENDADO',materials}
+      const effectiveDuration=Number(config?.customDuration||s.duration||60)
+      const appt={id:uid(),clientId:c.id,clientName:c.name,phone:c.phone,professionalId:f.professionalId,serviceId:f.serviceId,date:f.date,time:f.time,endTime:addMinutesToTime(f.time,effectiveDuration),durationMinutes:effectiveDuration,price:config?.customPrice??s.price,status:'AGENDADO',materials}
       if(cloudEnabled()){
-        const row=await insertAppointment(state.establishment.id,appt,s);appt.id=row.id;appt.price=Number(row.price);appt.professionalId=row.professional_id
+        const row=await insertAppointment(state.establishment.id,appt,s);appt.id=row.id;appt.price=Number(row.price);appt.professionalId=row.professional_id;appt.startsAt=row.starts_at;appt.endsAt=row.ends_at;appt.endTime=new Date(row.ends_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});appt.durationMinutes=Math.round((new Date(row.ends_at)-new Date(row.starts_at))/60000)
         await saveAppointmentMaterials(appt.id,materials)
       }
       state.appointments.push(appt);persistLocal();modal=null;page='agenda';render()
@@ -550,12 +623,21 @@ function bindModal(){
   $('#serviceForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const button=e.target.querySelector('button[type="submit"]');setBusy(button,true)
     try{
-      const f=Object.fromEntries(new FormData(e.target));let s={id:uid(),name:f.name,price:Number(f.price),duration:Number(f.duration),segment:f.segment,returnDays:Number(f.returnDays),estimatedCost:0,materials:[],active:true}
+      const f=Object.fromEntries(new FormData(e.target));const id=e.target.dataset.serviceId
+      const duration=durationFromForm(e.target)
+      if(duration<5||duration>720){setBusy(button,false);return alert('A duração deve ficar entre 5 minutos e 12 horas.')}
+      let service={id:id||uid(),name:String(f.name||'').trim(),price:Number(f.price),duration,segment:f.segment,returnDays:Number(f.returnDays),estimatedCost:id?Number(serviceById(id)?.estimatedCost||0):0,materials:id?[...(serviceById(id)?.materials||[])]:[],active:true}
       if(cloudEnabled()){
-        const row=await insertService(state.establishment.id,s)
-        s={id:row.id,name:row.name,price:Number(row.price),duration:row.duration_minutes,segment:row.segment_code,returnDays:Number(row.return_interval_days||0),estimatedCost:Number(row.estimated_cost||0),materials:[],active:row.active}
+        const row=id?await updateService(id,service):await insertService(state.establishment.id,service)
+        service={...service,id:row.id,name:row.name,price:Number(row.price),duration:Number(row.duration_minutes),segment:row.segment_code,returnDays:Number(row.return_interval_days||0),estimatedCost:Number(row.estimated_cost||service.estimatedCost||0),active:row.active}
       }
-      state.services.push(s);persistLocal();await openServiceMaterials(s.id)
+      if(id){
+        const idx=state.services.findIndex(x=>x.id===id)
+        if(idx>=0)state.services[idx]={...state.services[idx],...service}
+        persistLocal();modal=null;page='services';render()
+      }else{
+        state.services.push(service);persistLocal();await openServiceMaterials(service.id)
+      }
     }catch(error){setBusy(button,false);alert(`Não foi possível salvar o serviço. ${friendlyError(error)}`)}
   })
 
