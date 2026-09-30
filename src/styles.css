@@ -1922,3 +1922,5 @@ img,svg{max-width:100%}
   .mgmt-kpis{grid-template-columns:1fr 1fr}.mgmt-kpis article{padding:12px}.mgmt-kpis strong{font-size:19px}
   .plan-card{padding:17px}.plan-price strong{font-size:25px}
 }
+
+.mgmt-entry-link{color:inherit;text-decoration:none}
