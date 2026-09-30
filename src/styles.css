@@ -1823,3 +1823,102 @@ img,svg{max-width:100%}
   .client-account-footer{align-items:flex-end;flex-direction:column}
   .client-cancel-booking{width:100%}
 }
+
+
+/* =========================================================
+   ZAIA Plans
+   ========================================================= */
+.plans-heading{display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.current-plan-chip{min-width:150px;border:1px solid var(--line);background:#fffdfb;border-radius:16px;padding:12px 14px;display:grid;gap:2px;text-align:right}
+.current-plan-chip span,.current-plan-chip small{font-size:8.5px;color:var(--muted)}
+.current-plan-chip strong{font-size:18px;color:var(--brand)}
+.plans-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}
+.plan-card{position:relative;border:1px solid var(--line);background:#fffdfb;border-radius:23px;padding:21px;box-shadow:var(--shadow-soft);overflow:hidden}
+.plan-card.highlighted{border-color:color-mix(in srgb,var(--brand) 36%,var(--line));box-shadow:0 18px 40px rgba(57,24,42,.12)}
+.plan-card.current{outline:2px solid color-mix(in srgb,var(--champagne) 65%,transparent)}
+.plan-ribbon{position:absolute;right:14px;top:14px;border-radius:999px;background:var(--brand);color:#fff;padding:5px 8px;font-size:7px;font-weight:900;letter-spacing:.12em}
+.plan-head{display:flex;align-items:flex-start;justify-content:space-between;gap:10px}
+.plan-head h2{font-size:22px;margin:4px 0 5px}
+.plan-head p{font-size:10.5px;color:var(--muted);line-height:1.45;margin:0;max-width:360px}
+.plan-price{display:flex;align-items:flex-end;gap:6px;margin:19px 0 3px}
+.plan-price strong{font-size:30px;letter-spacing:-.05em}
+.plan-price span{font-size:10px;color:var(--muted);padding-bottom:5px}
+.plan-annual,.plan-trial{font-size:9px;color:var(--muted);margin-top:4px}
+.plan-trial{color:#6e4b22;font-weight:800}
+.plan-features{display:grid;gap:8px;margin:18px 0}
+.plan-features>div{display:grid;grid-template-columns:20px minmax(0,1fr);gap:7px;align-items:start}
+.plan-features span{width:19px;height:19px;border-radius:50%;display:grid;place-items:center;background:#edf6f0;color:#2c714a;font-size:9px;font-weight:900}
+.plan-features b{font-size:10.5px;line-height:1.4}
+.plan-payment-note{margin-top:14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center}
+.plan-payment-note .pro-icon{width:42px;height:42px;border-radius:13px;background:#f3e8de;color:var(--brand);display:grid;place-items:center}
+.plan-payment-note strong{font-size:12px}
+.plan-payment-note p{font-size:9.5px;color:var(--muted);margin:3px 0 0;line-height:1.4}
+
+/* =========================================================
+   ZAIA Management
+   ========================================================= */
+.mgmt-shell{min-height:100vh;background:#f6f1ee;display:grid;grid-template-columns:230px minmax(0,1fr)}
+.mgmt-sidebar{position:sticky;top:0;height:100vh;background:linear-gradient(180deg,#2c1020,#42182b);color:#fff;padding:22px 15px;display:flex;flex-direction:column}
+.mgmt-brand{display:flex;align-items:center;gap:9px;padding:0 7px 22px}
+.mgmt-logo{width:116px;max-height:42px;object-fit:contain;object-position:left center}
+.mgmt-brand .mgmt-logo{filter:brightness(0) invert(1);width:92px}
+.mgmt-brand span{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#dac6cf;font-weight:850}
+.mgmt-sidebar nav{display:grid;gap:5px}
+.mgmt-sidebar nav button{border:0;background:transparent;color:#d8c6ce;text-align:left;border-radius:12px;padding:11px 12px;font-size:11px;font-weight:750}
+.mgmt-sidebar nav button.active,.mgmt-sidebar nav button:hover{background:rgba(255,255,255,.11);color:#fff}
+.mgmt-sidebar-foot{margin-top:auto;display:grid;gap:7px;border-top:1px solid rgba(255,255,255,.12);padding-top:14px}
+.mgmt-sidebar-foot a,.mgmt-sidebar-foot button{border:0;background:transparent;color:#d6c1ca;text-align:left;font-size:9.5px;padding:7px}
+.mgmt-workspace{min-width:0}
+.mgmt-topbar{height:72px;background:rgba(255,252,249,.91);backdrop-filter:blur(16px);border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;padding:0 24px;position:sticky;top:0;z-index:20}
+.mgmt-topbar>div:first-child{display:grid;gap:2px}.mgmt-topbar strong{font-size:13px}
+.mgmt-admin-chip{display:flex;align-items:center;gap:8px}.mgmt-admin-chip span{width:32px;height:32px;border-radius:50%;background:var(--brand);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:900}.mgmt-admin-chip b{font-size:10px}
+.mgmt-content{padding:26px;max-width:1380px;width:100%;margin:0 auto}
+.mgmt-page-head{margin-bottom:18px}.mgmt-page-head h1{font-size:31px;letter-spacing:-.045em;margin:5px 0}.mgmt-page-head p{font-size:10.5px;color:var(--muted);margin:0}
+.mgmt-page-head.row-head{display:flex;justify-content:space-between;align-items:end;gap:16px}
+.mgmt-search input{width:260px;background:#fff}
+.mgmt-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.mgmt-kpis article{border:1px solid var(--line);background:#fffdfb;border-radius:17px;padding:15px;display:grid;gap:5px;box-shadow:var(--shadow-soft)}
+.mgmt-kpis span{font-size:8.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:850}
+.mgmt-kpis strong{font-size:24px;letter-spacing:-.04em}
+.mgmt-kpis small{font-size:8.5px;color:var(--muted)}
+.mgmt-grid-two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.mgmt-card h2{font-size:16px}
+.mgmt-plan-split,.mgmt-money-list{display:grid;gap:0}
+.mgmt-plan-split>div,.mgmt-money-list>div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--line)}
+.mgmt-plan-split>div:first-child,.mgmt-money-list>div:first-child{border-top:0}
+.mgmt-plan-split span{display:grid;gap:2px}.mgmt-plan-split b{font-size:11px}.mgmt-plan-split small,.mgmt-money-list span{font-size:9px;color:var(--muted)}.mgmt-plan-split strong,.mgmt-money-list strong{font-size:11px}
+.mgmt-note{font-size:8.8px;color:var(--muted);line-height:1.4;margin:10px 0 0}
+.mgmt-table-wrap{overflow:auto;border:1px solid var(--line);border-radius:17px;background:#fffdfb;box-shadow:var(--shadow-soft)}
+.mgmt-table{width:100%;border-collapse:collapse;min-width:820px}
+.mgmt-table th{font-size:7.8px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:left;padding:10px 11px;background:#f6efeb}
+.mgmt-table td{font-size:9.5px;padding:11px;border-top:1px solid var(--line);vertical-align:middle}.mgmt-table td:first-child{display:grid;gap:2px}.mgmt-table td small{font-size:7.8px;color:var(--muted)}
+.mgmt-plan-tag{display:inline-flex;border-radius:999px;padding:4px 7px;background:#eee5e1;color:#6e5f63;font-size:8px;font-weight:900}.mgmt-plan-tag.pro{background:#3a1629;color:#fff}
+.mgmt-plan-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:13px}
+.mgmt-plan-card{border:1px solid var(--line);background:#fffdfb;border-radius:20px;padding:18px;box-shadow:var(--shadow-soft)}
+.mgmt-plan-card.highlighted{border-color:color-mix(in srgb,var(--brand) 40%,var(--line))}
+.mgmt-plan-top{display:flex;justify-content:space-between;gap:12px}.mgmt-plan-top h2{font-size:19px;margin:4px 0}.mgmt-plan-top p{font-size:9.5px;color:var(--muted);line-height:1.4;margin:0}
+.mgmt-plan-price{display:flex;align-items:flex-end;gap:5px;margin-top:17px}.mgmt-plan-price strong{font-size:27px}.mgmt-plan-price span{font-size:9px;color:var(--muted);padding-bottom:4px}.mgmt-plan-annual{font-size:9px;color:var(--muted);margin-top:2px}
+.mgmt-plan-stats{display:flex;gap:7px;flex-wrap:wrap;margin:14px 0}.mgmt-plan-stats span{font-size:8px;border-radius:999px;background:#f2eae6;padding:5px 7px}
+.mgmt-modal{max-width:560px!important}
+.mgmt-merchant-summary{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}.mgmt-merchant-summary>div{background:#f6efeb;border-radius:12px;padding:10px;display:grid;gap:2px}.mgmt-merchant-summary span{font-size:8px;color:var(--muted)}.mgmt-merchant-summary strong{font-size:12px}
+.mgmt-auth,.mgmt-denied,.mgmt-loading{min-height:100vh;display:grid;place-items:center;background:linear-gradient(145deg,#f7f1ed,#efe5e1);padding:20px}
+.mgmt-auth-card,.mgmt-denied{width:min(440px,100%);background:#fffdfb;border:1px solid var(--line);border-radius:24px;padding:26px;box-shadow:var(--shadow);text-align:left}
+.mgmt-auth-card>.mgmt-logo,.mgmt-denied>.mgmt-logo{width:128px;margin-bottom:20px}
+.mgmt-auth-card h1,.mgmt-denied h1{font-size:28px;letter-spacing:-.04em;margin:6px 0}.mgmt-auth-card>p,.mgmt-denied>p{font-size:10.5px;color:var(--muted);line-height:1.45}
+.mgmt-back-link{display:block;text-align:center;margin-top:14px;font-size:9.5px;color:var(--brand)}
+.mgmt-loading{text-align:center;align-content:center;gap:13px}.mgmt-loading .mgmt-logo{width:130px}.mgmt-loading p{font-size:10px;color:var(--muted)}
+
+@media(max-width:900px){
+  .plans-grid,.mgmt-plan-grid,.mgmt-grid-two{grid-template-columns:1fr}
+  .plans-heading,.mgmt-page-head.row-head{display:block}
+  .current-plan-chip{margin-top:13px;text-align:left}
+  .mgmt-shell{grid-template-columns:1fr}
+  .mgmt-sidebar{position:fixed;left:0;right:0;bottom:0;top:auto;height:auto;z-index:50;padding:6px 7px calc(6px + env(safe-area-inset-bottom));background:rgba(45,16,32,.97)}
+  .mgmt-brand,.mgmt-sidebar-foot{display:none}.mgmt-sidebar nav{display:grid;grid-template-columns:repeat(4,1fr);gap:3px}.mgmt-sidebar nav button{text-align:center;padding:8px 3px;font-size:8.5px}
+  .mgmt-content{padding:18px 12px 90px}.mgmt-topbar{height:62px;padding:0 13px}.mgmt-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mgmt-search{margin-top:12px}.mgmt-search input{width:100%}
+}
+@media(max-width:480px){
+  .mgmt-kpis{grid-template-columns:1fr 1fr}.mgmt-kpis article{padding:12px}.mgmt-kpis strong{font-size:19px}
+  .plan-card{padding:17px}.plan-price strong{font-size:25px}
+}
