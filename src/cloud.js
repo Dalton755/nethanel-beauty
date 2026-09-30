@@ -728,6 +728,60 @@ export async function deletePromotion(promotionId) {
   return rest(`promotions?id=eq.${q(promotionId)}`, { method:'DELETE', prefer:'return=minimal' })
 }
 
+export async function listPlans() {
+  const rows = await rest('plans?select=code,name,description,monthly_price,annual_price,trial_days,highlighted,active,features,sort_order&active=eq.true&order=sort_order.asc')
+  return (rows || []).map(p => ({
+    code:p.code,name:p.name,description:p.description||'',
+    monthlyPrice:Number(p.monthly_price||0),annualPrice:Number(p.annual_price||0),
+    trialDays:Number(p.trial_days||0),highlighted:p.highlighted===true,active:p.active===true,
+    features:Array.isArray(p.features)?p.features:[],sortOrder:Number(p.sort_order||0),
+  }))
+}
+
+export async function getMerchantSubscription(establishmentId) {
+  return rest('rpc/merchant_subscription_status', {
+    method:'POST',
+    body:{ p_establishment_id:establishmentId },
+  })
+}
+
+export async function adminIsCurrent() {
+  return rest('rpc/admin_is_current', { method:'POST', body:{} })
+}
+
+export async function getAdminDashboard() {
+  return rest('rpc/admin_dashboard', { method:'POST', body:{} })
+}
+
+export async function adminUpdatePlan(plan) {
+  return rest('rpc/admin_update_plan', {
+    method:'POST',
+    body:{
+      p_code:plan.code,
+      p_name:plan.name,
+      p_description:plan.description||null,
+      p_monthly_price:Number(plan.monthlyPrice||0),
+      p_annual_price:Number(plan.annualPrice||0),
+      p_trial_days:Number(plan.trialDays||0),
+      p_active:plan.active!==false,
+      p_highlighted:plan.highlighted===true,
+      p_features:plan.features||[],
+    },
+  })
+}
+
+export async function adminSetMerchantPlan(establishmentId, planCode, status, billingCycle) {
+  return rest('rpc/admin_set_merchant_plan', {
+    method:'POST',
+    body:{
+      p_establishment_id:establishmentId,
+      p_plan_code:planCode,
+      p_status:status,
+      p_billing_cycle:billingCycle,
+    },
+  })
+}
+
 export async function getFinanceDashboard(establishmentId, startDate, endDate) {
   return rest('rpc/finance_dashboard', {
     method:'POST',
