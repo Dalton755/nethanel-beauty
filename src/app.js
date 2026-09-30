@@ -52,6 +52,11 @@ import {
   listPlans,
   getMerchantSubscription,
   adminIsCurrent,
+  createBillingCheckout,
+  syncBillingSubscription,
+  cancelBillingSubscription,
+  startProTrial,
+  getBillingConfiguration,
 } from './cloud.js'
 
 const SEGMENTS = {
@@ -95,6 +100,11 @@ let businessNotificationItems=[]
 let businessNotificationLoading=false
 let plansLoading=false
 let platformAdmin=false
+let billingCycleChoice='MONTHLY'
+let billingBusy=false
+let billingMessage=''
+let billingConfig=null
+let billingReturnHandled=false
 
 function localLoad(){
   try{return JSON.parse(localStorage.getItem(storageKey))||emptyState()}catch{return emptyState()}
@@ -815,14 +825,59 @@ function plansPage(){
   if(!state.planCatalog?.length){
     return `<div class="page-heading"><span class="eyebrow">PLANOS ZAIA</span><h1 class="title">Escolha como quer crescer.</h1><p class="subtitle">Compare os recursos da ZAIA.</p></div><button class="btn primary" id="loadPlansNow">Carregar planos</button>`
   }
+
   const sub=state.merchantSubscription||{}
-  const current=sub.plan_code||state.establishment.planCode||'FREE'
-  return `<div class="page-heading plans-heading"><div><span class="eyebrow">PLANOS ZAIA</span><h1 class="title">Uma ZAIA para cada fase do negócio.</h1><p class="subtitle">Comece grátis e evolua quando precisar de gestão financeira, Push e identidade própria.</p></div><div class="current-plan-chip"><span>Plano atual</span><strong>${esc(current)}</strong><small>${sub.status==='TRIAL'?'Período de teste':sub.status==='ACTIVE'?'Assinatura ativa':'Sem cobrança'}</small></div></div>
+  const current=state.establishment?.planCode||sub.plan_code||'FREE'
+  const pro=state.planCatalog.find(p=>p.code==='PRO')
+  const isTrial=sub.status==='TRIAL'&&current==='PRO'
+  const isActive=sub.status==='ACTIVE'&&current==='PRO'
+  const isCancelled=sub.status==='CANCELLED'
+  const trialEnd=sub.trial_ends_at?new Date(sub.trial_ends_at):null
+  const periodEnd=sub.current_period_end?new Date(sub.current_period_end):null
+  const selectedPrice=billingCycleChoice==='ANNUAL'?Number(pro?.annualPrice||0):Number(pro?.monthlyPrice||0)
+  const selectedLabel=billingCycleChoice==='ANNUAL'?'ano':'mês'
+  const statusLabel=isTrial?'Teste PRO':isActive?'Assinatura ativa':isCancelled&&current==='PRO'?'PRO até o vencimento':'Plano Free'
+  const canTrial=current==='FREE'&&pro&&pro.trialDays>0&&!sub.trial_used
+  const providerReady=billingConfig?.mercado_pago_access_token===true
+  const configKnown=billingConfig!==null
+
+  const currentDetail=isTrial&&trialEnd
+    ? `Teste grátis até ${trialEnd.toLocaleDateString('pt-BR')}`
+    : isActive&&periodEnd
+      ? `${sub.billing_cycle==='ANNUAL'?'Anual':'Mensal'} • próximo ciclo em ${periodEnd.toLocaleDateString('pt-BR')}`
+      : isCancelled&&periodEnd&&periodEnd>Date.now()
+        ? `Renovação cancelada • acesso até ${periodEnd.toLocaleDateString('pt-BR')}`
+        : 'Sem cobrança ativa'
+
+  return `<div class="page-heading plans-heading"><div><span class="eyebrow">PLANOS ZAIA</span><h1 class="title">Uma ZAIA para cada fase do negócio.</h1><p class="subtitle">Comece grátis e evolua para financeiro, Push operacional e identidade própria.</p></div><div class="current-plan-chip"><span>Plano atual</span><strong>${esc(current)}</strong><small>${esc(statusLabel)}</small></div></div>
+
+  ${billingMessage?`<div class="billing-message ${billingMessage.includes('confirmada')?'success':''}">${esc(billingMessage)}</div>`:''}
+
+  <section class="subscription-status-card ${current==='PRO'?'pro':''}"><div><span class="eyebrow">SUA ASSINATURA</span><h2>${esc(statusLabel)}</h2><p>${esc(currentDetail)}</p></div><div class="subscription-status-actions">${isActive&&sub.auto_renew!==false?`<button class="btn ghost" id="cancelSubscriptionBtn">Cancelar renovação</button>`:isTrial?`<span class="pill warn">Teste em andamento</span>`:isCancelled&&current==='PRO'?'<span class="pill">Renovação desligada</span>':''}</div></section>
+
   <section class="plans-grid">${state.planCatalog.map(p=>{
     const isCurrent=p.code===current
     const annualMonthly=p.annualPrice>0?p.annualPrice/12:0
-    return `<article class="plan-card ${p.highlighted?'highlighted':''} ${isCurrent?'current':''}">${p.highlighted?'<span class="plan-ribbon">MAIS COMPLETO</span>':''}<div class="plan-head"><div><span class="eyebrow">${esc(p.code)}</span><h2>${esc(p.name)}</h2><p>${esc(p.description)}</p></div>${isCurrent?'<span class="pill good">Seu plano</span>':''}</div><div class="plan-price">${p.monthlyPrice>0?`<strong>${fmtMoney(p.monthlyPrice)}</strong><span>/mês</span>`:'<strong>Grátis</strong>'}</div>${p.annualPrice>0?`<div class="plan-annual">Anual: ${fmtMoney(p.annualPrice)} • equivalente a ${fmtMoney(annualMonthly)}/mês</div>`:''}${p.trialDays>0?`<div class="plan-trial">${p.trialDays} dias para testar</div>`:''}<div class="plan-features">${p.features.map(f=>`<div><span>✓</span><b>${esc(f)}</b></div>`).join('')}</div>${isCurrent?`<button class="btn ghost wide" disabled>Plano atual</button>`:`<button class="btn primary wide" data-plan-interest="${p.code}">${p.code==='PRO'?'Quero o ZAIA Pro':'Usar plano Free'}</button>`}</article>`
-  }).join('')}</section><section class="card plan-payment-note"><div class="pro-icon">${icon('wallet',20)}</div><div><strong>Pagamento será a próxima etapa</strong><p>Os valores e períodos desta tela vêm do painel de gestão. Na próxima etapa conectaremos a contratação e renovação automática.</p></div></section>`
+    const proActions=p.code==='PRO'?(()=>{
+      if(isActive&&sub.auto_renew!==false){
+        return `<button class="btn ghost wide" disabled>ZAIA Pro ativo</button>`
+      }
+      if(isCancelled&&current==='PRO'){
+        return `<button class="btn primary wide" data-billing-checkout>Reativar assinatura</button>`
+      }
+      if(isTrial){
+        return `<div class="billing-cycle-switch"><button type="button" data-billing-cycle="MONTHLY" class="${billingCycleChoice==='MONTHLY'?'on':''}">Mensal</button><button type="button" data-billing-cycle="ANNUAL" class="${billingCycleChoice==='ANNUAL'?'on':''}">Anual</button></div><button class="btn primary wide" data-billing-checkout>Assinar por ${fmtMoney(selectedPrice)}/${selectedLabel}</button>`
+      }
+      if(current==='FREE'){
+        return `${canTrial?`<button class="btn ghost wide" id="startProTrialBtn">Testar grátis por ${p.trialDays} dias</button>`:''}<div class="billing-cycle-switch"><button type="button" data-billing-cycle="MONTHLY" class="${billingCycleChoice==='MONTHLY'?'on':''}">Mensal</button><button type="button" data-billing-cycle="ANNUAL" class="${billingCycleChoice==='ANNUAL'?'on':''}">Anual</button></div><button class="btn primary wide" data-billing-checkout>Assinar ZAIA Pro • ${fmtMoney(selectedPrice)}/${selectedLabel}</button>`
+      }
+      return `<button class="btn primary wide" data-billing-checkout>Assinar ZAIA Pro</button>`
+    })():`<button class="btn ghost wide" disabled>${isCurrent?'Plano atual':'Plano gratuito'}</button>`
+
+    return `<article class="plan-card ${p.highlighted?'highlighted':''} ${isCurrent?'current':''}">${p.highlighted?'<span class="plan-ribbon">MAIS COMPLETO</span>':''}<div class="plan-head"><div><span class="eyebrow">${esc(p.code)}</span><h2>${esc(p.name)}</h2><p>${esc(p.description)}</p></div>${isCurrent?'<span class="pill good">Seu plano</span>':''}</div><div class="plan-price">${p.monthlyPrice>0?`<strong>${fmtMoney(p.monthlyPrice)}</strong><span>/mês</span>`:'<strong>Grátis</strong>'}</div>${p.annualPrice>0?`<div class="plan-annual">Anual: ${fmtMoney(p.annualPrice)} • equivalente a ${fmtMoney(annualMonthly)}/mês</div>`:''}${p.trialDays>0?`<div class="plan-trial">${p.trialDays} dias para testar</div>`:''}<div class="plan-features">${p.features.map(f=>`<div><span>✓</span><b>${esc(f)}</b></div>`).join('')}</div><div class="plan-actions">${proActions}</div></article>`
+  }).join('')}</section>
+
+  <section class="card plan-payment-note ${providerReady?'ready':'pending'}"><div class="pro-icon">${icon('wallet',20)}</div><div><strong>${providerReady?'Pagamento recorrente preparado':'Pagamento aguardando conexão'}</strong><p>${providerReady?'A contratação será processada pelo Mercado Pago e a ativação acontece somente após confirmação.':configKnown?'A ZAIA já está pronta; faltam as credenciais do Mercado Pago no servidor para liberar o checkout.':'Verificando conexão com o Mercado Pago...'}</p></div></section>`
 }
 
 function promotionsPage(){
@@ -1066,9 +1121,65 @@ function bindGlobal(){
 }
 function bindPage(){
   if(page==='plans'&&!state.planCatalog?.length&&!plansLoading)loadPlans()
+  if(page==='plans'&&billingConfig===null){
+    getBillingConfiguration().then(v=>{billingConfig=v;if(page==='plans')render()}).catch(()=>{billingConfig={ok:false,mercado_pago_access_token:false,mercado_pago_webhook_secret:false};if(page==='plans')render()})
+  }
+  if(page==='plans'&&!billingReturnHandled&&new URLSearchParams(location.search).get('billing')==='return'){
+    billingReturnHandled=true
+    billingMessage='Confirmando sua assinatura com o Mercado Pago...'
+    syncBillingSubscription(state.establishment.id).then(async result=>{
+      billingMessage=result?.provider_status==='authorized'?'Assinatura confirmada. ZAIA Pro ativo.':'Pagamento recebido pelo Mercado Pago. A confirmação ainda está sendo processada.'
+      state.planCatalog=[]
+      await loadPlans(true)
+      const url=new URL(location.href);url.searchParams.delete('billing');history.replaceState({},'',url.pathname+(url.searchParams.toString()?'?'+url.searchParams.toString():''))
+    }).catch(error=>{billingMessage=friendlyError(error);render()})
+  }
   $('#loadPlansNow')?.addEventListener('click',()=>loadPlans(true))
-  document.querySelectorAll('[data-plan-interest]').forEach(b=>b.onclick=()=>{
-    alert(b.dataset.planInterest==='PRO'?'O ZAIA Pro está pronto. A contratação será conectada na próxima etapa de pagamento.':'O plano Free não possui cobrança.')
+  document.querySelectorAll('[data-billing-cycle]').forEach(b=>b.onclick=()=>{billingCycleChoice=b.dataset.billingCycle;render()})
+  $('#startProTrialBtn')?.addEventListener('click',async e=>{
+    if(billingBusy)return
+    const button=e.currentTarget
+    setBusy(button,true,'Ativando teste...')
+    billingBusy=true
+    try{
+      await startProTrial(state.establishment.id)
+      billingMessage='Teste ZAIA Pro ativado.'
+      state.planCatalog=[]
+      await boot()
+      page='plans'
+      await loadPlans(true)
+    }catch(error){setBusy(button,false);alert(friendlyError(error))}
+    finally{billingBusy=false}
+  })
+  document.querySelectorAll('[data-billing-checkout]').forEach(b=>b.onclick=async()=>{
+    if(billingBusy)return
+    billingBusy=true
+    const old=b.textContent
+    b.disabled=true;b.textContent='Abrindo Mercado Pago...'
+    try{
+      const result=await createBillingCheckout(state.establishment.id,billingCycleChoice)
+      if(result?.already_active){
+        billingMessage='Sua assinatura ZAIA Pro já está ativa.'
+        await loadPlans(true);return
+      }
+      if(!result?.checkout_url)throw new Error('O checkout não foi retornado pelo Mercado Pago.')
+      location.href=result.checkout_url
+    }catch(error){
+      alert(friendlyError(error))
+      b.disabled=false;b.textContent=old
+    }finally{billingBusy=false}
+  })
+  $('#cancelSubscriptionBtn')?.addEventListener('click',async e=>{
+    if(!confirm('Cancelar a renovação automática do ZAIA Pro? Se houver período já pago, o acesso continua até o vencimento.'))return
+    const b=e.currentTarget;setBusy(b,true,'Cancelando...')
+    try{
+      const result=await cancelBillingSubscription(state.establishment.id)
+      billingMessage=result?.current_period_end?'Renovação cancelada. Seu acesso segue até o fim do período pago.':'Assinatura cancelada.'
+      state.planCatalog=[]
+      await boot()
+      page='plans'
+      await loadPlans(true)
+    }catch(error){setBusy(b,false);alert(friendlyError(error))}
   })
   if(page==='finance'&&!state.financeData&&!financeLoading)loadFinance()
   $('#loadFinanceNow')?.addEventListener('click',()=>{state.financeData=null;loadFinance(true)})
