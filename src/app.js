@@ -838,7 +838,7 @@ function plansPage(){
   const selectedLabel=billingCycleChoice==='ANNUAL'?'ano':'mês'
   const statusLabel=isTrial?'Teste PRO':isActive?'Assinatura ativa':isCancelled&&current==='PRO'?'PRO até o vencimento':'Plano Free'
   const canTrial=current==='FREE'&&pro&&pro.trialDays>0&&!sub.trial_used
-  const providerReady=billingConfig?.mercado_pago_access_token===true
+  const providerReady=billingConfig?.mercado_pago_access_token===true&&billingConfig?.mercado_pago_webhook_secret===true&&billingConfig?.mercado_pago_api===true
   const configKnown=billingConfig!==null
 
   const currentDetail=isTrial&&trialEnd
@@ -877,7 +877,7 @@ function plansPage(){
     return `<article class="plan-card ${p.highlighted?'highlighted':''} ${isCurrent?'current':''}">${p.highlighted?'<span class="plan-ribbon">MAIS COMPLETO</span>':''}<div class="plan-head"><div><span class="eyebrow">${esc(p.code)}</span><h2>${esc(p.name)}</h2><p>${esc(p.description)}</p></div>${isCurrent?'<span class="pill good">Seu plano</span>':''}</div><div class="plan-price">${p.monthlyPrice>0?`<strong>${fmtMoney(p.monthlyPrice)}</strong><span>/mês</span>`:'<strong>Grátis</strong>'}</div>${p.annualPrice>0?`<div class="plan-annual">Anual: ${fmtMoney(p.annualPrice)} • equivalente a ${fmtMoney(annualMonthly)}/mês</div>`:''}${p.trialDays>0?`<div class="plan-trial">${p.trialDays} dias para testar</div>`:''}<div class="plan-features">${p.features.map(f=>`<div><span>✓</span><b>${esc(f)}</b></div>`).join('')}</div><div class="plan-actions">${proActions}</div></article>`
   }).join('')}</section>
 
-  <section class="card plan-payment-note ${providerReady?'ready':'pending'}"><div class="pro-icon">${icon('wallet',20)}</div><div><strong>${providerReady?'Pagamento recorrente preparado':'Pagamento aguardando conexão'}</strong><p>${providerReady?'A contratação será processada pelo Mercado Pago e a ativação acontece somente após confirmação.':configKnown?'A ZAIA já está pronta; faltam as credenciais do Mercado Pago no servidor para liberar o checkout.':'Verificando conexão com o Mercado Pago...'}</p></div></section>`
+  <section class="card plan-payment-note ${providerReady?'ready':'pending'}"><div class="pro-icon">${icon('wallet',20)}</div><div><strong>${providerReady?'Mercado Pago conectado':'Pagamento aguardando conexão'}</strong><p>${providerReady?'Credenciais, API e webhook confirmados. O PRO só é ativado após autorização da assinatura no Mercado Pago.':configKnown?'A configuração ainda não passou por todas as validações do servidor.':'Verificando conexão com o Mercado Pago...'}</p></div></section>`
 }
 
 function promotionsPage(){
