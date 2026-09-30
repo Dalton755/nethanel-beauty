@@ -10,20 +10,23 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
 await mkdir('dist', { recursive: true })
 await mkdir('dist/cliente', { recursive: true })
+await mkdir('dist/gestao', { recursive: true })
 
 for (const file of ['index.html','manifest.webmanifest','icon.svg','zaia-logo.svg','sw.js']) {
   await cp(file, `dist/${file}`)
 }
 await cp('index.html','dist/cliente/index.html')
+await cp('index.html','dist/gestao/index.html')
 
 await cp('src/app.js', 'dist/app.js')
 await cp('src/client.js', 'dist/client.js')
+await cp('src/admin.js', 'dist/admin.js')
 await cp('src/cloud.js', 'dist/cloud.js')
 await cp('src/styles.css', 'dist/styles.css')
 
