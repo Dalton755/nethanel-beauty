@@ -488,7 +488,16 @@ async function boot(){
     state=localLoad();loading=false;render();return
   }
   try{
-    try{await consumeOAuthSessionFromUrl()}catch(error){authMessage=friendlyError(error)}
+    let oauthSession=null
+    try{oauthSession=await consumeOAuthSessionFromUrl()}catch(error){authMessage=friendlyError(error)}
+    if(oauthSession){
+      const after=localStorage.getItem('zaia_after_google')
+      if(after){
+        localStorage.removeItem('zaia_after_google')
+        location.replace(after)
+        return
+      }
+    }
 
     if(!getSession()){
       const slug=new URLSearchParams(location.search).get('loja')
@@ -520,7 +529,7 @@ async function boot(){
       }
     }
     const requestedPage=new URLSearchParams(location.search).get('page')
-    if(['home','agenda','clients','services','professionals','inventory','finance','promotions','more'].includes(requestedPage)){
+    if(['home','agenda','clients','services','professionals','inventory','finance','promotions','plans','more'].includes(requestedPage)){
       page=requestedPage
     }
   }catch(error){
