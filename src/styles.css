@@ -1924,3 +1924,88 @@ img,svg{max-width:100%}
 }
 
 .mgmt-entry-link{color:inherit;text-decoration:none}
+
+
+/* =========================================================
+   ZAIA Billing
+   ========================================================= */
+.billing-message{
+  margin:14px 0 0;
+  border:1px solid #ead9b8;
+  background:#fff8e9;
+  color:#79591e;
+  border-radius:14px;
+  padding:11px 13px;
+  font-size:10px;
+  font-weight:750;
+}
+.billing-message.success{
+  border-color:#cfe4d6;
+  background:#edf7f0;
+  color:#2f6e49;
+}
+.subscription-status-card{
+  margin-top:15px;
+  border:1px solid var(--line);
+  background:#fffdfb;
+  border-radius:18px;
+  padding:14px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.subscription-status-card.pro{
+  background:linear-gradient(135deg,#fffaf6,#f4eae4);
+  border-color:color-mix(in srgb,var(--champagne) 55%,var(--line));
+}
+.subscription-status-card h2{font-size:17px;margin:4px 0 2px}
+.subscription-status-card p{font-size:9.5px;color:var(--muted);margin:0}
+.subscription-status-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.billing-cycle-switch{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:3px;
+  padding:3px;
+  border-radius:12px;
+  background:#f2e9e5;
+  margin:0 0 9px;
+}
+.billing-cycle-switch button{
+  border:0;
+  background:transparent;
+  border-radius:9px;
+  padding:8px 9px;
+  font-size:9px;
+  font-weight:850;
+  color:var(--muted);
+}
+.billing-cycle-switch button.on{
+  background:#fff;
+  color:var(--brand);
+  box-shadow:0 2px 8px rgba(48,25,35,.08);
+}
+.plan-actions{display:grid;gap:8px}
+.plan-payment-note.ready{border-color:#cfe4d6;background:#f5fbf7}
+.plan-payment-note.pending{border-color:#ead9b8;background:#fffaf0}
+.billing-provider-card{
+  margin:0 0 14px;
+  border:1px solid var(--line);
+  background:#fffdfb;
+  border-radius:17px;
+  padding:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+}
+.billing-provider-card.ready{background:#edf7f0;border-color:#cfe4d6}
+.billing-provider-card.pending{background:#fff8e9;border-color:#ead9b8}
+.billing-provider-card h2{font-size:15px;margin:4px 0 2px}
+.billing-provider-card p{font-size:9px;color:var(--muted);margin:0;line-height:1.4}
+
+@media(max-width:560px){
+  .subscription-status-card{align-items:flex-start;flex-direction:column}
+  .subscription-status-actions,.subscription-status-actions .btn{width:100%}
+  .billing-provider-card{align-items:flex-start}
+}
