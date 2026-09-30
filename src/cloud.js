@@ -728,6 +728,55 @@ export async function deletePromotion(promotionId) {
   return rest(`promotions?id=eq.${q(promotionId)}`, { method:'DELETE', prefer:'return=minimal' })
 }
 
+async function billingRequest(mode, establishmentId, extra = {}) {
+  const session = await ensureSession()
+  if (!session?.access_token) throw new Error('Entre novamente na ZAIA.')
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-billing`, {
+    method:'POST',
+    headers:{
+      apikey:apiKey(),
+      Authorization:`Bearer ${session.access_token}`,
+      'Content-Type':'application/json',
+    },
+    body:JSON.stringify({ mode, establishment_id:establishmentId, ...extra }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(data?.error || 'Não foi possível processar a assinatura.')
+  return data
+}
+
+export async function createBillingCheckout(establishmentId, billingCycle = 'MONTHLY') {
+  return billingRequest('checkout', establishmentId, {
+    plan_code:'PRO',
+    billing_cycle:billingCycle,
+  })
+}
+
+export async function syncBillingSubscription(establishmentId) {
+  return billingRequest('sync', establishmentId)
+}
+
+export async function cancelBillingSubscription(establishmentId) {
+  return billingRequest('cancel', establishmentId)
+}
+
+export async function startProTrial(establishmentId) {
+  return rest('rpc/merchant_start_pro_trial', {
+    method:'POST',
+    body:{ p_establishment_id:establishmentId },
+  })
+}
+
+export async function getBillingConfiguration() {
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-billing-webhook`, {
+    method:'GET',
+    headers:{ apikey:apiKey() },
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) return { ok:false, mercado_pago_access_token:false, mercado_pago_webhook_secret:false }
+  return data
+}
+
 export async function listPlans() {
   const rows = await rest('plans?select=code,name,description,monthly_price,annual_price,trial_days,highlighted,active,features,sort_order&active=eq.true&order=sort_order.asc')
   return (rows || []).map(p => ({
