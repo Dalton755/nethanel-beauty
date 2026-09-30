@@ -768,7 +768,7 @@ export async function startProTrial(establishmentId) {
 }
 
 export async function getBillingConfiguration() {
-  const res = await fetch(`${baseUrl()}/functions/v1/zaia-billing-webhook`, {
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-mercadopago-webhook`, {
     method:'GET',
     headers:{ apikey:apiKey() },
   })
