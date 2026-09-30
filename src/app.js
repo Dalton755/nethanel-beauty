@@ -49,6 +49,8 @@ import {
   sendBusinessPushTest,
   getZaiaPushPublicKey,
   cancelAppointment,
+  listPlans,
+  getMerchantSubscription,
 } from './cloud.js'
 
 const SEGMENTS = {
@@ -73,7 +75,7 @@ const brandCacheKey='zaia_last_business_brand_v1'
 const ZAIA_COLORS={primary:'#3b172b',secondary:'#6b3149',accent:'#c89a61'}
 
 const emptyState = () => ({
-  setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], promotions:[], financeData:null, financeTransactions:[], financeAccounts:[], notificationsEnabled:false
+  setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], promotions:[], financeData:null, financeTransactions:[], financeAccounts:[], planCatalog:[], merchantSubscription:null, notificationsEnabled:false
 })
 
 let state=emptyState()
@@ -90,6 +92,7 @@ let financeRange=null
 let businessPushState=null
 let businessNotificationItems=[]
 let businessNotificationLoading=false
+let plansLoading=false
 
 function localLoad(){
   try{return JSON.parse(localStorage.getItem(storageKey))||emptyState()}catch{return emptyState()}
@@ -190,6 +193,24 @@ async function openBusinessNotifications(){
   }
   modalData=null
   openModal('businessNotifications')
+}
+async function loadPlans(force=false){
+  if(!cloudEnabled()||!state.establishment?.id||plansLoading)return
+  if(state.planCatalog?.length&&!force)return
+  plansLoading=true
+  try{
+    const [plans,subscription]=await Promise.all([
+      listPlans(),
+      getMerchantSubscription(state.establishment.id),
+    ])
+    state.planCatalog=plans||[]
+    state.merchantSubscription=subscription||null
+  }catch(error){
+    console.error('Plans load failed',error)
+  }finally{
+    plansLoading=false
+    if(page==='plans')render()
+  }
 }
 function paymentMethodLabel(v){
   return ({PIX:'Pix',CASH:'Dinheiro',DEBIT:'Débito',CREDIT:'Crédito',TRANSFER:'Transferência',OTHER:'Outro'})[v]||'Outro'
@@ -574,7 +595,7 @@ function topbar(){
   const brand=businessBrandHtml(state.establishment)
   return `<nav class="nav"><div class="nav-brand merchant-nav-brand">${brand}</div><div class="nav-items">${items.map(([p,i,l])=>`<button data-page="${p}" class="${page===p?'active':''}">${icon(i,20)}<span>${l}</span></button>`).join('')}</div><button class="zaia-pro-card" data-open="zaiaPro"><span class="pro-icon">${icon('crown',20)}</span><span><strong>Personalização</strong><small>${state.establishment.brandEnabled?'Identidade ativa':'Configure sua marca'}</small></span><b>›</b></button><div class="nav-powered">Tecnologia <strong>ZAIA</strong> <small>by Nethanel</small></div></nav>`
 }
-function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage,promotions:promotionsPage,finance:financePage})[page]?.()||homePage()}
+function pageContent(){return ({home:homePage,agenda:agendaPage,clients:clientsPage,catalog:catalogPage,more:morePage,inventory:inventoryPage,services:servicesPage,professionals:professionalsPage,promotions:promotionsPage,finance:financePage,plans:plansPage})[page]?.()||homePage()}
 
 function onboarding(){
   const current=state._onboarding||{step:1,type:null,segments:[]};state._onboarding=current
@@ -775,6 +796,23 @@ function financePage(){
   <section class="card finance-transactions-card"><div class="section-head"><div><span class="eyebrow">MOVIMENTAÇÕES</span><h2>Últimos lançamentos</h2></div><div class="finance-inline-actions"><button class="btn small ghost" data-finance-new="INCOME">+ Receita</button><button class="btn small" data-finance-new="EXPENSE">+ Despesa</button></div></div>${txs.length?`<div class="finance-transactions-list">${txs.map(t=>`<div class="finance-transaction-row"><span class="finance-type-icon ${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'↑':'↓'}</span><div class="item-main"><strong>${esc(t.description)}</strong><div class="meta">${fmtDate(t.dueDate)} • ${esc(t.category)}${t.paymentMethod?' • '+paymentMethodLabel(t.paymentMethod):''}</div></div><div class="finance-tx-right"><strong class="${t.kind==='INCOME'?'income':'expense'}">${t.kind==='INCOME'?'+':'-'} ${fmtMoney(t.amount)}</strong><span class="pill ${t.status==='PAID'?'good':t.status==='CANCELLED'?'':'warn'}">${financeStatusLabel(t.status)}</span></div>${t.status==='PENDING'?`<button class="btn small ghost" data-finance-pay="${t.id}">Baixar</button>${t.source==='MANUAL'? `<button class="finance-icon-action" data-finance-cancel="${t.id}" aria-label="Cancelar">×</button>` : ''}`:''}</div>`).join('')}</div>`:'<div class="empty compact"><b>Nenhum lançamento ainda.</b>Registre receitas e despesas ou conclua um atendimento.</div>'}</section>`
 }
 
+function plansPage(){
+  if(plansLoading&&!state.planCatalog?.length){
+    return `<div class="page-heading"><span class="eyebrow">PLANOS ZAIA</span><h1 class="title">Escolha como quer crescer.</h1><p class="subtitle">Carregando planos...</p></div><div class="finance-loading"><div class="loading-ring"></div></div>`
+  }
+  if(!state.planCatalog?.length){
+    return `<div class="page-heading"><span class="eyebrow">PLANOS ZAIA</span><h1 class="title">Escolha como quer crescer.</h1><p class="subtitle">Compare os recursos da ZAIA.</p></div><button class="btn primary" id="loadPlansNow">Carregar planos</button>`
+  }
+  const sub=state.merchantSubscription||{}
+  const current=sub.plan_code||state.establishment.planCode||'FREE'
+  return `<div class="page-heading plans-heading"><div><span class="eyebrow">PLANOS ZAIA</span><h1 class="title">Uma ZAIA para cada fase do negócio.</h1><p class="subtitle">Comece grátis e evolua quando precisar de gestão financeira, Push e identidade própria.</p></div><div class="current-plan-chip"><span>Plano atual</span><strong>${esc(current)}</strong><small>${sub.status==='TRIAL'?'Período de teste':sub.status==='ACTIVE'?'Assinatura ativa':'Sem cobrança'}</small></div></div>
+  <section class="plans-grid">${state.planCatalog.map(p=>{
+    const isCurrent=p.code===current
+    const annualMonthly=p.annualPrice>0?p.annualPrice/12:0
+    return `<article class="plan-card ${p.highlighted?'highlighted':''} ${isCurrent?'current':''}">${p.highlighted?'<span class="plan-ribbon">MAIS COMPLETO</span>':''}<div class="plan-head"><div><span class="eyebrow">${esc(p.code)}</span><h2>${esc(p.name)}</h2><p>${esc(p.description)}</p></div>${isCurrent?'<span class="pill good">Seu plano</span>':''}</div><div class="plan-price">${p.monthlyPrice>0?`<strong>${fmtMoney(p.monthlyPrice)}</strong><span>/mês</span>`:'<strong>Grátis</strong>'}</div>${p.annualPrice>0?`<div class="plan-annual">Anual: ${fmtMoney(p.annualPrice)} • equivalente a ${fmtMoney(annualMonthly)}/mês</div>`:''}${p.trialDays>0?`<div class="plan-trial">${p.trialDays} dias para testar</div>`:''}<div class="plan-features">${p.features.map(f=>`<div><span>✓</span><b>${esc(f)}</b></div>`).join('')}</div>${isCurrent?`<button class="btn ghost wide" disabled>Plano atual</button>`:`<button class="btn primary wide" data-plan-interest="${p.code}">${p.code==='PRO'?'Quero o ZAIA Pro':'Usar plano Free'}</button>`}</article>`
+  }).join('')}</section><section class="card plan-payment-note"><div class="pro-icon">${icon('wallet',20)}</div><div><strong>Pagamento será a próxima etapa</strong><p>Os valores e períodos desta tela vêm do painel de gestão. Na próxima etapa conectaremos a contratação e renovação automática.</p></div></section>`
+}
+
 function promotionsPage(){
   const now=Date.now()
   const list=state.promotions||[]
@@ -788,7 +826,7 @@ function promotionsPage(){
   }).join('')}</div>`:`<div class="empty"><b>Nenhuma promoção ainda</b>Crie uma oferta para aparecer na área de clientes da ZAIA.</div>`}`
 }
 
-function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" data-page="finance"><span class="settings-icon pro-settings-mini">${icon('wallet',20)}</span><div class="item-main"><strong>Financeiro <span class="mini-pro-badge">PRO</span></strong><div class="meta">Caixa, contas, lucro e comissões</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon pro-settings-mini">${icon('bell',20)}</span><div class="item-main"><strong>Notificações <span class="mini-pro-badge">PRO</span></strong><div class="meta">${state.establishment.planCode==='PRO'?(state.notificationsEnabled?'Push ativo neste dispositivo':'Novo agendamento e cancelamento em Push'):'Disponível no ZAIA PRO'}</div></div>${Number(businessPushState?.unread||0)>0?`<span class="notification-count">${Math.min(99,Number(businessPushState.unread))}</span>`:''}<b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button><button class="item" data-page="promotions"><span class="settings-icon">${icon('sparkle',20)}</span><div class="item-main"><strong>Promoções</strong><div class="meta">Ofertas para clientes na ZAIA</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
+function morePage(){return `<div class="page-heading"><span class="eyebrow">GESTÃO</span><h1 class="title">Mais</h1><p class="subtitle">Configurações e recursos para evoluir sua operação.</p></div><div class="list settings-list"><button class="item" data-page="professionals"><span class="settings-icon">${icon('briefcase',20)}</span><div class="item-main"><strong>Profissionais</strong><div class="meta">Equipe, serviços e horários</div></div><b>›</b></button><button class="item" data-page="inventory"><span class="settings-icon">${icon('box',20)}</span><div class="item-main"><strong>Estoque</strong><div class="meta">Produtos e níveis mínimos</div></div><b>›</b></button><button class="item" data-page="finance"><span class="settings-icon pro-settings-mini">${icon('wallet',20)}</span><div class="item-main"><strong>Financeiro <span class="mini-pro-badge">PRO</span></strong><div class="meta">Caixa, contas, lucro e comissões</div></div><b>›</b></button><button class="item" data-page="plans"><span class="settings-icon">${icon('crown',20)}</span><div class="item-main"><strong>Planos</strong><div class="meta">Seu plano atual e recursos disponíveis</div></div><b>›</b></button><button class="item" id="notifyBtn"><span class="settings-icon pro-settings-mini">${icon('bell',20)}</span><div class="item-main"><strong>Notificações <span class="mini-pro-badge">PRO</span></strong><div class="meta">${state.establishment.planCode==='PRO'?(state.notificationsEnabled?'Push ativo neste dispositivo':'Novo agendamento e cancelamento em Push'):'Disponível no ZAIA PRO'}</div></div>${Number(businessPushState?.unread||0)>0?`<span class="notification-count">${Math.min(99,Number(businessPushState.unread))}</span>`:''}<b>›</b></button><button class="item" data-open="business"><span class="settings-icon">${icon('settings',20)}</span><div class="item-main"><strong>Estabelecimento</strong><div class="meta">Nome e segmentos ativos</div></div><b>›</b></button><button class="item" data-page="promotions"><span class="settings-icon">${icon('sparkle',20)}</span><div class="item-main"><strong>Promoções</strong><div class="meta">Ofertas para clientes na ZAIA</div></div><b>›</b></button></div><section class="card discovery-settings-card"><div class="discovery-status-icon">${icon('search',21)}</div><div class="item-main"><span class="eyebrow">PARA CLIENTES</span><h2>${state.establishment.marketplaceEnabled&&hasPublicAddress()?'Seu espaço está visível na ZAIA':'Publique seu espaço na ZAIA'}</h2><p>${state.establishment.marketplaceEnabled&&hasPublicAddress()?esc(publicAddressLabel()):'Cadastre o endereço para clientes encontrarem seus serviços, horários e localização.'}</p></div><button class="btn small" data-open="business">Configurar</button></section><section class="card pro-settings-card"><div class="pro-settings-copy"><span class="eyebrow">ZAIA PRO</span><h2>Personalização da sua marca</h2><p>Use sua logo, suas cores e seu ícone mantendo toda a tecnologia ZAIA por trás.</p></div><button class="btn pro-button" data-open="zaiaPro">Abrir personalização ${icon('arrow',17)}</button></section><div class="zaia-about"><div>${zaiaLogo()}</div><span>Gestão para negócios de beleza</span><small>by Nethanel</small></div>${cloudEnabled()?'<button class="btn danger wide" id="logoutBtn">Sair da conta</button>':'<button class="btn danger wide" id="resetApp">Reiniciar demonstração</button>'}`}
 function modalHtml(){
   const close='<button type="button" class="x" data-close aria-label="Fechar">×</button>'
   if(modal==='businessNotifications'){
@@ -1015,6 +1053,11 @@ function bindGlobal(){
   })
 }
 function bindPage(){
+  if(page==='plans'&&!state.planCatalog?.length&&!plansLoading)loadPlans()
+  $('#loadPlansNow')?.addEventListener('click',()=>loadPlans(true))
+  document.querySelectorAll('[data-plan-interest]').forEach(b=>b.onclick=()=>{
+    alert(b.dataset.planInterest==='PRO'?'O ZAIA Pro está pronto. A contratação será conectada na próxima etapa de pagamento.':'O plano Free não possui cobrança.')
+  })
   if(page==='finance'&&!state.financeData&&!financeLoading)loadFinance()
   $('#loadFinanceNow')?.addEventListener('click',()=>{state.financeData=null;loadFinance(true)})
   document.querySelectorAll('[data-finance-range]').forEach(b=>b.onclick=()=>{
