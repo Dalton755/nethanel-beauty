@@ -15,7 +15,8 @@
   <script src="/config.js"></script>
   <script type="module">
     const isClient = location.pathname === '/cliente' || location.pathname.startsWith('/cliente/')
-    import(isClient ? '/client.js' : '/app.js')
+    const isAdmin = location.pathname === '/gestao' || location.pathname.startsWith('/gestao/')
+    import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
   </script>
 </body>
 </html>
