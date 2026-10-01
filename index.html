@@ -8,6 +8,7 @@
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
+  <link rel="stylesheet" href="/pro-plans.css" />
   <title>ZAIA — Gestão para negócios de beleza</title>
 </head>
 <body>
@@ -17,6 +18,7 @@
     const isClient = location.pathname === '/cliente' || location.pathname.startsWith('/cliente/')
     const isAdmin = location.pathname === '/gestao' || location.pathname.startsWith('/gestao/')
     import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
+    if (!isClient && !isAdmin) import('/pro-plans.js')
   </script>
 </body>
 </html>
