@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/pro-plans.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/pro-plans.js','src/production-guard.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -32,6 +32,7 @@ await cp('src/app.js', 'dist/app.js')
 await cp('src/client.js', 'dist/client.js')
 await cp('src/admin.js', 'dist/admin.js')
 await cp('src/pro-plans.js', 'dist/pro-plans.js')
+await cp('src/production-guard.js', 'dist/production-guard.js')
 await cp('src/cloud.js', 'dist/cloud.js')
 await cp('src/styles.css', 'dist/styles.css')
 await cp('src/pro-plans.css', 'dist/pro-plans.css')
