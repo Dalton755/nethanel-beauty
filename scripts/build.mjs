@@ -17,12 +17,16 @@ for (const file of ['src/app.js','src/client.js','src/admin.js','src/pro-plans.j
 await mkdir('dist', { recursive: true })
 await mkdir('dist/cliente', { recursive: true })
 await mkdir('dist/gestao', { recursive: true })
+await mkdir('dist/termos', { recursive: true })
+await mkdir('dist/privacidade', { recursive: true })
 
 for (const file of ['index.html','manifest.webmanifest','icon.svg','zaia-logo.svg','sw.js']) {
   await cp(file, `dist/${file}`)
 }
 await cp('index.html','dist/cliente/index.html')
 await cp('index.html','dist/gestao/index.html')
+await cp('legal/termos.html','dist/termos/index.html')
+await cp('legal/privacidade.html','dist/privacidade/index.html')
 
 await cp('src/app.js', 'dist/app.js')
 await cp('src/client.js', 'dist/client.js')
