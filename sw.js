@@ -1,5 +1,5 @@
-const CACHE='zaia-v19';
-const ASSETS=['/','/index.html','/styles.css','/app.js','/client.js','/cloud.js','/config.js','/manifest.webmanifest','/icon.svg','/zaia-logo.svg'];
+const CACHE='zaia-v20';
+const ASSETS=['/','/index.html','/styles.css','/pro-plans.css','/app.js','/pro-plans.js','/client.js','/cloud.js','/config.js','/manifest.webmanifest','/icon.svg','/zaia-logo.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
 self.addEventListener('fetch',e=>{
