@@ -19,6 +19,7 @@
     const isAdmin = location.pathname === '/gestao' || location.pathname.startsWith('/gestao/')
     import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
     if (!isClient && !isAdmin) import('/pro-plans.js')
+    if (!isAdmin) import('/production-guard.js')
   </script>
 </body>
 </html>
