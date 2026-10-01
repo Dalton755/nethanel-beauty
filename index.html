@@ -17,9 +17,17 @@
   <script type="module">
     const isClient = location.pathname === '/cliente' || location.pathname.startsWith('/cliente/')
     const isAdmin = location.pathname === '/gestao' || location.pathname.startsWith('/gestao/')
-    import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
-    if (!isClient && !isAdmin) import('/pro-plans.js')
-    if (!isAdmin) import('/production-guard.js')
+    const authHash = new URLSearchParams(location.hash.replace(/^#/, ''))
+    const isRecovery = authHash.get('type') === 'recovery'
+
+    if (isRecovery) {
+      import('/auth-recovery.js')
+    } else {
+      import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
+      if (!isClient && !isAdmin) import('/pro-plans.js')
+      if (!isAdmin) import('/production-guard.js')
+      if (!isAdmin) import('/auth-recovery.js')
+    }
   </script>
 </body>
 </html>
