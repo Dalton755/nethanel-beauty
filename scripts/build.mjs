@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/merchant-help.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/merchant-help.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -31,6 +31,7 @@ await cp('legal/privacidade.html','dist/privacidade/index.html')
 await cp('src/app.js', 'dist/app.js')
 await cp('src/client.js', 'dist/client.js')
 await cp('src/admin.js', 'dist/admin.js')
+await cp('src/admin-production.js', 'dist/admin-production.js')
 await cp('src/pro-plans.js', 'dist/pro-plans.js')
 await cp('src/production-guard.js', 'dist/production-guard.js')
 await cp('src/auth-recovery.js', 'dist/auth-recovery.js')
