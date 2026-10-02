@@ -38,26 +38,36 @@ async function refreshBusinessRatings(){
 function summaryHtml(){
   const s=ratingDashboard?.summary||{}
   const count=Number(s.count||0),avg=s.average
-  return `<section class="zaia-rating-summary" id="zaiaBusinessRatingSummary"><div class="zaia-rating-summary-main"><span class="zaia-rating-kicker">REPUTAÇÃO DA LOJA</span><strong>${count?`${ratingStars(avg)} ${ratingScore(avg)}`:'Sua reputação começa aqui'}</strong><span>${count?`${count} avaliação${count===1?'':'ões'} de clientes`:'As avaliações aparecem após atendimentos concluídos.'}</span></div><div class="zaia-rating-score">${count?`<i>★</i><b>${ratingScore(avg)}</b>`:'<span class="zaia-rating-badge muted">Sem avaliações</span>'}</div></section>`
+  return `<section class="zaia-rating-summary"><div class="zaia-rating-summary-main"><span class="zaia-rating-kicker">REPUTAÇÃO DA LOJA</span><strong>${count?`${ratingStars(avg)} ${ratingScore(avg)}`:'Sua reputação começa aqui'}</strong><span>${count?`${count} avaliação${count===1?'':'ões'} de clientes`:'As avaliações aparecem após atendimentos concluídos.'}</span></div><div class="zaia-rating-score">${count?`<i>★</i><b>${ratingScore(avg)}</b>`:'<span class="zaia-rating-badge muted">Sem avaliações</span>'}</div></section>`
 }
 
 function pendingRows(limit=4){
   const rows=(ratingDashboard?.pending||[]).slice(0,limit)
   if(!rows.length)return ''
-  return `<section class="zaia-rating-panel" id="zaiaBusinessPendingRatings"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">PÓS-ATENDIMENTO</span><h2>Avalie seus clientes</h2><p>Use apenas critérios operacionais: pontualidade, comunicação, respeito e cuidado.</p></div><span class="zaia-rating-badge">${rows.length} pendente${rows.length===1?'':'s'}</span></div><div class="zaia-rating-list">${rows.map(x=>`<div class="zaia-rating-row"><div class="zaia-rating-row-main"><strong>${ratingEsc(x.client_name)}</strong><span>${ratingEsc(x.service_name)} • ${ratingDate(x.completed_at)}</span>${x.client_average?`<small>Histórico nesta loja: ★ ${ratingScore(x.client_average)} (${x.client_rating_count})</small>`:''}</div><div class="zaia-rating-row-actions"><button class="zaia-rate-btn" data-rate-customer="${x.appointment_id}">Avaliar cliente</button></div></div>`).join('')}</div></section>`
+  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">PÓS-ATENDIMENTO</span><h2>Avalie seus clientes</h2><p>Use apenas critérios operacionais: pontualidade, comunicação, respeito e cuidado.</p></div><span class="zaia-rating-badge">${rows.length} pendente${rows.length===1?'':'s'}</span></div><div class="zaia-rating-list">${rows.map(x=>`<div class="zaia-rating-row"><div class="zaia-rating-row-main"><strong>${ratingEsc(x.client_name)}</strong><span>${ratingEsc(x.service_name)} • ${ratingDate(x.completed_at)}</span>${x.client_average?`<small>Histórico nesta loja: ★ ${ratingScore(x.client_average)} (${x.client_rating_count})</small>`:''}</div><div class="zaia-rating-row-actions"><button class="zaia-rate-btn" data-rate-customer="${x.appointment_id}">Avaliar cliente</button></div></div>`).join('')}</div></section>`
 }
 
 function recentReceivedHtml(limit=3){
   const rows=(ratingDashboard?.recent||[]).filter(x=>x.customer_rating).slice(0,limit)
   if(!rows.length)return ''
-  return `<section class="zaia-rating-panel" id="zaiaBusinessRecentRatings"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">O QUE OS CLIENTES DIZEM</span><h2>Avaliações recentes</h2></div></div><div class="zaia-rating-history">${rows.map(x=>`<div class="zaia-rating-history-card"><div class="zaia-rating-history-top"><div><strong>${ratingEsc(x.client_name)}</strong><p>${ratingEsc(x.service_name)} • ${ratingDate(x.completed_at)}</p></div><span class="zaia-rating-badge">★ ${x.customer_rating}/5</span></div>${x.customer_comment?`<p>“${ratingEsc(x.customer_comment)}”</p>`:''}</div>`).join('')}</div></section>`
+  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">O QUE OS CLIENTES DIZEM</span><h2>Avaliações recentes</h2></div></div><div class="zaia-rating-history">${rows.map(x=>`<div class="zaia-rating-history-card"><div class="zaia-rating-history-top"><div><strong>${ratingEsc(x.client_name)}</strong><p>${ratingEsc(x.service_name)} • ${ratingDate(x.completed_at)}</p></div><span class="zaia-rating-badge">★ ${x.customer_rating}/5</span></div>${x.customer_comment?`<p>“${ratingEsc(x.customer_comment)}”</p>`:''}</div>`).join('')}</div></section>`
 }
 
 function clientsReputationHtml(){
   const rows=(ratingDashboard?.clients||[]).filter(x=>Number(x.count||0)>0)
-  return `<section class="zaia-rating-panel" id="zaiaClientReputationPanel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">RELACIONAMENTO</span><h2>Reputação dos clientes</h2><p>Esta nota considera somente avaliações feitas por este estabelecimento e não é pública para outras lojas.</p></div></div>${rows.length?`<div class="zaia-rating-list">${rows.map(x=>`<div class="zaia-rating-row"><div class="zaia-rating-row-main"><strong>${ratingEsc(x.client_name)}</strong><span>${x.count} atendimento${x.count===1?'':'s'} avaliado${x.count===1?'':'s'}</span></div><span class="zaia-rating-badge">★ ${ratingScore(x.average)}</span></div>`).join('')}</div>`:'<div class="empty compact"><b>Ainda sem avaliações</b>A reputação aparece conforme os atendimentos forem concluídos e avaliados.</div>'}</section>`
+  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">RELACIONAMENTO</span><h2>Reputação dos clientes</h2><p>Esta nota considera somente avaliações feitas por este estabelecimento e não é pública para outras lojas.</p></div></div>${rows.length?`<div class="zaia-rating-list">${rows.map(x=>`<div class="zaia-rating-row"><div class="zaia-rating-row-main"><strong>${ratingEsc(x.client_name)}</strong><span>${x.count} atendimento${x.count===1?'':'s'} avaliado${x.count===1?'':'s'}</span></div><span class="zaia-rating-badge">★ ${ratingScore(x.average)}</span></div>`).join('')}</div>`:'<div class="empty compact"><b>Ainda sem avaliações</b>A reputação aparece conforme os atendimentos forem concluídos e avaliados.</div>'}</section>`
 }
 
+function dashboardSignature(mode){
+  return JSON.stringify({mode,s:ratingDashboard?.summary,p:(ratingDashboard?.pending||[]).map(x=>[x.appointment_id,x.client_average,x.client_rating_count]),r:(ratingDashboard?.recent||[]).map(x=>[x.appointment_id,x.customer_rating,x.business_rating,x.customer_comment]),c:mode==='clients'?(ratingDashboard?.clients||[]).map(x=>[x.client_id,x.average,x.count]):[]})
+}
+function ensureRoot(id,anchor,position,html,sig){
+  let root=document.querySelector(`#${id}`)
+  if(!root){root=document.createElement('div');root.id=id;anchor?.insertAdjacentElement(position,root)}
+  if(!root)return
+  if(root.dataset.signature===sig)return
+  root.dataset.signature=sig;root.innerHTML=html
+}
 function paintBusinessRatings(){
   if(!ratingDashboard)return
   const content=document.querySelector('.content')
@@ -65,26 +75,27 @@ function paintBusinessRatings(){
   const isHome=!!document.querySelector('.dashboard-hero')
   const isClients=[...document.querySelectorAll('.title')].some(x=>x.textContent.trim()==='Clientes')
 
-  document.querySelector('#zaiaBusinessRatingSummary')?.remove()
-  document.querySelector('#zaiaBusinessPendingRatings')?.remove()
-  document.querySelector('#zaiaBusinessRecentRatings')?.remove()
-  document.querySelector('#zaiaClientReputationPanel')?.remove()
-
   if(isHome){
+    document.querySelector('#zaiaBusinessRatingsClients')?.remove()
     const anchor=document.querySelector('#zaiaOpsPanel')||document.querySelector('.dashboard-hero')
-    anchor?.insertAdjacentHTML('afterend',summaryHtml()+pendingRows()+recentReceivedHtml())
+    ensureRoot('zaiaBusinessRatingsHome',anchor,'afterend',summaryHtml()+pendingRows()+recentReceivedHtml(),dashboardSignature('home'))
   }else if(isClients){
+    document.querySelector('#zaiaBusinessRatingsHome')?.remove()
     const subtitle=content.querySelector('.subtitle')
-    subtitle?.insertAdjacentHTML('afterend',clientsReputationHtml())
+    ensureRoot('zaiaBusinessRatingsClients',subtitle,'afterend',clientsReputationHtml(),dashboardSignature('clients'))
+  }else{
+    document.querySelector('#zaiaBusinessRatingsHome')?.remove();document.querySelector('#zaiaBusinessRatingsClients')?.remove()
   }
 
   const pending=new Map((ratingDashboard.pending||[]).map(x=>[x.appointment_id,x]))
   const recent=new Map((ratingDashboard.recent||[]).map(x=>[x.appointment_id,x]))
   document.querySelectorAll('[data-complete]').forEach(btn=>{
-    const id=btn.dataset.complete,item=btn.closest('.appointment-item')
-    if(!item)return
-    item.querySelectorAll('.zaia-rating-inline,.zaia-rate-inline-btn').forEach(x=>x.remove())
+    const id=btn.dataset.complete,item=btn.closest('.appointment-item');if(!item)return
     const p=pending.get(id),r=recent.get(id)
+    const sig=JSON.stringify([Boolean(p),r?.customer_rating||null,r?.business_rating||null])
+    if(item.dataset.zaiaBusinessRating===sig)return
+    item.dataset.zaiaBusinessRating=sig
+    item.querySelectorAll('.zaia-rating-inline,.zaia-rate-inline-btn').forEach(x=>x.remove())
     const body=item.querySelector('.appointment-body')||item
     if(r?.customer_rating)body.insertAdjacentHTML('beforeend',`<div class="zaia-rating-inline">Cliente avaliou: ★ ${r.customer_rating}/5</div>`)
     if(p){
