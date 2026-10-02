@@ -1,6 +1,12 @@
 import { signInWithGoogle } from './cloud.js'
 
-const CANONICAL='https://nethanel-beauty.vercel.app/loja'
+const CANONICAL_ORIGIN='https://zaia.nethanel.com.br'
+const LEGACY_ORIGIN='https://nethanel-beauty.vercel.app'
+const CANONICAL=`${CANONICAL_ORIGIN}/loja`
+
+if(location.origin===LEGACY_ORIGIN){
+  location.replace(CANONICAL_ORIGIN+location.pathname+location.search+location.hash)
+}
 
 function ensureMerchantLinks(){
   document.querySelectorAll('a[href="/"]').forEach(a=>{
@@ -8,6 +14,17 @@ function ensureMerchantLinks(){
     if(a.textContent?.toLowerCase().includes('cliente'))return
     a.setAttribute('href','/loja')
   })
+
+  const brandLoginUrl=document.querySelector('#brandLoginUrl')
+  if(brandLoginUrl?.value){
+    try{
+      const url=new URL(brandLoginUrl.value,location.origin)
+      if(url.origin===LEGACY_ORIGIN||url.origin===CANONICAL_ORIGIN){
+        const loja=url.searchParams.get('loja')
+        brandLoginUrl.value=loja?`${CANONICAL}?loja=${encodeURIComponent(loja)}`:CANONICAL
+      }
+    }catch{}
+  }
 }
 
 document.addEventListener('click',e=>{
