@@ -1,4 +1,4 @@
-const CACHE='zaia-loja-v1';
+const CACHE='zaia-loja-v2';
 const ASSETS=['/loja','/styles.css','/pro-plans.css','/app.js','/pro-plans.js','/merchant-help.js','/production-guard.js','/auth-recovery.js','/merchant-shell.js','/session-scope.js','/cloud.js','/config.js','/manifest-loja.webmanifest','/icon.svg','/zaia-logo.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
