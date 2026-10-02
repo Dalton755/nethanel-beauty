@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#351523" />
   <meta name="description" content="ZAIA Negócios — gestão inteligente para salões, barbearias, studios e negócios de beleza." />
+  <link rel="canonical" href="https://zaia.nethanel.com.br/loja" />
   <link rel="manifest" href="/manifest-loja.webmanifest" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
@@ -13,6 +14,15 @@
 </head>
 <body>
   <div id="app"></div>
+  <script>
+    (()=>{
+      const canonical='https://zaia.nethanel.com.br'
+      const legacy='https://nethanel-beauty.vercel.app'
+      if(location.origin===legacy){
+        location.replace(canonical+location.pathname+location.search+location.hash)
+      }
+    })()
+  </script>
   <script>window.ZAIA_APP_CONTEXT='merchant'</script>
   <script src="/session-scope.js"></script>
   <script src="/config.js"></script>
