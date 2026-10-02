@@ -27,18 +27,25 @@
         return
       }
 
-      // O app legado ainda informa o domínio Vercel no botão Google.
-      // Interceptamos apenas esse clique para manter todo o fluxo no domínio oficial.
+      // Mantém o OAuth Google da loja e do cliente no domínio oficial da ZAIA.
       document.addEventListener('click', event => {
-        const button = event.target.closest?.('#googleLogin')
-        if (!button || location.origin !== CANONICAL_ORIGIN) return
+        const merchantButton = event.target.closest?.('#googleLogin')
+        const customerButton = event.target.closest?.('#clientGoogleLogin')
+        if ((!merchantButton && !customerButton) || location.origin !== CANONICAL_ORIGIN) return
+
         const supabaseUrl = String(window.BEAUTY_CONFIG?.supabaseUrl || '').replace(/\/$/, '')
         if (!supabaseUrl) return
+
         event.preventDefault()
         event.stopImmediatePropagation()
+
+        if (customerButton) {
+          localStorage.setItem('zaia_google_return_to', location.pathname + location.search)
+        }
+
         const url = new URL(`${supabaseUrl}/auth/v1/authorize`)
         url.searchParams.set('provider', 'google')
-        url.searchParams.set('redirect_to', `${CANONICAL_ORIGIN}/`)
+        url.searchParams.set('redirect_to', customerButton ? `${CANONICAL_ORIGIN}/cliente` : `${CANONICAL_ORIGIN}/`)
         location.assign(url.toString())
       }, true)
 
