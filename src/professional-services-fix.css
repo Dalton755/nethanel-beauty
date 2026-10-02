@@ -1,0 +1,98 @@
+/* Mobile-safe layout for professional service configuration */
+#professionalServicesForm,
+#professionalServicesForm .service-config-list,
+#professionalServicesForm .service-config-row,
+#professionalServicesForm .service-check,
+#professionalServicesForm .service-check span,
+#professionalServicesForm .service-overrides{
+  min-width:0;
+  max-width:100%;
+  width:100%;
+}
+
+#professionalServicesForm{overflow:hidden}
+#professionalServicesForm .toggle-row{
+  width:100%;
+  min-width:0;
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  align-items:start;
+}
+#professionalServicesForm .toggle-row input[type="checkbox"],
+#professionalServicesForm .service-check input[type="checkbox"]{
+  width:20px;
+  height:20px;
+  min-width:20px;
+  max-width:20px;
+  margin:2px 0 0;
+  justify-self:start;
+}
+#professionalServicesForm .toggle-row span,
+#professionalServicesForm .service-check span{
+  min-width:0;
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+#professionalServicesForm .service-config-list{
+  display:grid;
+  gap:10px;
+  overflow:hidden;
+}
+#professionalServicesForm .service-config-row{
+  display:grid;
+  gap:10px;
+  overflow:hidden;
+  padding:12px;
+}
+#professionalServicesForm .service-check{
+  display:grid;
+  grid-template-columns:24px minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+}
+#professionalServicesForm .service-check strong,
+#professionalServicesForm .service-check small{
+  max-width:100%;
+  white-space:normal;
+}
+#professionalServicesForm .service-overrides{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+  gap:8px;
+}
+#professionalServicesForm .service-overrides input{
+  display:block;
+  width:100%;
+  min-width:0;
+  max-width:100%;
+  box-sizing:border-box;
+}
+
+@media (max-width:560px){
+  .modal:has(#professionalServicesForm){
+    width:calc(100% - 16px);
+    max-width:calc(100% - 16px);
+    margin:0 8px;
+    padding:18px 14px calc(20px + env(safe-area-inset-bottom));
+    overflow-x:hidden;
+  }
+  .modal:has(#professionalServicesForm) .modal-head{
+    gap:10px;
+    align-items:flex-start;
+  }
+  .modal:has(#professionalServicesForm) .modal-head h3{
+    min-width:0;
+    flex:1;
+    font-size:18px;
+    line-height:1.2;
+    overflow-wrap:anywhere;
+  }
+  .modal:has(#professionalServicesForm) .x{
+    flex:0 0 40px;
+    width:40px;
+    height:40px;
+  }
+  #professionalServicesForm .service-overrides{
+    grid-template-columns:1fr;
+  }
+}
