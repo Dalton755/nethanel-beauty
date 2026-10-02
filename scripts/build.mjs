@@ -52,6 +52,7 @@ await cp('src/pro-plans.css', 'dist/pro-plans.css')
 await cp('src/admin-production.css', 'dist/admin-production.css')
 await cp('src/map-enhancement.css', 'dist/map-enhancement.css')
 await cp('src/operational.css', 'dist/operational.css')
+await cp('src/professional-services-fix.css', 'dist/professional-services-fix.css')
 
 await writeFile('dist/config.js', `window.BEAUTY_CONFIG = ${JSON.stringify({
   supabaseUrl: url,
