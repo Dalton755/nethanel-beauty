@@ -1,5 +1,5 @@
-const CACHE='zaia-cliente-v3';
-const ASSETS=['/cliente','/styles.css','/map-enhancement.css','/client.js','/map-enhancement.js','/customer-privacy.js','/customer-help.js','/production-guard.js','/auth-recovery.js','/client-shell.js','/session-scope.js','/cloud.js','/config.js','/manifest-cliente.webmanifest','/icon.svg','/zaia-logo.svg'];
+const CACHE='zaia-cliente-v4';
+const ASSETS=['/cliente','/styles.css','/map-enhancement.css','/operational.css','/client.js','/customer-arrival.js','/map-enhancement.js','/customer-privacy.js','/customer-help.js','/production-guard.js','/auth-recovery.js','/client-shell.js','/session-scope.js','/cloud.js','/config.js','/manifest-cliente.webmanifest','/icon.svg','/zaia-logo.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
   caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('zaia-cliente-')&&k!==CACHE).map(k=>caches.delete(k)))),
