@@ -1,0 +1,19 @@
+{
+  "id": "/cliente",
+  "name": "ZAIA Cliente",
+  "short_name": "ZAIA",
+  "start_url": "/cliente",
+  "scope": "/cliente/",
+  "display": "standalone",
+  "background_color": "#fffaf7",
+  "theme_color": "#351523",
+  "description": "Encontre estabelecimentos, agende serviços e acompanhe seus horários na ZAIA.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
