@@ -25,6 +25,7 @@
     } else {
       import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
       if (!isClient && !isAdmin) import('/pro-plans.js')
+      if (!isClient && !isAdmin) import('/merchant-help.js')
       if (isClient) import('/customer-privacy.js')
       if (isClient) import('/customer-help.js')
       if (!isAdmin) import('/production-guard.js')
