@@ -24,6 +24,7 @@
       import('/auth-recovery.js')
     } else {
       import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
+      if (isAdmin) import('/admin-production.js')
       if (!isClient && !isAdmin) import('/pro-plans.js')
       if (!isClient && !isAdmin) import('/merchant-help.js')
       if (isClient) import('/customer-privacy.js')
