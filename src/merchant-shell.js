@@ -31,6 +31,6 @@ ensureMerchantLinks()
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
-    try{await navigator.serviceWorker.register('/sw-loja.js',{scope:'/loja/'})}catch{}
+    try{await navigator.serviceWorker.register('/sw-loja.js',{scope:'/loja'})}catch{}
   })
 }
