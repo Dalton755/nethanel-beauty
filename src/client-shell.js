@@ -28,6 +28,6 @@ ensureClientLinks()
 
 if('serviceWorker' in navigator){
   window.addEventListener('load',async()=>{
-    try{await navigator.serviceWorker.register('/sw-cliente.js',{scope:'/cliente/'})}catch{}
+    try{await navigator.serviceWorker.register('/sw-cliente.js',{scope:'/cliente'})}catch{}
   })
 }
