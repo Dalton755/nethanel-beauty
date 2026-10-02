@@ -1,4 +1,4 @@
-const CACHE='zaia-cliente-v2';
+const CACHE='zaia-cliente-v3';
 const ASSETS=['/cliente','/styles.css','/map-enhancement.css','/client.js','/map-enhancement.js','/customer-privacy.js','/customer-help.js','/production-guard.js','/auth-recovery.js','/client-shell.js','/session-scope.js','/cloud.js','/config.js','/manifest-cliente.webmanifest','/icon.svg','/zaia-logo.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
