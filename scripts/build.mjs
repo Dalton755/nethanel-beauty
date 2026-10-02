@@ -41,6 +41,7 @@ await cp('src/merchant-help.js', 'dist/merchant-help.js')
 await cp('src/cloud.js', 'dist/cloud.js')
 await cp('src/styles.css', 'dist/styles.css')
 await cp('src/pro-plans.css', 'dist/pro-plans.css')
+await cp('src/admin-production.css', 'dist/admin-production.css')
 
 await writeFile('dist/config.js', `window.BEAUTY_CONFIG = ${JSON.stringify({
   supabaseUrl: url,
