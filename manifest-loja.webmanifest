@@ -1,0 +1,19 @@
+{
+  "id": "/loja",
+  "name": "ZAIA Negócios",
+  "short_name": "ZAIA Negócios",
+  "start_url": "/loja",
+  "scope": "/loja/",
+  "display": "standalone",
+  "background_color": "#f7f1ed",
+  "theme_color": "#351523",
+  "description": "Gestão inteligente para negócios de beleza.",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
