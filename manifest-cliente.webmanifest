@@ -3,7 +3,7 @@
   "name": "ZAIA Cliente",
   "short_name": "ZAIA",
   "start_url": "/cliente",
-  "scope": "/cliente/",
+  "scope": "/cliente",
   "display": "standalone",
   "background_color": "#fffaf7",
   "theme_color": "#351523",
