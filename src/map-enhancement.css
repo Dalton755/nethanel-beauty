@@ -1,0 +1,198 @@
+/* ZAIA — merchant logo map markers */
+.zaia-logo-map-marker{
+  border:3px solid #fff!important;
+  border-radius:50%!important;
+  box-shadow:0 7px 20px rgba(49,22,36,.28)!important;
+  cursor:pointer!important;
+  transition:transform .16s ease,box-shadow .16s ease!important;
+}
+.zaia-logo-map-marker:hover,
+.zaia-logo-map-marker:focus{
+  transform:scale(1.08)!important;
+  box-shadow:0 9px 24px rgba(49,22,36,.34)!important;
+  outline:3px solid color-mix(in srgb,var(--brand) 30%,transparent)!important;
+}
+.zaia-map-modal-open{overflow:hidden}
+.zaia-map-store-overlay{
+  position:fixed;
+  inset:0;
+  z-index:10050;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  padding:14px;
+  background:rgba(32,17,25,.46);
+  backdrop-filter:blur(6px);
+}
+.zaia-map-store-modal{
+  position:relative;
+  width:min(100%,520px);
+  border:1px solid rgba(82,48,62,.12);
+  border-radius:24px;
+  background:#fffdfb;
+  box-shadow:0 24px 70px rgba(34,15,24,.3);
+  padding:19px;
+  animation:zaiaMapModalIn .18s ease-out;
+}
+@keyframes zaiaMapModalIn{
+  from{opacity:0;transform:translateY(16px) scale(.985)}
+  to{opacity:1;transform:none}
+}
+.zaia-map-store-close{
+  position:absolute;
+  top:12px;
+  right:12px;
+  width:34px;
+  height:34px;
+  border:1px solid var(--line,#eadfd9);
+  border-radius:50%;
+  background:#f7efeb;
+  color:#624b55;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+}
+.zaia-map-store-head{
+  display:grid;
+  grid-template-columns:68px minmax(0,1fr);
+  gap:13px;
+  align-items:center;
+  padding-right:32px;
+}
+.zaia-map-store-logo{
+  width:68px;
+  height:68px;
+  border:1px solid var(--line,#eadfd9);
+  border-radius:19px;
+  background:#fff;
+  overflow:hidden;
+  display:grid;
+  place-items:center;
+  box-shadow:0 8px 22px rgba(43,21,31,.08);
+}
+.zaia-map-store-logo img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  padding:5px;
+}
+.zaia-map-store-title{min-width:0}
+.zaia-map-store-kicker{
+  color:var(--brand,#351523);
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.zaia-map-store-title h2{
+  margin:4px 0 3px;
+  color:#2e2328;
+  font-size:21px;
+  line-height:1.06;
+  letter-spacing:-.035em;
+}
+.zaia-map-store-distance{
+  display:inline-flex;
+  border-radius:999px;
+  background:#f4ebe7;
+  color:#735f67;
+  padding:4px 7px;
+  font-size:8.5px;
+  font-weight:800;
+}
+.zaia-map-store-address{
+  margin-top:14px;
+  padding:10px 11px;
+  border-radius:13px;
+  background:#f8f2ef;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  gap:7px;
+  align-items:start;
+}
+.zaia-map-store-address>span{
+  color:var(--brand,#351523);
+  font-weight:900;
+  font-size:15px;
+  line-height:1;
+}
+.zaia-map-store-address p{
+  margin:0;
+  color:#6b5d63;
+  font-size:9.5px;
+  line-height:1.4;
+}
+.zaia-map-store-services{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+  margin-top:12px;
+}
+.zaia-map-store-services span{
+  border:1px solid var(--line,#eadfd9);
+  border-radius:999px;
+  background:#fff;
+  color:#5f4e55;
+  padding:5px 8px;
+  font-size:8.5px;
+  font-weight:750;
+}
+.zaia-map-store-footer{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:16px;
+  padding-top:14px;
+  border-top:1px solid var(--line,#eadfd9);
+}
+.zaia-map-store-footer>div{display:grid;gap:2px}
+.zaia-map-store-footer small{
+  color:#96878d;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.09em;
+}
+.zaia-map-store-footer strong{
+  color:#31252a;
+  font-size:11px;
+}
+.zaia-map-store-open{
+  min-height:42px;
+  border:0;
+  border-radius:12px;
+  background:linear-gradient(145deg,var(--brand,#351523),var(--brand-2,#6b3149));
+  color:#fff;
+  padding:0 15px;
+  font-size:10px;
+  font-weight:900;
+  cursor:pointer;
+  white-space:nowrap;
+}
+.zaia-map-store-powered{
+  margin-top:10px;
+  text-align:center;
+  color:#a8999f;
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.18em;
+}
+@media(min-width:700px){
+  .zaia-map-store-overlay{align-items:center}
+}
+@media(max-width:480px){
+  .zaia-map-store-overlay{padding:0;align-items:flex-end}
+  .zaia-map-store-modal{
+    width:100%;
+    border-radius:24px 24px 0 0;
+    padding:18px 15px calc(18px + env(safe-area-inset-bottom));
+  }
+  .zaia-map-store-head{grid-template-columns:58px minmax(0,1fr)}
+  .zaia-map-store-logo{width:58px;height:58px;border-radius:16px}
+  .zaia-map-store-title h2{font-size:19px}
+  .zaia-map-store-footer{align-items:stretch}
+  .zaia-map-store-open{flex:1}
+}
