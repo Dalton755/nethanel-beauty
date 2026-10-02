@@ -1,6 +1,12 @@
 import { signInWithGoogle } from './cloud.js'
 
-const CANONICAL='https://nethanel-beauty.vercel.app/cliente'
+const CANONICAL_ORIGIN='https://zaia.nethanel.com.br'
+const LEGACY_ORIGIN='https://nethanel-beauty.vercel.app'
+const CANONICAL=`${CANONICAL_ORIGIN}/cliente`
+
+if(location.origin===LEGACY_ORIGIN){
+  location.replace(CANONICAL_ORIGIN+location.pathname+location.search+location.hash)
+}
 
 function ensureClientLinks(){
   document.querySelectorAll('.client-business-link').forEach(a=>a.setAttribute('href','/loja'))
