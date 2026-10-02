@@ -3,7 +3,7 @@
   "name": "ZAIA Negócios",
   "short_name": "ZAIA Negócios",
   "start_url": "/loja",
-  "scope": "/loja/",
+  "scope": "/loja",
   "display": "standalone",
   "background_color": "#f7f1ed",
   "theme_color": "#351523",
