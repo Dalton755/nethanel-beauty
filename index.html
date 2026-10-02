@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta name="theme-color" content="#351523" />
   <meta name="description" content="ZAIA — gestão inteligente e elegante para negócios de beleza." />
+  <link rel="canonical" href="https://zaia.nethanel.com.br/" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="icon" href="/icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
@@ -15,6 +16,44 @@
 <body>
   <div id="app"></div>
   <script src="/config.js"></script>
+  <script>
+    (() => {
+      const CANONICAL_ORIGIN = 'https://zaia.nethanel.com.br'
+      const LEGACY_ORIGIN = 'https://nethanel-beauty.vercel.app'
+
+      // Preserve caminho, query e hash (inclusive tokens OAuth) ao sair do domínio antigo.
+      if (location.origin === LEGACY_ORIGIN) {
+        location.replace(CANONICAL_ORIGIN + location.pathname + location.search + location.hash)
+        return
+      }
+
+      // O app legado ainda informa o domínio Vercel no botão Google.
+      // Interceptamos apenas esse clique para manter todo o fluxo no domínio oficial.
+      document.addEventListener('click', event => {
+        const button = event.target.closest?.('#googleLogin')
+        if (!button || location.origin !== CANONICAL_ORIGIN) return
+        const supabaseUrl = String(window.BEAUTY_CONFIG?.supabaseUrl || '').replace(/\/$/, '')
+        if (!supabaseUrl) return
+        event.preventDefault()
+        event.stopImmediatePropagation()
+        const url = new URL(`${supabaseUrl}/auth/v1/authorize`)
+        url.searchParams.set('provider', 'google')
+        url.searchParams.set('redirect_to', `${CANONICAL_ORIGIN}/`)
+        location.assign(url.toString())
+      }, true)
+
+      // Corrige o link compartilhável da marca enquanto a referência antiga existir no bundle.
+      const normalizeBrandLoginUrl = () => {
+        const input = document.querySelector('#brandLoginUrl')
+        if (input?.value?.startsWith(LEGACY_ORIGIN)) {
+          input.value = input.value.replace(LEGACY_ORIGIN, CANONICAL_ORIGIN)
+        }
+      }
+      const observer = new MutationObserver(normalizeBrandLoginUrl)
+      observer.observe(document.documentElement, { childList: true, subtree: true })
+      normalizeBrandLoginUrl()
+    })()
+  </script>
   <script type="module">
     const isClient = location.pathname === '/cliente' || location.pathname.startsWith('/cliente/')
     const isAdmin = location.pathname === '/gestao' || location.pathname.startsWith('/gestao/')
