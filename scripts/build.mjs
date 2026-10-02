@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -43,10 +43,12 @@ await cp('src/merchant-help.js', 'dist/merchant-help.js')
 await cp('src/merchant-shell.js', 'dist/merchant-shell.js')
 await cp('src/client-shell.js', 'dist/client-shell.js')
 await cp('src/session-scope.js', 'dist/session-scope.js')
+await cp('src/map-enhancement.js', 'dist/map-enhancement.js')
 await cp('src/cloud.js', 'dist/cloud.js')
 await cp('src/styles.css', 'dist/styles.css')
 await cp('src/pro-plans.css', 'dist/pro-plans.css')
 await cp('src/admin-production.css', 'dist/admin-production.css')
+await cp('src/map-enhancement.css', 'dist/map-enhancement.css')
 
 await writeFile('dist/config.js', `window.BEAUTY_CONFIG = ${JSON.stringify({
   supabaseUrl: url,
