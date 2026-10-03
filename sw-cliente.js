@@ -1,6 +1,6 @@
-const CACHE='zaia-cliente-v5';
-const ASSETS=['/cliente','/styles.css','/map-enhancement.css','/operational.css','/rating.css','/client.js','/customer-arrival.js','/customer-rating.js','/map-enhancement.js','/customer-privacy.js','/customer-help.js','/production-guard.js','/auth-recovery.js','/client-shell.js','/session-scope.js','/cloud.js','/config.js','/manifest-cliente.webmanifest','/icon.svg','/zaia-logo.svg'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+const CACHE='zaia-cliente-v6';
+const ASSETS=['/cliente','/styles.css','/map-enhancement.css','/operational.css','/rating.css?v=20261003-client1','/client-premium-ui.css?v=20261003-client1','/client.js','/customer-arrival.js?v=20261003-client1','/customer-rating.js?v=20261003-client1','/client-premium-ui.js?v=20261003-client1','/map-enhancement.js','/customer-privacy.js','/customer-help.js','/production-guard.js','/auth-recovery.js','/client-shell.js','/session-scope.js?v=20261003-client1','/cloud.js','/config.js','/manifest-cliente.webmanifest','/icon.svg','/zaia-logo.svg'];
+self.addEventListener('install',e=>e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(ASSETS)),self.skipWaiting()])));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
   caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('zaia-cliente-')&&k!==CACHE).map(k=>caches.delete(k)))),
   self.clients.claim()
