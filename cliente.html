@@ -11,13 +11,14 @@
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/map-enhancement.css" />
   <link rel="stylesheet" href="/operational.css" />
-  <link rel="stylesheet" href="/rating.css" />
+  <link rel="stylesheet" href="/rating.css?v=20261003-client1" />
+  <link rel="stylesheet" href="/client-premium-ui.css?v=20261003-client1" />
   <title>ZAIA Cliente — Agendamentos e serviços</title>
 </head>
 <body>
   <div id="app"></div>
   <script>window.ZAIA_APP_CONTEXT='customer'</script>
-  <script src="/session-scope.js"></script>
+  <script src="/session-scope.js?v=20261003-client1"></script>
   <script src="/config.js"></script>
   <script>
     (() => {
@@ -55,8 +56,9 @@
     } else {
       import('/client-shell.js')
       import('/client.js')
-      import('/customer-arrival.js')
-      import('/customer-rating.js')
+      import('/customer-arrival.js?v=20261003-client1')
+      import('/customer-rating.js?v=20261003-client1')
+      import('/client-premium-ui.js?v=20261003-client1')
       import('/map-enhancement.js')
       import('/customer-privacy.js')
       import('/customer-help.js')
