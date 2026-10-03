@@ -22,6 +22,10 @@ function cardData(card){
   return {id:card.dataset.store,logo,name,distance,segment,address,services,price}
 }
 
+function routeUrl(address=''){
+  return `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(address)}`
+}
+
 function enhanceMarkers(){
   const cards=storeCards()
   const markers=mapMarkers()
@@ -69,6 +73,7 @@ function openStoreModal(card){
   const data=cardData(card)
   const overlay=document.createElement('div')
   overlay.id=MAP_MODAL_ID
+  overlay.dataset.storeId=data.id
   overlay.className='zaia-map-store-overlay'
   overlay.setAttribute('role','presentation')
   overlay.innerHTML=`
@@ -86,6 +91,7 @@ function openStoreModal(card){
       ${data.services.length?`<div class="zaia-map-store-services">${data.services.map(s=>`<span>${esc(s)}</span>`).join('')}</div>`:''}
       <div class="zaia-map-store-footer">
         <div>${data.price?`<small>VALORES</small><strong>${esc(data.price)}</strong>`:''}</div>
+        ${data.address?`<a class="zaia-map-store-route" href="${esc(routeUrl(data.address))}" target="_blank" rel="noopener">Como chegar</a>`:''}
         <button class="zaia-map-store-open" type="button">Ver loja e horários</button>
       </div>
       <div class="zaia-map-store-powered">ZAIA</div>
