@@ -15,19 +15,31 @@
 </head>
 <body>
   <div id="app"></div>
-  <script src="/config.js"></script>
   <script>
     (() => {
       const CANONICAL_ORIGIN = 'https://zaia.nethanel.com.br'
       const LEGACY_ORIGIN = 'https://nethanel-beauty.vercel.app'
+
+      // A experiência oficial do estabelecimento vive em /loja.
+      // Preserva query e hash, inclusive retorno OAuth.
+      if (location.pathname === '/') {
+        location.replace(`${CANONICAL_ORIGIN}/loja${location.search}${location.hash}`)
+        return
+      }
 
       // Preserve caminho, query e hash (inclusive tokens OAuth) ao sair do domínio antigo.
       if (location.origin === LEGACY_ORIGIN) {
         location.replace(CANONICAL_ORIGIN + location.pathname + location.search + location.hash)
         return
       }
+    })()
+  </script>
+  <script src="/config.js"></script>
+  <script>
+    (() => {
+      const CANONICAL_ORIGIN = 'https://zaia.nethanel.com.br'
 
-      // Mantém o OAuth Google da loja e do cliente no domínio oficial da ZAIA.
+      // Mantém o OAuth Google da gestão e do cliente no domínio oficial da ZAIA.
       document.addEventListener('click', event => {
         const merchantButton = event.target.closest?.('#googleLogin')
         const customerButton = event.target.closest?.('#clientGoogleLogin')
@@ -45,20 +57,9 @@
 
         const url = new URL(`${supabaseUrl}/auth/v1/authorize`)
         url.searchParams.set('provider', 'google')
-        url.searchParams.set('redirect_to', customerButton ? `${CANONICAL_ORIGIN}/cliente` : `${CANONICAL_ORIGIN}/`)
+        url.searchParams.set('redirect_to', customerButton ? `${CANONICAL_ORIGIN}/cliente` : `${CANONICAL_ORIGIN}/loja`)
         location.assign(url.toString())
       }, true)
-
-      // Corrige o link compartilhável da marca enquanto a referência antiga existir no bundle.
-      const normalizeBrandLoginUrl = () => {
-        const input = document.querySelector('#brandLoginUrl')
-        if (input?.value?.startsWith(LEGACY_ORIGIN)) {
-          input.value = input.value.replace(LEGACY_ORIGIN, CANONICAL_ORIGIN)
-        }
-      }
-      const observer = new MutationObserver(normalizeBrandLoginUrl)
-      observer.observe(document.documentElement, { childList: true, subtree: true })
-      normalizeBrandLoginUrl()
     })()
   </script>
   <script type="module">
