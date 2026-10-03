@@ -1,0 +1,232 @@
+/* ZAIA merchant premium visual layer */
+:root{
+  --premium-bg:#f8f3ef;
+  --premium-card:#fffdfa;
+  --premium-line:#e7ddd6;
+  --premium-ink:#24171e;
+  --premium-muted:#81777e;
+  --premium-gold:#c79535;
+  --premium-good:#218653;
+  --premium-warn:#b87419;
+  --premium-danger:#d64b4b;
+}
+
+body{background:linear-gradient(180deg,#fbf8f5 0%,#f7f1ec 100%);color:var(--premium-ink)}
+.premium-merchant-ui{background:transparent}
+.premium-merchant-ui .content{max-width:1180px;margin:0 auto;padding-bottom:120px}
+.premium-merchant-ui .card,.premium-merchant-ui .item,.premium-merchant-ui .notice{border-color:var(--premium-line);box-shadow:0 10px 34px rgba(67,43,53,.055)}
+.premium-merchant-ui .btn{border-radius:16px;min-height:44px;font-weight:800;letter-spacing:-.01em}
+.premium-merchant-ui .btn.primary{background:linear-gradient(135deg,var(--brand,#3b172b),var(--brand-2,#6b3149));box-shadow:0 10px 26px rgba(59,23,43,.18)}
+.premium-merchant-ui .eyebrow{letter-spacing:.16em;font-weight:900}
+.premium-merchant-ui .title{letter-spacing:-.04em}
+.premium-merchant-ui .subtitle{line-height:1.55;color:var(--premium-muted)}
+
+/* Top bar */
+.premium-merchant-ui .topbar{background:rgba(255,252,249,.92);backdrop-filter:blur(18px);border-bottom:1px solid var(--premium-line);box-shadow:0 5px 24px rgba(60,39,48,.04)}
+.premium-merchant-ui .mobile-brand{gap:12px}
+.premium-merchant-ui .mobile-brand .merchant-logo{width:52px;height:52px;border-radius:17px;object-fit:cover;background:#fff;box-shadow:0 5px 18px rgba(45,30,36,.08)}
+.premium-merchant-ui .brandtext strong{font-size:18px;letter-spacing:-.025em}
+.premium-merchant-ui .brandtext span{font-size:12px;color:var(--premium-muted)}
+.premium-merchant-ui .icon-button{width:48px;height:48px;border-radius:16px;background:#fffdfb;border:1px solid var(--premium-line);box-shadow:0 5px 18px rgba(45,30,36,.04)}
+
+/* Home hero */
+.premium-merchant-ui [data-premium-page="home"] .premium-home-hero{position:relative;overflow:hidden;border-radius:28px;padding:28px;min-height:210px;display:flex;align-items:flex-end;background:radial-gradient(circle at 82% 25%,rgba(214,167,92,.28),transparent 24%),linear-gradient(135deg,#2b161d 0%,#4f2432 55%,#241218 100%);color:white;box-shadow:0 22px 50px rgba(58,25,38,.18)}
+.premium-merchant-ui [data-premium-page="home"] .premium-home-hero:after{content:"";position:absolute;inset:auto -8% -60% 38%;height:240px;background:radial-gradient(circle,rgba(255,220,164,.18),transparent 66%);pointer-events:none}
+.premium-merchant-ui [data-premium-page="home"] .premium-home-hero .eyebrow{color:#e2c49a}
+.premium-merchant-ui [data-premium-page="home"] .premium-home-hero .title{color:white;font-size:clamp(34px,7vw,56px);line-height:.98;max-width:720px;margin-top:10px}
+.premium-merchant-ui [data-premium-page="home"] .premium-home-hero .subtitle{color:rgba(255,255,255,.78);font-size:16px;margin-top:16px}
+.premium-home-hero .premium-hero-accent{color:#e2bd73}
+.premium-merchant-ui [data-premium-page="home"] .hero-brand{display:none}
+
+/* stats */
+.premium-merchant-ui .zaia-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-top:16px}
+.premium-merchant-ui .stat-card{border-radius:22px;padding:18px;min-height:128px;align-items:flex-start;background:linear-gradient(180deg,#fffdfa,#fffaf7)}
+.premium-merchant-ui .stat-card:nth-child(1){background:linear-gradient(145deg,#f2fbf2,#fffdfa)}
+.premium-merchant-ui .stat-card:nth-child(2){background:linear-gradient(145deg,#fff8e9,#fffdfa)}
+.premium-merchant-ui .stat-card:nth-child(3){background:linear-gradient(145deg,#f5f0ff,#fffdfa)}
+.premium-merchant-ui .stat-card:nth-child(4){background:linear-gradient(145deg,#fff0f1,#fffdfa)}
+.premium-merchant-ui .stat-icon{width:42px;height:42px;border-radius:13px;display:grid;place-items:center}
+.premium-merchant-ui .stat-label{font-size:12px;font-weight:800;color:#62565c}
+.premium-merchant-ui .stat-value{font-size:29px;font-weight:900;letter-spacing:-.04em;margin-top:4px}
+.premium-merchant-ui .stat-note{font-size:11px;color:var(--premium-muted);margin-top:3px}
+
+/* operational engine */
+.premium-merchant-ui #zaiaOpsPanel{border-radius:22px;margin:16px 0;background:#fffdfb}
+.premium-merchant-ui #zaiaOpsPanel.premium-ops-quiet{padding:14px 16px;box-shadow:none;background:linear-gradient(145deg,#fbfaf7,#fff)}
+.premium-merchant-ui #zaiaOpsPanel.premium-ops-quiet h2{font-size:18px;margin:2px 0}
+.premium-merchant-ui #zaiaOpsPanel.premium-ops-quiet p{font-size:12px}
+.premium-merchant-ui #zaiaOpsPanel.premium-ops-quiet .btn{min-height:38px;padding:8px 14px}
+
+/* home rating */
+.premium-merchant-ui .premium-home-rating .zaia-rating-summary{background:linear-gradient(135deg,#2d171e,#4a281f);color:#fff;border:0;border-radius:24px;padding:22px;box-shadow:0 18px 42px rgba(44,24,31,.18)}
+.premium-merchant-ui .premium-home-rating .zaia-rating-summary strong,
+.premium-merchant-ui .premium-home-rating .zaia-rating-summary b{color:#fff}
+.premium-merchant-ui .premium-home-rating .zaia-rating-summary span,
+.premium-merchant-ui .premium-home-rating .zaia-rating-summary small{color:rgba(255,255,255,.72)}
+.premium-merchant-ui .premium-home-rating .zaia-rating-kicker{color:#e2bf82}
+.premium-merchant-ui .premium-home-rating .zaia-rating-score i{color:#e5b248}
+.premium-merchant-ui .premium-home-rating .zaia-rating-panel{border-radius:24px}
+
+/* dashboard composition */
+.premium-merchant-ui .dashboard-grid{display:grid!important;grid-template-columns:1fr;gap:16px;margin-top:16px}
+.premium-merchant-ui .premium-quick-panel{order:1}
+.premium-merchant-ui .agenda-panel{order:2;border-radius:24px;padding:20px}
+.premium-merchant-ui .premium-quick-panel{border-radius:24px;padding:18px}
+.premium-merchant-ui .zaia-quick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.premium-merchant-ui .quick-action{min-height:92px;border:1px solid var(--premium-line)!important;border-radius:18px!important;background:linear-gradient(180deg,#fffdfa,#fbf5f0)!important;font-weight:800;display:flex!important;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:12px!important;box-shadow:none!important}
+.premium-merchant-ui .quick-action svg{width:22px;height:22px}
+.premium-quick-symbol{font-size:15px;font-weight:900;color:var(--brand,#3b172b)}
+.premium-merchant-ui .agenda-panel .empty{border-radius:20px;background:#fffaf6;border:1px dashed #ddcec4;padding:28px}
+.premium-merchant-ui .dashboard-new{margin-top:12px}
+.premium-merchant-ui .pro-highlight{display:none!important}
+
+/* Generic premium heading */
+.premium-page-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:18px}
+.premium-page-heading h1{font-size:42px;line-height:1;margin:8px 0 7px;letter-spacing:-.045em}
+.premium-page-heading p{margin:0;color:var(--premium-muted);font-size:14px;text-transform:capitalize}
+.premium-date-button{border:1px solid var(--premium-line);background:#fff9f4;border-radius:999px;padding:12px 16px;font-weight:800;color:var(--premium-ink)}
+
+/* Agenda */
+.premium-agenda-overview{margin-bottom:18px}
+.premium-kpis{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+.premium-kpis article{background:#fffdfa;border:1px solid var(--premium-line);border-radius:20px;padding:16px;min-height:116px;box-shadow:0 9px 28px rgba(55,35,44,.045)}
+.premium-kpis article:nth-child(1){background:linear-gradient(145deg,#f3fbf3,#fffdfa)}
+.premium-kpis article:nth-child(2){background:linear-gradient(145deg,#fff8e9,#fffdfa)}
+.premium-kpis article:nth-child(3){background:linear-gradient(145deg,#f5f0ff,#fffdfa)}
+.premium-kpis article:nth-child(4){background:linear-gradient(145deg,#fff1f2,#fffdfa)}
+.premium-kpis span{display:block;font-size:12px;font-weight:800;color:#695d63}
+.premium-kpis strong{display:block;font-size:26px;line-height:1.05;margin-top:9px;letter-spacing:-.04em}
+.premium-kpis small{display:block;margin-top:5px;color:var(--premium-muted);font-size:11px}
+.premium-filter-row{display:flex;gap:8px;overflow-x:auto;padding:12px 0 3px;scrollbar-width:none}
+.premium-filter-row::-webkit-scrollbar{display:none}
+.premium-filter-row button{white-space:nowrap;border:1px solid var(--premium-line);background:#fffaf7;border-radius:999px;padding:10px 15px;font-weight:800;color:#655961}
+.premium-filter-row button.on{background:linear-gradient(135deg,var(--brand,#3b172b),var(--brand-2,#6b3149));color:white;border-color:transparent;box-shadow:0 8px 18px rgba(59,23,43,.14)}
+.premium-merchant-ui [data-premium-page="agenda"]>.toolbar{margin:10px 0 20px!important}
+.premium-merchant-ui [data-premium-page="agenda"]>.toolbar .primary{width:100%;min-height:54px;font-size:16px}
+.premium-merchant-ui [data-premium-page="agenda"]>.section-head{margin-top:10px}
+.premium-merchant-ui .premium-appointment-card{border-radius:22px!important;overflow:hidden;border:1px solid var(--premium-line)!important;background:#fffdfa!important;box-shadow:0 12px 34px rgba(52,34,42,.055)!important}
+.premium-merchant-ui .premium-appointment-card .appointment-time{font-size:22px;font-weight:900}
+.premium-merchant-ui .premium-appointment-card .appointment-body{padding:16px!important}
+.premium-merchant-ui .premium-appointment-card .appointment-actions{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.premium-merchant-ui .premium-appointment-card .appointment-actions .btn{width:100%}
+.premium-merchant-ui [data-premium-page="agenda"] .agenda-list>.hidden{display:none}
+.premium-merchant-ui .premium-agenda-ops.premium-ops-quiet{display:none!important}
+
+/* Client screen */
+.premium-merchant-ui [data-premium-page="clients"]>.title{font-size:42px}
+.premium-client-tools{margin:18px 0 10px}
+.premium-search{display:flex;align-items:center;gap:12px;border:1px solid var(--premium-line);border-radius:18px;background:#fffdfa;padding:0 15px;min-height:52px;box-shadow:0 7px 20px rgba(55,35,44,.035)}
+.premium-search span{font-size:26px;line-height:1;color:#70666d;transform:rotate(-20deg)}
+.premium-search input{border:0!important;outline:0!important;background:transparent!important;box-shadow:none!important;width:100%;font-size:14px;color:var(--premium-ink);padding:12px 0!important}
+.premium-merchant-ui [data-premium-page="clients"]>.toolbar{margin-top:12px!important}
+.premium-merchant-ui [data-premium-page="clients"]>.toolbar .primary{width:100%;min-height:54px;font-size:16px}
+.premium-merchant-ui .premium-client-rating-root>.zaia-rating-panel{display:none}
+.premium-merchant-ui .premium-client-card{display:grid!important;grid-template-columns:auto 1fr auto;grid-template-areas:"avatar main actions";gap:14px;align-items:start;border-radius:24px!important;padding:18px!important;background:#fffdfa!important}
+.premium-client-avatar{grid-area:avatar;width:58px;height:58px;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#f6eee3,#fffaf4);color:#a16e18;font-weight:900;font-size:19px;border:1px solid #eee2d6}
+.premium-merchant-ui .premium-client-card>.item-main{grid-area:main;min-width:0}
+.premium-merchant-ui .premium-client-card>.item-main>strong{font-size:19px;letter-spacing:-.02em}
+.premium-merchant-ui .premium-client-card>.btn,.premium-merchant-ui .premium-client-card>.zaia-client-rating-action{grid-area:actions;min-width:130px}
+.premium-merchant-ui .premium-client-card .meta{line-height:1.5}
+.premium-merchant-ui .premium-client-card .zaia-client-rating-current{margin-top:10px;padding:10px 12px;border-radius:13px;background:#fff6df;width:max-content;max-width:100%;color:#8b6416}
+
+/* Inventory */
+.premium-merchant-ui [data-premium-page="inventory"]>.title{font-size:42px}
+.premium-merchant-ui [data-premium-page="inventory"]>.toolbar{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:18px!important}
+.premium-merchant-ui [data-premium-page="inventory"]>.toolbar .btn{min-height:56px}
+.premium-inventory-overview{margin:16px 0}
+.premium-kpis.inventory article:nth-child(1){background:linear-gradient(145deg,#effbf4,#fffdfa)}
+.premium-kpis.inventory article:nth-child(2){background:linear-gradient(145deg,#fff8e9,#fffdfa)}
+.premium-kpis.inventory article:nth-child(3){background:linear-gradient(145deg,#fff0f2,#fffdfa)}
+.premium-kpis.inventory article:nth-child(4){background:linear-gradient(145deg,#f3f1ff,#fffdfa)}
+.premium-inventory-tools{margin-top:8px}
+.premium-merchant-ui .inventory-list{gap:9px}
+.premium-merchant-ui .premium-inventory-item{display:grid!important;grid-template-columns:auto 1fr auto;gap:13px;align-items:center;border-radius:20px!important;padding:13px!important;background:#fffdfa!important;box-shadow:0 7px 20px rgba(55,35,44,.035)!important}
+.premium-product-icon{width:54px;height:54px;border-radius:16px;display:grid;place-items:center;background:linear-gradient(145deg,#f2ebe5,#fff);border:1px solid #eee2da;color:var(--brand,#3b172b);font-size:26px;font-weight:900}
+.premium-merchant-ui .premium-inventory-item>.item-main{min-width:0}
+.premium-merchant-ui .premium-inventory-item>.item-main>strong{font-size:16px}
+.premium-merchant-ui .premium-inventory-item .product-tags{margin-bottom:3px}
+.premium-merchant-ui .premium-inventory-item .stockbar{height:5px;border-radius:999px;background:#f0e8e4;overflow:hidden;margin-top:8px}
+.premium-merchant-ui .premium-inventory-item .stockbar i{display:block;height:100%;border-radius:inherit;background:#45b878}
+.premium-merchant-ui .premium-inventory-item.is-low .stockbar i{background:#f0a21c}
+.premium-merchant-ui .premium-inventory-item.is-out .stockbar i{background:#e54a52}
+.premium-merchant-ui .premium-inventory-item .product-actions{display:flex;gap:6px;margin-top:9px}
+.premium-merchant-ui .premium-inventory-item .product-actions .btn{min-height:34px;padding:6px 10px;border-radius:11px;font-size:11px}
+.premium-merchant-ui .starter-notice{border-radius:18px;padding:14px 16px;background:#fffaf4}
+
+/* Finance */
+.premium-merchant-ui [data-premium-page="finance"] .finance-heading{align-items:flex-end;gap:14px}
+.premium-merchant-ui [data-premium-page="finance"] .finance-heading .title{font-size:44px}
+.premium-merchant-ui .finance-period-bar{border-radius:18px!important;border:1px solid var(--premium-line)!important;background:#fffaf6!important;padding:12px 14px!important}
+.premium-merchant-ui .finance-kpis{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:12px!important}
+.premium-merchant-ui .finance-kpi{border-radius:20px!important;padding:17px!important;min-height:128px!important;border:1px solid var(--premium-line)!important;background:#fffdfa!important;box-shadow:0 8px 24px rgba(55,35,44,.04)!important}
+.premium-merchant-ui .finance-kpi:nth-child(1){background:linear-gradient(145deg,#effbf4,#fffdfa)!important}
+.premium-merchant-ui .finance-kpi:nth-child(2){background:linear-gradient(145deg,#fff8e9,#fffdfa)!important}
+.premium-merchant-ui .finance-kpi:nth-child(3){background:linear-gradient(145deg,#fff0f2,#fffdfa)!important}
+.premium-merchant-ui .finance-kpi:nth-child(4){background:linear-gradient(145deg,#f2f1ff,#fffdfa)!important}
+.premium-merchant-ui .finance-kpi strong{font-size:26px!important;letter-spacing:-.04em}
+.premium-finance-actions{display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:10px;margin:13px 0 16px}
+.premium-finance-actions .btn{min-height:52px}
+.premium-merchant-ui .finance-health-grid,.premium-merchant-ui .finance-chart-grid,.premium-merchant-ui .finance-performance-grid{gap:14px!important}
+.premium-merchant-ui [data-premium-page="finance"] .card{border-radius:22px!important;background:#fffdfa!important}
+.premium-merchant-ui .finance-pending-item{border-radius:15px!important;background:#fffaf7;padding:12px!important;margin:7px 0!important}
+.premium-merchant-ui .finance-flow-row{padding:9px 0!important}
+.premium-merchant-ui .flow-bars{height:12px!important;border-radius:999px;overflow:hidden;background:#f3ebe6}
+.premium-merchant-ui .finance-ranking>div{border-radius:14px;background:#fffaf7;padding:11px!important;margin:6px 0}
+
+/* nav */
+.premium-merchant-ui .nav{background:rgba(255,252,249,.94);backdrop-filter:blur(18px);border-top:1px solid var(--premium-line)}
+.premium-merchant-ui .nav-items button{border-radius:17px!important;transition:.18s ease}
+.premium-merchant-ui .nav-items button.active{background:#f3e9e4!important;color:var(--brand,#3b172b)!important}
+.premium-merchant-ui .nav-items button span{font-weight:750}
+
+/* hidden elements */
+.premium-merchant-ui [hidden]{display:none!important}
+
+@media(max-width:760px){
+  .premium-merchant-ui .content{padding-left:18px!important;padding-right:18px!important;padding-top:18px!important;padding-bottom:130px!important}
+  .premium-merchant-ui .topbar{padding-left:18px!important;padding-right:18px!important}
+  .premium-merchant-ui .account-chip{display:none!important}
+  .premium-merchant-ui [data-premium-page="home"] .premium-home-hero{min-height:180px;padding:22px;border-radius:24px}
+  .premium-merchant-ui [data-premium-page="home"] .premium-home-hero .title{font-size:38px}
+  .premium-merchant-ui .zaia-stats{grid-template-columns:1fr 1fr;gap:10px}
+  .premium-merchant-ui .stat-card{min-height:112px;padding:14px;border-radius:19px}
+  .premium-merchant-ui .stat-value{font-size:25px}
+  .premium-merchant-ui .zaia-quick{display:flex;overflow-x:auto;gap:10px;padding-bottom:2px;scrollbar-width:none}
+  .premium-merchant-ui .zaia-quick::-webkit-scrollbar{display:none}
+  .premium-merchant-ui .quick-action{min-width:112px;min-height:88px}
+  .premium-page-heading{align-items:flex-end}
+  .premium-page-heading h1{font-size:35px}
+  .premium-date-button{font-size:11px;padding:10px 12px}
+  .premium-kpis{grid-template-columns:1fr 1fr;gap:9px}
+  .premium-kpis article{min-height:105px;padding:14px;border-radius:18px}
+  .premium-kpis strong{font-size:23px}
+  .premium-merchant-ui .premium-appointment-card .appointment-actions{grid-template-columns:1fr 1fr}
+  .premium-merchant-ui [data-premium-page="clients"]>.title,.premium-merchant-ui [data-premium-page="inventory"]>.title{font-size:36px}
+  .premium-merchant-ui .premium-client-card{grid-template-columns:auto 1fr;grid-template-areas:"avatar main" "actions actions";padding:15px!important}
+  .premium-merchant-ui .premium-client-card>.btn,.premium-merchant-ui .premium-client-card>.zaia-client-rating-action{grid-area:actions;width:100%;min-width:0}
+  .premium-merchant-ui .premium-client-card>.btn+button{margin-top:0}
+  .premium-merchant-ui [data-premium-page="inventory"]>.toolbar{grid-template-columns:1fr 1fr}
+  .premium-merchant-ui .premium-inventory-item{grid-template-columns:auto 1fr;align-items:start}
+  .premium-merchant-ui .premium-inventory-item>.pill{grid-column:2}
+  .premium-merchant-ui [data-premium-page="finance"] .finance-heading{align-items:flex-start}
+  .premium-merchant-ui [data-premium-page="finance"] .finance-heading .title{font-size:36px}
+  .premium-merchant-ui .finance-heading-actions{width:100%;display:grid!important;grid-template-columns:1fr 1fr}
+  .premium-merchant-ui .finance-kpis{grid-template-columns:1fr 1fr!important;gap:9px!important}
+  .premium-merchant-ui .finance-kpi{min-height:116px!important;padding:14px!important}
+  .premium-finance-actions{grid-template-columns:1fr 1fr}
+  .premium-finance-actions .primary{grid-column:1/-1}
+  .premium-merchant-ui .finance-health-grid,.premium-merchant-ui .finance-chart-grid,.premium-merchant-ui .finance-performance-grid{grid-template-columns:1fr!important}
+}
+
+@media(max-width:420px){
+  .premium-merchant-ui .brandtext strong{font-size:16px}
+  .premium-merchant-ui .mobile-brand .merchant-logo{width:46px;height:46px;border-radius:15px}
+  .premium-merchant-ui [data-premium-page="home"] .premium-home-hero .title{font-size:34px}
+  .premium-merchant-ui .stat-card{padding:13px}
+  .premium-page-heading h1{font-size:32px}
+  .premium-kpis article{padding:12px}
+  .premium-kpis strong{font-size:21px}
+  .premium-merchant-ui [data-premium-page="inventory"]>.toolbar{grid-template-columns:1fr}
+  .premium-finance-actions{grid-template-columns:1fr}
+  .premium-finance-actions .primary{grid-column:auto}
+}
