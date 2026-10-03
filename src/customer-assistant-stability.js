@@ -1,70 +1,88 @@
 const ASSISTANT_SEARCH_KEY='zaia_assistant_pending_search'
-let capturedTerm=sessionStorage.getItem(ASSISTANT_SEARCH_KEY)||''
-let retryTimer=null
 let attempts=0
+let running=false
+let verifyTimer=null
 
 function q(sel){return document.querySelector(sel)}
+function pending(){return sessionStorage.getItem(ASSISTANT_SEARCH_KEY)||''}
 
-function capturePending(){
-  const pending=sessionStorage.getItem(ASSISTANT_SEARCH_KEY)
-  if(pending)capturedTerm=pending
-}
-
-function scheduleApply(delay=900){
-  if(!capturedTerm)return
-  clearTimeout(retryTimer)
-  retryTimer=setTimeout(applyStableSearch,delay)
-}
-
-function applyStableSearch(){
-  capturePending()
-  if(!capturedTerm)return
-
+function submitSearch(term){
   const input=q('#clientSearch')
   const form=q('#clientSearchForm')
-  const loading=q('.client-loading')
+  if(!input||!form)return false
 
-  if(!input||!form||loading){
-    if(attempts++<18)scheduleApply(350)
-    return
-  }
+  input.value=term
+  input.dispatchEvent(new Event('input',{bubbles:true}))
 
-  const term=capturedTerm
-  if(input.value.trim()!==term){
-    input.value=term
-    input.dispatchEvent(new Event('input',{bubbles:true}))
-  }
-
-  form.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))
-  sessionStorage.removeItem(ASSISTANT_SEARCH_KEY)
-
-  // O boot inicial do app também faz uma busca. Se ele terminar depois do
-  // assistente, a consulta poderia desaparecer. Confirmamos após o render.
+  // Aguarda o client.js terminar de ligar os listeners do formulário.
   setTimeout(()=>{
-    const current=q('#clientSearch')
-    if(!current)return
-    if(current.value.trim()!==term&&attempts++<18){
-      capturedTerm=term
-      sessionStorage.setItem(ASSISTANT_SEARCH_KEY,term)
-      scheduleApply(500)
-      return
-    }
-    capturedTerm=''
-    attempts=0
-  },900)
+    const currentForm=q('#clientSearchForm')
+    const currentInput=q('#clientSearch')
+    if(!currentForm||!currentInput)return
+    currentInput.value=term
+    currentInput.dispatchEvent(new Event('input',{bubbles:true}))
+    if(typeof currentForm.requestSubmit==='function')currentForm.requestSubmit()
+    else currentForm.dispatchEvent(new Event('submit',{bubbles:true,cancelable:true}))
+  },120)
+  return true
 }
 
-capturePending()
+function verify(term){
+  clearTimeout(verifyTimer)
+  verifyTimer=setTimeout(()=>{
+    const input=q('#clientSearch')
+    const loading=q('.client-loading')
+    const stillPending=pending()
+
+    // A busca foi incorporada pelo estado do app quando o campo reaparece
+    // com o termo correto após o render dos resultados.
+    if(input&&input.value.trim()===term&&!loading){
+      sessionStorage.removeItem(ASSISTANT_SEARCH_KEY)
+      attempts=0
+      running=false
+      return
+    }
+
+    if(stillPending&&attempts<30){
+      running=false
+      run()
+    }
+  },800)
+}
+
+function run(){
+  const term=pending()
+  if(!term||running||!location.pathname.startsWith('/cliente'))return
+  running=true
+
+  const tick=()=>{
+    const current=pending()
+    if(!current){running=false;return}
+    const input=q('#clientSearch')
+    const form=q('#clientSearchForm')
+    const loading=q('.client-loading')
+
+    if(input&&form&&!loading){
+      attempts++
+      submitSearch(current)
+      running=false
+      verify(current)
+      return
+    }
+
+    if(attempts++>=30){running=false;return}
+    setTimeout(tick,250)
+  }
+
+  tick()
+}
 
 const observer=new MutationObserver(()=>{
-  capturePending()
-  if(capturedTerm)scheduleApply(700)
+  if(pending())setTimeout(run,180)
 })
 observer.observe(document.documentElement,{childList:true,subtree:true})
 
-window.addEventListener('pageshow',()=>{
-  capturePending()
-  if(capturedTerm)scheduleApply(1200)
-})
+window.addEventListener('pageshow',()=>{if(pending())setTimeout(run,500)})
+window.addEventListener('focus',()=>{if(pending())setTimeout(run,250)})
 
-if(location.pathname.startsWith('/cliente')&&capturedTerm)scheduleApply(1400)
+if(location.pathname.startsWith('/cliente')&&pending())setTimeout(run,650)
