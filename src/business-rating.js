@@ -8,8 +8,19 @@ let ratingDashboard=null
 let ratingLoading=false
 let ratingPaintQueued=false
 let ratingModalState=null
+let ratingBootstrapAttempts=0
 
-function ratingSession(){try{return JSON.parse(localStorage.getItem(ZAIA_RATING_SESSION_KEY)||'null')}catch{return null}}
+function ratingSession(){
+  const keys=[`${ZAIA_RATING_SESSION_KEY}:merchant`,ZAIA_RATING_SESSION_KEY]
+  for(const key of keys){
+    try{
+      const raw=localStorage.getItem(key)
+      const parsed=raw?JSON.parse(raw):null
+      if(parsed?.access_token)return parsed
+    }catch{}
+  }
+  return null
+}
 function ratingEsc(v=''){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function ratingDate(v){return v?new Date(v).toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}):''}
 function ratingStars(n){const x=Math.max(0,Math.min(5,Number(n||0)));return '★'.repeat(Math.round(x))+'☆'.repeat(5-Math.round(x))}
@@ -32,7 +43,16 @@ async function ratingRpc(name,body={}){
 }
 
 async function refreshBusinessRatings(){
-  if(ratingLoading||!ratingSession()?.access_token)return
+  if(ratingLoading)return
+  const session=ratingSession()
+  if(!session?.access_token){
+    if(ratingBootstrapAttempts<12){
+      ratingBootstrapAttempts++
+      setTimeout(refreshBusinessRatings,1000)
+    }
+    return
+  }
+  ratingBootstrapAttempts=0
   ratingLoading=true
   try{ratingDashboard=await ratingRpc('business_rating_dashboard');scheduleBusinessRatingPaint()}catch(error){console.warn('ZAIA business rating',error)}finally{ratingLoading=false}
 }
@@ -172,5 +192,12 @@ document.addEventListener('click',e=>{
 const ratingObserver=new MutationObserver(scheduleBusinessRatingPaint)
 ratingObserver.observe(document.documentElement,{childList:true,subtree:true})
 window.addEventListener('focus',refreshBusinessRatings)
+window.addEventListener('pageshow',refreshBusinessRatings)
 window.addEventListener('zaia:operational-refresh',()=>setTimeout(refreshBusinessRatings,250))
-if(location.pathname.startsWith('/loja')){setTimeout(refreshBusinessRatings,650);setInterval(refreshBusinessRatings,60000)}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshBusinessRatings()})
+if(location.pathname.startsWith('/loja')){
+  setTimeout(refreshBusinessRatings,400)
+  setTimeout(refreshBusinessRatings,1500)
+  setTimeout(refreshBusinessRatings,3500)
+  setInterval(refreshBusinessRatings,30000)
+}
