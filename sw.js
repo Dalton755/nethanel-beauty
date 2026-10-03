@@ -1,7 +1,10 @@
-const CACHE='zaia-v27';
+const CACHE='zaia-v28';
 const ASSETS=['/','/index.html','/styles.css','/pro-plans.css','/admin-production.css','/app.js','/admin.js','/admin-production.js','/pro-plans.js','/production-guard.js','/auth-recovery.js','/customer-privacy.js','/customer-help.js','/merchant-help.js','/client.js','/cloud.js','/config.js','/manifest.webmanifest','/icon.svg','/zaia-logo.svg'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k))))));
+self.addEventListener('activate',e=>e.waitUntil(Promise.all([
+  caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('zaia-v')&&k!==CACHE).map(k=>caches.delete(k)))),
+  self.clients.claim()
+])));
 self.addEventListener('fetch',e=>{
   if(e.request.method!=='GET') return;
   const url=new URL(e.request.url);
@@ -10,7 +13,7 @@ self.addEventListener('fetch',e=>{
 });
 self.addEventListener('notificationclick',e=>{
   e.notification.close();
-  const target=e.notification?.data?.url||'/';
+  const target=e.notification?.data?.url||'/loja';
   e.waitUntil(
     clients.matchAll({type:'window',includeUncontrolled:true}).then(async list=>{
       for(const client of list){
