@@ -1,4 +1,4 @@
-const UI_VERSION='20261003-merchant-premium-v1'
+const UI_VERSION='20261003-merchant-premium-v2'
 let uiScheduled=false
 
 const q=(s,r=document)=>r.querySelector(s)
@@ -12,6 +12,34 @@ const greeting=()=>{const h=new Date().getHours();return h<12?'Bom dia, equipe!'
 function markShell(){
   const shell=q('.shell')
   if(shell)shell.classList.add('premium-merchant-ui')
+}
+
+function ensureFinanceVisualFix(){
+  if(q('#premiumFinanceVisualFix'))return
+  const style=document.createElement('style')
+  style.id='premiumFinanceVisualFix'
+  style.textContent=`
+    .premium-merchant-ui [data-premium-page="finance"] .finance-kpi.featured,
+    .premium-merchant-ui [data-premium-page="finance"] .finance-kpi.featured span,
+    .premium-merchant-ui [data-premium-page="finance"] .finance-kpi.featured strong,
+    .premium-merchant-ui [data-premium-page="finance"] .finance-kpi.featured small{color:var(--premium-ink,#24171e)!important}
+    .premium-merchant-ui [data-premium-page="finance"] .finance-kpi.featured{background:linear-gradient(145deg,#effbf4,#fffdfa)!important;border-color:#d8eadc!important}
+    .premium-merchant-ui [data-premium-page="finance"] .finance-kpi.featured small{color:var(--premium-muted,#81777e)!important}
+    .premium-merchant-ui [data-premium-page="finance"] #premiumFinanceActions{grid-template-columns:1fr 1fr!important}
+    .premium-merchant-ui [data-premium-page="finance"] .finance-heading-actions .btn.primary{min-width:150px}
+    @media(max-width:760px){
+      .premium-merchant-ui [data-premium-page="finance"] .finance-heading{gap:10px!important}
+      .premium-merchant-ui [data-premium-page="finance"] .finance-heading-actions{grid-template-columns:1fr 1fr!important;gap:10px!important}
+      .premium-merchant-ui [data-premium-page="finance"] .finance-period-bar{margin-top:14px!important}
+      .premium-merchant-ui [data-premium-page="finance"] .finance-kpis{margin-top:12px!important}
+      .premium-merchant-ui [data-premium-page="finance"] #premiumFinanceActions{grid-template-columns:1fr 1fr!important;margin-top:10px!important}
+      .premium-merchant-ui [data-premium-page="finance"] #premiumFinanceActions .btn{min-height:48px!important}
+    }
+    @media(max-width:420px){
+      .premium-merchant-ui [data-premium-page="finance"] #premiumFinanceActions{grid-template-columns:1fr!important}
+    }
+  `
+  document.head.appendChild(style)
 }
 
 function currentPage(content){
@@ -184,6 +212,7 @@ function enhanceInventory(content){
 
 function enhanceFinance(content){
   content.dataset.premiumPage='finance'
+  ensureFinanceVisualFix()
   const heading=q('.finance-heading',content)
   if(heading&&!heading.dataset.premium){
     heading.dataset.premium='1'
@@ -191,13 +220,15 @@ function enhanceFinance(content){
     if(eyebrow)eyebrow.textContent='FINANCEIRO'
     if(title)title.textContent='Caixa & financeiro'
     if(sub)sub.textContent='Controle entradas, saídas, previsões e rentabilidade de forma simples.'
+    const expense=q('[data-finance-new="EXPENSE"]',heading)
+    if(expense)expense.textContent='+ Nova despesa'
   }
   const kpis=q('.finance-kpis',content)
   if(kpis&&!q('#premiumFinanceActions',content)){
     const actions=document.createElement('div')
     actions.id='premiumFinanceActions'
     actions.className='premium-finance-actions'
-    actions.innerHTML='<button class="btn primary" data-finance-new="EXPENSE">+ Nova despesa</button><button class="btn" data-finance-new="INCOME">Registrar receita</button><button class="btn" data-ui-account>Nova conta</button>'
+    actions.innerHTML='<button class="btn" data-finance-new="INCOME">+ Registrar receita</button><button class="btn" data-ui-account>+ Nova conta</button>'
     kpis.insertAdjacentElement('afterend',actions)
   }
 }
