@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -49,6 +49,8 @@ await cp('src/customer-arrival.js', 'dist/customer-arrival.js')
 await cp('src/business-rating.js', 'dist/business-rating.js')
 await cp('src/customer-rating.js', 'dist/customer-rating.js')
 await cp('src/merchant-premium-ui.js', 'dist/merchant-premium-ui.js')
+await cp('src/client-premium-ui.js', 'dist/client-premium-ui.js')
+await cp('src/merchant-booking-modal.js', 'dist/merchant-booking-modal.js')
 await cp('src/cloud.js', 'dist/cloud.js')
 await cp('src/styles.css', 'dist/styles.css')
 await cp('src/pro-plans.css', 'dist/pro-plans.css')
@@ -58,6 +60,8 @@ await cp('src/operational.css', 'dist/operational.css')
 await cp('src/professional-services-fix.css', 'dist/professional-services-fix.css')
 await cp('src/rating.css', 'dist/rating.css')
 await cp('src/merchant-premium-ui.css', 'dist/merchant-premium-ui.css')
+await cp('src/client-premium-ui.css', 'dist/client-premium-ui.css')
+await cp('src/merchant-booking-modal.css', 'dist/merchant-booking-modal.css')
 
 await writeFile('dist/config.js', `window.BEAUTY_CONFIG = ${JSON.stringify({
   supabaseUrl: url,
