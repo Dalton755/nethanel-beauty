@@ -1,6 +1,6 @@
-const CACHE='zaia-loja-v5';
-const ASSETS=['/loja','/styles.css','/pro-plans.css','/operational.css','/professional-services-fix.css','/rating.css','/app.js','/operational-engine.js','/business-rating.js','/pro-plans.js','/merchant-help.js','/production-guard.js','/auth-recovery.js','/merchant-shell.js','/session-scope.js','/cloud.js','/config.js','/manifest-loja.webmanifest','/icon.svg','/zaia-logo.svg'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(ASSETS))));
+const CACHE='zaia-loja-v6';
+const ASSETS=['/loja','/styles.css','/pro-plans.css','/operational.css','/professional-services-fix.css','/rating.css?v=20261003-1','/app.js','/operational-engine.js','/business-rating.js?v=20261003-1','/pro-plans.js','/merchant-help.js','/production-guard.js','/auth-recovery.js','/merchant-shell.js','/session-scope.js?v=20261003-1','/cloud.js','/config.js','/manifest-loja.webmanifest','/icon.svg','/zaia-logo.svg'];
+self.addEventListener('install',e=>e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(ASSETS)),self.skipWaiting()])));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
   caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('zaia-loja-')&&k!==CACHE).map(k=>caches.delete(k)))),
   self.clients.claim()
