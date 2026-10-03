@@ -29,7 +29,11 @@ async function refreshPublicRatings(){
 async function refreshCustomerRatings(){
   if(crBusy||!crSession()?.access_token)return
   crBusy=true
-  try{crDashboard=await crRpc('customer_rating_dashboard');scheduleCrPaint()}catch(error){console.warn('ZAIA customer ratings',error)}finally{crBusy=false}
+  try{
+    crDashboard=await crRpc('customer_rating_dashboard')
+    scheduleCrPaint()
+    setTimeout(maybeAutoOpenCustomerRating,300)
+  }catch(error){console.warn('ZAIA customer ratings',error)}finally{crBusy=false}
 }
 function publicBadge(x){return x&&Number(x.count||0)>0?`<span class="zaia-public-rating"><span class="star">★</span>${crScore(x.average)} <small>(${x.count})</small></span>`:''}
 function paintPublic(){
@@ -44,23 +48,27 @@ function paintPublic(){
 }
 function pendingHtml(){
   const rows=(crDashboard?.pending||[]).slice(0,3);if(!rows.length)return ''
-  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">SUA EXPERIÊNCIA</span><h2>Como foi o atendimento?</h2><p>Sua nota ajuda a loja a melhorar e forma a reputação pública do estabelecimento.</p></div><span class="zaia-rating-badge">${rows.length} pendente${rows.length===1?'':'s'}</span></div><div class="zaia-rating-list">${rows.map(x=>`<div class="zaia-rating-row"><div class="zaia-rating-row-main"><strong>${crEsc(x.establishment_name)}</strong><span>${crEsc(x.service_name)} • ${crDate(x.completed_at)}</span><small>Profissional: ${crEsc(x.professional_name)}</small></div><div class="zaia-rating-row-actions"><button class="zaia-rate-btn" data-rate-business="${x.appointment_id}">Avaliar atendimento</button></div></div>`).join('')}</div></section>`
+  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">SUA EXPERIÊNCIA</span><h2>Avaliações pendentes</h2><p>Se você preferir avaliar depois, os atendimentos continuam disponíveis aqui.</p></div><span class="zaia-rating-badge">${rows.length}</span></div><div class="zaia-rating-list">${rows.map(x=>`<div class="zaia-rating-row"><div class="zaia-rating-row-main"><strong>${crEsc(x.establishment_name)}</strong><span>${crEsc(x.service_name)} • ${crDate(x.completed_at)}</span><small>Profissional: ${crEsc(x.professional_name)}</small></div><div class="zaia-rating-row-actions"><button class="zaia-rate-btn" data-rate-business="${x.appointment_id}">Avaliar atendimento</button></div></div>`).join('')}</div></section>`
 }
 function reputationHtml(){
   const r=crDashboard?.reputation||{},count=Number(r.count||0)
-  return `<section class="zaia-rating-summary"><div class="zaia-rating-summary-main"><span class="zaia-rating-kicker">MINHA REPUTAÇÃO</span><strong>${count?`${crStars(r.average)} ${crScore(r.average)}`:'Ainda sem avaliações'}</strong><span>${count?`${count} avaliação${count===1?'':'ões'} recebida${count===1?'':'s'} de estabelecimentos`:'Quando uma loja avaliar sua experiência como cliente, você verá aqui.'}</span></div>${count?`<div class="zaia-rating-score"><i>★</i><b>${crScore(r.average)}</b></div>`:''}</section>`
+  return `<section class="zaia-rating-summary"><div class="zaia-rating-summary-main"><span class="zaia-rating-kicker">MINHA REPUTAÇÃO</span><strong>${count?`${crStars(r.average)} ${crScore(r.average)}`:'Ainda sem avaliações'}</strong><span>${count?`${count} estabelecimento${count===1?'':'s'} avaliou${count===1?'':'aram'} seu perfil como cliente`:'As lojas podem manter uma avaliação contínua sobre sua experiência como cliente.'}</span></div>${count?`<div class="zaia-rating-score"><i>★</i><b>${crScore(r.average)}</b></div>`:''}</section>`
+}
+function receivedHtml(){
+  const rows=(crDashboard?.received||[]);if(!rows.length)return ''
+  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">COMO AS LOJAS VEEM VOCÊ</span><h2>Avaliações recebidas</h2><p>Cada estabelecimento mantém uma avaliação contínua do seu cadastro e pode atualizá-la quando necessário.</p></div></div><div class="zaia-rating-history">${rows.map(x=>`<div class="zaia-rating-history-card"><div class="zaia-rating-history-top"><div><strong>${crEsc(x.establishment_name)}</strong><p>Atualizada em ${crDate(x.updated_at)}</p></div><span class="zaia-rating-badge">★ ${x.rating}/5</span></div>${x.comment?`<p>${crEsc(x.comment)}</p>`:''}</div>`).join('')}</div></section>`
 }
 function historyHtml(){
-  const rows=(crDashboard?.history||[]).filter(x=>x.my_rating||x.business_rating).slice(0,12);if(!rows.length)return ''
-  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">AVALIAÇÕES</span><h2>Histórico de reputação</h2><p>Veja o que você avaliou e, quando houver, como o estabelecimento avaliou sua experiência como cliente.</p></div></div><div class="zaia-rating-history">${rows.map(x=>`<div class="zaia-rating-history-card"><div class="zaia-rating-history-top"><div><strong>${crEsc(x.establishment_name)}</strong><p>${crEsc(x.service_name)} • ${crDate(x.completed_at)}</p></div></div><div class="zaia-rating-dual"><div><small>Você avaliou a loja</small><strong>${x.my_rating?`★ ${x.my_rating}/5`:'Ainda não'}</strong>${x.my_comment?`<p>${crEsc(x.my_comment)}</p>`:''}</div><div><small>A loja avaliou você</small><strong>${x.business_rating?`★ ${x.business_rating}/5`:'Ainda não'}</strong>${x.business_comment?`<p>${crEsc(x.business_comment)}</p>`:''}</div></div></div>`).join('')}</div></section>`
+  const rows=(crDashboard?.history||[]).filter(x=>x.my_rating).slice(0,12);if(!rows.length)return ''
+  return `<section class="zaia-rating-panel"><div class="zaia-rating-panel-head"><div><span class="zaia-rating-kicker">SUAS AVALIAÇÕES</span><h2>Atendimentos avaliados</h2></div></div><div class="zaia-rating-history">${rows.map(x=>`<div class="zaia-rating-history-card"><div class="zaia-rating-history-top"><div><strong>${crEsc(x.establishment_name)}</strong><p>${crEsc(x.service_name)} • ${crDate(x.completed_at)}</p></div><span class="zaia-rating-badge">★ ${x.my_rating}/5</span></div>${x.my_comment?`<p>${crEsc(x.my_comment)}</p>`:''}<div class="zaia-rating-row-actions"><button class="zaia-rate-btn secondary" data-rate-business="${x.appointment_id}">Editar avaliação</button></div></div>`).join('')}</div></section>`
 }
 function paintAccount(){
   const main=document.querySelector('.client-account-main');if(!main||!crDashboard){document.querySelector('#zaiaCustomerRatingsRoot')?.remove();return}
   const title=main.querySelector('.client-account-head h1')?.textContent?.trim()||''
   const showHistory=/atendimentos/i.test(title)
   const showProfile=/conta|perfil/i.test(title)
-  const html=pendingHtml()+(showHistory||showProfile?reputationHtml():'')+(showHistory?historyHtml():'')
-  const sig=JSON.stringify({title,p:crDashboard.pending?.map(x=>x.appointment_id),r:crDashboard.reputation,h:showHistory?crDashboard.history?.map(x=>[x.appointment_id,x.my_rating,x.business_rating,x.my_comment,x.business_comment]):[]})
+  const html=pendingHtml()+(showHistory||showProfile?reputationHtml()+receivedHtml():'')+(showHistory?historyHtml():'')
+  const sig=JSON.stringify({title,p:crDashboard.pending?.map(x=>x.appointment_id),r:crDashboard.reputation,received:crDashboard.received?.map(x=>[x.establishment_id,x.rating,x.updated_at]),h:showHistory?crDashboard.history?.map(x=>[x.appointment_id,x.my_rating,x.my_comment]):[]})
   let root=document.querySelector('#zaiaCustomerRatingsRoot')
   if(!html){root?.remove();return}
   if(!root){root=document.createElement('div');root.id='zaiaCustomerRatingsRoot';const head=main.querySelector('.client-account-head');head?.after(root)||main.prepend(root)}
@@ -71,17 +79,32 @@ function paintCustomerRatings(){paintPublic();paintAccount()}
 function scheduleCrPaint(){if(crQueued)return;crQueued=true;requestAnimationFrame(()=>{crQueued=false;paintCustomerRatings()})}
 const CUSTOMER_TAGS=[['ATENDIMENTO','Atendimento'],['QUALIDADE','Qualidade'],['PONTUALIDADE','Pontualidade'],['AMBIENTE','Ambiente'],['CUSTO_BENEFICIO','Custo-benefício']]
 function crLabel(n){return ({1:'Muito ruim',2:'Ruim',3:'Regular',4:'Muito bom',5:'Excelente'})[n]||'Escolha de 1 a 5 estrelas'}
-function openCustomerRatingModal(id){
+function openCustomerRatingModal(id,{auto=false}={}){
   const item=(crDashboard?.pending||[]).find(x=>x.appointment_id===id)||(crDashboard?.history||[]).find(x=>x.appointment_id===id);if(!item)return
-  crModal={appointmentId:id,rating:0,tags:new Set(),item}
+  const existing=(crDashboard?.history||[]).find(x=>x.appointment_id===id)
+  crModal={appointmentId:id,rating:Number(existing?.my_rating||0),tags:new Set(existing?.my_tags||[]),item,auto}
   document.querySelector('#zaiaCustomerRatingModal')?.remove();const el=document.createElement('div');el.id='zaiaCustomerRatingModal';el.className='zaia-rating-modal-backdrop'
-  el.innerHTML=`<div class="zaia-rating-modal"><div class="zaia-rating-modal-head"><div><span class="zaia-rating-kicker">AVALIE O ATENDIMENTO</span><h2>${crEsc(item.establishment_name)}</h2><p>${crEsc(item.service_name)} • sua avaliação compõe a reputação pública da loja.</p></div><button class="zaia-rating-close" data-cr-close>×</button></div><div class="zaia-stars">${[1,2,3,4,5].map(n=>`<button class="zaia-star" data-cr-star="${n}" aria-label="${n} estrelas">★</button>`).join('')}</div><div class="zaia-rating-label" id="zaiaCrLabel">Escolha de 1 a 5 estrelas</div><div class="zaia-rating-tags">${CUSTOMER_TAGS.map(([v,l])=>`<button class="zaia-rating-tag" data-cr-tag="${v}">${l}</button>`).join('')}</div><textarea class="zaia-rating-textarea" id="zaiaCrComment" maxlength="500" placeholder="Conte como foi sua experiência (opcional)"></textarea><button class="zaia-rating-submit" id="zaiaCrSubmit" disabled>Enviar avaliação</button></div>`
-  document.body.appendChild(el)
+  el.innerHTML=`<div class="zaia-rating-modal"><div class="zaia-rating-modal-head"><div><span class="zaia-rating-kicker">COMO FOI SUA EXPERIÊNCIA?</span><h2>Como foi seu atendimento na ${crEsc(item.establishment_name)}?</h2><p>${crEsc(item.service_name)}${item.professional_name?` • com ${crEsc(item.professional_name)}`:''}. Sua avaliação ajuda a loja a melhorar e compõe a reputação pública do estabelecimento.</p></div><button class="zaia-rating-close" data-cr-close>×</button></div><div class="zaia-stars">${[1,2,3,4,5].map(n=>`<button class="zaia-star" data-cr-star="${n}" aria-label="${n} estrelas">★</button>`).join('')}</div><div class="zaia-rating-label" id="zaiaCrLabel">${crLabel(Number(existing?.my_rating||0))}</div><div class="zaia-rating-tags">${CUSTOMER_TAGS.map(([v,l])=>`<button class="zaia-rating-tag" data-cr-tag="${v}">${l}</button>`).join('')}</div><textarea class="zaia-rating-textarea" id="zaiaCrComment" maxlength="500" placeholder="Conte como foi sua experiência (opcional)">${crEsc(existing?.my_comment||'')}</textarea><button class="zaia-rating-submit" id="zaiaCrSubmit" ${existing?.my_rating?'':'disabled'}>${existing?.my_rating?'Salvar alterações':'Enviar avaliação'}</button></div>`
+  document.body.appendChild(el);repaintCrModal()
 }
 function repaintCrModal(){if(!crModal)return;document.querySelectorAll('#zaiaCustomerRatingModal [data-cr-star]').forEach(b=>b.classList.toggle('on',Number(b.dataset.crStar)<=crModal.rating));document.querySelectorAll('#zaiaCustomerRatingModal [data-cr-tag]').forEach(b=>b.classList.toggle('on',crModal.tags.has(b.dataset.crTag)));const l=document.querySelector('#zaiaCrLabel');if(l)l.textContent=crLabel(crModal.rating);const s=document.querySelector('#zaiaCrSubmit');if(s)s.disabled=!crModal.rating}
+function maybeAutoOpenCustomerRating(){
+  if(crModal||!crDashboard?.pending?.length||document.querySelector('.client-auth-backdrop'))return
+  const item=crDashboard.pending[0]
+  const key=`zaia_rating_prompt_seen_${item.appointment_id}`
+  if(sessionStorage.getItem(key))return
+  sessionStorage.setItem(key,'1')
+  openCustomerRatingModal(item.appointment_id,{auto:true})
+}
 async function submitCr(button){
   if(!crModal?.rating)return;const old=button.textContent;button.disabled=true;button.textContent='Enviando...'
-  try{await crRpc('customer_submit_appointment_rating',{p_appointment_id:crModal.appointmentId,p_rating:crModal.rating,p_tags:[...crModal.tags],p_comment:document.querySelector('#zaiaCrComment')?.value||null});document.querySelector('#zaiaCustomerRatingModal')?.remove();crModal=null;await Promise.all([refreshCustomerRatings(),refreshPublicRatings()])}catch(error){alert(error.message);button.disabled=false;button.textContent=old}
+  try{
+    const id=crModal.appointmentId
+    await crRpc('customer_submit_appointment_rating',{p_appointment_id:id,p_rating:crModal.rating,p_tags:[...crModal.tags],p_comment:document.querySelector('#zaiaCrComment')?.value||null})
+    document.querySelector('#zaiaCustomerRatingModal')?.remove();crModal=null
+    sessionStorage.removeItem(`zaia_rating_prompt_seen_${id}`)
+    await Promise.all([refreshCustomerRatings(),refreshPublicRatings()])
+  }catch(error){alert(error.message);button.disabled=false;button.textContent=old}
 }
 document.addEventListener('click',e=>{
   const open=e.target.closest('[data-rate-business]');if(open){openCustomerRatingModal(open.dataset.rateBusiness);return}
@@ -93,4 +116,4 @@ document.addEventListener('click',e=>{
 const crObserver=new MutationObserver(scheduleCrPaint);crObserver.observe(document.documentElement,{childList:true,subtree:true})
 window.addEventListener('focus',()=>{refreshPublicRatings();refreshCustomerRatings()})
 window.addEventListener('zaia:customer-refresh',()=>setTimeout(refreshCustomerRatings,200))
-if(location.pathname.startsWith('/cliente')){setTimeout(refreshPublicRatings,350);setTimeout(refreshCustomerRatings,700);setInterval(()=>{refreshPublicRatings();refreshCustomerRatings()},60000)}
+if(location.pathname.startsWith('/cliente')){setTimeout(refreshPublicRatings,350);setTimeout(refreshCustomerRatings,700);setInterval(()=>{refreshPublicRatings();refreshCustomerRatings()},30000)}
