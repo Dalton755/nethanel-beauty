@@ -1,4 +1,5 @@
 /* ZAIA bidirectional rating engine */
+/* Merchant ratings are served from the canonical /loja route. */
 .zaia-rating-summary,
 .zaia-rating-panel,
 .zaia-rating-reputation{
