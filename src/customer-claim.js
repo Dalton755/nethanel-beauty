@@ -4,6 +4,7 @@ const claimCfg=()=>window.BEAUTY_CONFIG||{}
 const claimBaseUrl=()=>String(claimCfg().supabaseUrl||'').replace(/\/$/,'')
 const claimApiKey=()=>claimCfg().supabasePublishableKey||''
 const claimSchema=()=>claimCfg().schema||'beleza'
+const claimEsc=value=>String(value||'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))
 
 function readClaimSession(){
   try{return JSON.parse(localStorage.getItem(CLAIM_SESSION_KEY)||'null')}catch{return null}
@@ -60,20 +61,21 @@ function showClaimBanner(message){
     banner.className='zaia-claim-banner'
     document.body.appendChild(banner)
   }
-  banner.innerHTML=`<strong>Ativação do seu cadastro ZAIA</strong><p>${message}</p>`
+  if(banner.dataset.message===message)return
+  banner.dataset.message=message
+  banner.innerHTML=`<strong>Ativação do seu cadastro ZAIA</strong><p>${claimEsc(message)}</p>`
 }
 
 function showClaimResult({success,title,message}){
   injectClaimStyles()
   document.querySelector('.zaia-claim-banner')?.remove()
+  document.querySelector('.zaia-claim-overlay')?.remove()
   const overlay=document.createElement('div')
   overlay.className='zaia-claim-overlay'
-  overlay.innerHTML=`<div class="zaia-claim-card ${success?'':'error'}"><img src="/icon.svg" alt="ZAIA"><h2>${title}</h2><p>${message}</p><button type="button">${success?'Continuar no ZAIA':'Fechar'}</button></div>`
+  overlay.innerHTML=`<div class="zaia-claim-card ${success?'':'error'}"><img src="/icon.svg" alt="ZAIA"><h2>${claimEsc(title)}</h2><p>${claimEsc(message)}</p><button type="button">${success?'Continuar no ZAIA':'Fechar'}</button></div>`
   document.body.appendChild(overlay)
   overlay.querySelector('button')?.addEventListener('click',()=>{
     if(success){
-      const url=new URL(location.href)
-      url.searchParams.delete('convite')
       localStorage.removeItem(CLAIM_PENDING_KEY)
       location.replace('/cliente?tab=agenda')
     }else{
@@ -83,9 +85,10 @@ function showClaimResult({success,title,message}){
 }
 
 let claimBusy=false
+let claimTerminal=false
 let loginPrompted=false
 async function processPendingInvite(){
-  if(claimBusy)return
+  if(claimBusy||claimTerminal)return
   const token=currentInviteToken()
   if(!token)return
 
@@ -106,24 +109,22 @@ async function processPendingInvite(){
   showClaimBanner('Conectando seu cadastro e seus históricos à sua conta...')
   try{
     const result=await acceptCustomerInvite(token,session.access_token)
-    if(result?.accepted){
-      localStorage.removeItem(CLAIM_PENDING_KEY)
-      showClaimResult({
-        success:true,
-        title:'Cadastro ativado',
-        message:`${result.full_name||'Seu cadastro'} agora está conectado à sua conta ZAIA. Seus agendamentos e históricos vinculados ficam disponíveis em uma única conta.`,
-      })
-    }else{
-      throw new Error('O convite não pôde ser confirmado.')
-    }
+    if(!result?.accepted)throw new Error('O convite não pôde ser confirmado.')
+    localStorage.removeItem(CLAIM_PENDING_KEY)
+    claimTerminal=true
+    showClaimResult({
+      success:true,
+      title:'Cadastro ativado',
+      message:`${result.full_name||'Seu cadastro'} agora está conectado à sua conta ZAIA. Seus agendamentos e históricos vinculados ficam disponíveis em uma única conta.`,
+    })
   }catch(error){
     const message=String(error?.message||error)
     if(/jwt|token.*expired|autentica/i.test(message)){
       claimBusy=false
       return
     }
+    claimTerminal=true
     showClaimResult({success:false,title:'Não foi possível ativar',message})
-    claimBusy=false
   }
 }
 
