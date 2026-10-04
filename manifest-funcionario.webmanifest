@@ -1,0 +1,13 @@
+{
+  "name": "ZAIA Profissional",
+  "short_name": "ZAIA Pro",
+  "description": "Agenda profissional, serviços e disponibilidade.",
+  "start_url": "/funcionario/",
+  "scope": "/funcionario/",
+  "display": "standalone",
+  "background_color": "#f7f3f1",
+  "theme_color": "#351523",
+  "icons": [
+    {"src":"/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}
+  ]
+}
