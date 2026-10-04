@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/customer-session-isolation.js','src/merchant-access-settings.js','src/merchant-login-brand-guard.js','src/merchant-logout-fix.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/merchant-workforce.js','src/employee-app.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/customer-session-isolation.js','src/merchant-access-settings.js','src/merchant-login-brand-guard.js','src/merchant-logout-fix.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/merchant-workforce.js','src/employee-app.js','src/finance-integrity.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -64,6 +64,7 @@ await cp('src/merchant-booking-modal.js', 'dist/merchant-booking-modal.js')
 await cp('src/promotion-experience.js', 'dist/promotion-experience.js')
 await cp('src/merchant-workforce.js', 'dist/merchant-workforce.js')
 await cp('src/employee-app.js', 'dist/employee-app.js')
+await cp('src/finance-integrity.js', 'dist/finance-integrity.js')
 await cp('src/cloud.js', 'dist/cloud.js')
 await cp('src/styles.css', 'dist/styles.css')
 await cp('src/pro-plans.css', 'dist/pro-plans.css')
