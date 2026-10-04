@@ -8,10 +8,17 @@
   const originalRemove=proto.removeItem
 
   try{
-    if(!originalGet.call(localStorage,scoped)){
-      const legacy=originalGet.call(localStorage,BASE)
+    const scopedValue=originalGet.call(localStorage,scoped)
+    const legacy=originalGet.call(localStorage,BASE)
+    if(!scopedValue&&legacy){
       const shouldMigrate=ctx==='merchant'||Boolean(originalGet.call(localStorage,'zaia_customer_profile_v1'))
-      if(legacy&&shouldMigrate)originalSet.call(localStorage,scoped,legacy)
+      if(shouldMigrate){
+        originalSet.call(localStorage,scoped,legacy)
+        originalRemove.call(localStorage,BASE)
+      }
+    }else if(scopedValue&&legacy){
+      // Sessão antiga não pode permanecer como fonte de restauração depois do logout.
+      originalRemove.call(localStorage,BASE)
     }
   }catch{}
 
@@ -26,4 +33,9 @@
   }
 
   window.ZAIA_SESSION_SCOPE=ctx
+  window.ZAIA_SESSION_STORAGE_NATIVE={
+    getItem:key=>originalGet.call(localStorage,key),
+    setItem:(key,value)=>originalSet.call(localStorage,key,value),
+    removeItem:key=>originalRemove.call(localStorage,key),
+  }
 })()
