@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/merchant-access-settings.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/customer-session-isolation.js','src/merchant-access-settings.js','src/merchant-login-brand-guard.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -43,7 +43,9 @@ await cp('src/customer-assistant.js', 'dist/customer-assistant.js')
 await cp('src/customer-assistant-stability.js', 'dist/customer-assistant-stability.js')
 await cp('src/customer-access-info.js', 'dist/customer-access-info.js')
 await cp('src/customer-accessibility-filter.js', 'dist/customer-accessibility-filter.js')
+await cp('src/customer-session-isolation.js', 'dist/customer-session-isolation.js')
 await cp('src/merchant-access-settings.js', 'dist/merchant-access-settings.js')
+await cp('src/merchant-login-brand-guard.js', 'dist/merchant-login-brand-guard.js')
 await cp('src/merchant-help.js', 'dist/merchant-help.js')
 await cp('src/merchant-shell.js', 'dist/merchant-shell.js')
 await cp('src/client-shell.js', 'dist/client-shell.js')
