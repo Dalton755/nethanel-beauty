@@ -73,6 +73,7 @@
     } else {
       import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
       if (isAdmin) import('/admin-production.js')
+      if (isAdmin) import('/public/admin-exact-counts.js?v=20261004-counts1')
       if (!isClient && !isAdmin) import('/pro-plans.js')
       if (!isClient && !isAdmin) import('/merchant-help.js')
       if (isClient) import('/customer-privacy.js')
