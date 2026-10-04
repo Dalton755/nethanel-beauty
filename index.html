@@ -39,11 +39,12 @@
     (() => {
       const CANONICAL_ORIGIN = 'https://zaia.nethanel.com.br'
 
-      // Mantém o OAuth Google da gestão e do cliente no domínio oficial da ZAIA.
+      // Mantém OAuth Google de loja, cliente e gestão no domínio oficial da ZAIA.
       document.addEventListener('click', event => {
         const merchantButton = event.target.closest?.('#googleLogin')
         const customerButton = event.target.closest?.('#clientGoogleLogin')
-        if ((!merchantButton && !customerButton) || location.origin !== CANONICAL_ORIGIN) return
+        const adminButton = event.target.closest?.('#adminGoogle')
+        if ((!merchantButton && !customerButton && !adminButton) || location.origin !== CANONICAL_ORIGIN) return
 
         const supabaseUrl = String(window.BEAUTY_CONFIG?.supabaseUrl || '').replace(/\/$/, '')
         if (!supabaseUrl) return
@@ -57,7 +58,14 @@
 
         const url = new URL(`${supabaseUrl}/auth/v1/authorize`)
         url.searchParams.set('provider', 'google')
-        url.searchParams.set('redirect_to', customerButton ? `${CANONICAL_ORIGIN}/cliente` : `${CANONICAL_ORIGIN}/loja`)
+        url.searchParams.set(
+          'redirect_to',
+          adminButton
+            ? `${CANONICAL_ORIGIN}/gestao`
+            : customerButton
+              ? `${CANONICAL_ORIGIN}/cliente`
+              : `${CANONICAL_ORIGIN}/loja`
+        )
         location.assign(url.toString())
       }, true)
     })()
@@ -71,6 +79,18 @@
     if (isRecovery) {
       import('/auth-recovery.js')
     } else {
+      // A Gestão usa o mesmo Supabase Auth, mas precisa consumir o retorno OAuth
+      // antes de o admin.js verificar a sessão. Sem isso, o login Google volta para
+      // a tela de entrada e cria um loop aparente.
+      if (isAdmin && authHash.get('access_token')) {
+        try {
+          const { consumeOAuthSessionFromUrl } = await import('/cloud.js')
+          await consumeOAuthSessionFromUrl()
+        } catch (error) {
+          console.error('Falha ao concluir login da Gestão ZAIA:', error)
+        }
+      }
+
       import(isAdmin ? '/admin.js' : isClient ? '/client.js' : '/app.js')
       if (isAdmin) import('/admin-production.js')
       if (isAdmin) import('/public/admin-exact-counts.js?v=20261004-counts1')
