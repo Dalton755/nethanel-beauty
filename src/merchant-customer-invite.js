@@ -48,25 +48,11 @@ async function generateCustomerInvite(zaiaCustomerId){
   })
 }
 
-function ensureInviteButton(form){
-  if(!form||form.id!=='clientForm'||form.dataset.zaiaGlobalCustomer!=='true')return
-  const lookup=form._zaiaLookup
-  let box=form.querySelector('[data-zaia-invite-box]')
+function renderInviteBox(form,box,lookup,mode){
+  box.dataset.mode=mode
+  box.dataset.customerId=lookup.zaia_customer_id||''
 
-  if(!lookup?.found||!lookup?.already_linked){
-    box?.remove()
-    return
-  }
-
-  if(!box){
-    box=document.createElement('div')
-    box.dataset.zaiaInviteBox='true'
-    box.className='zaia-customer-lookup-box found'
-    const status=form.querySelector('[data-zaia-customer-status]')
-    status?.insertAdjacentElement('afterend',box)
-  }
-
-  if(lookup.has_zaia_account){
+  if(mode==='active'){
     box.innerHTML='<strong>Conta ZAIA ativa</strong><p>Este cliente já possui acesso ao app. Os próximos vínculos e agendamentos usam a mesma identidade.</p><span class="zaia-global-badge">✓ CONTA ATIVA</span>'
     return
   }
@@ -86,7 +72,7 @@ function ensureInviteButton(form){
     try{
       const invite=await generateCustomerInvite(lookup.zaia_customer_id)
       if(invite?.already_active){
-        box.innerHTML='<strong>Conta ZAIA ativa</strong><p>Este cliente já possui acesso ao app.</p><span class="zaia-global-badge">✓ CONTA ATIVA</span>'
+        renderInviteBox(form,box,{...lookup,has_zaia_account:true},'active')
         return
       }
       if(!invite?.token)throw new Error('Convite não retornou um token válido.')
@@ -102,7 +88,30 @@ function ensureInviteButton(form){
       button.disabled=false
       button.textContent='Convidar pelo WhatsApp'
     }
-  },{once:true})
+  })
+}
+
+function ensureInviteButton(form){
+  if(!form||form.id!=='clientForm'||form.dataset.zaiaGlobalCustomer!=='true')return
+  const lookup=form._zaiaLookup
+  let box=form.querySelector('[data-zaia-invite-box]')
+
+  if(!lookup?.found||!lookup?.already_linked){
+    box?.remove()
+    return
+  }
+
+  if(!box){
+    box=document.createElement('div')
+    box.dataset.zaiaInviteBox='true'
+    box.className='zaia-customer-lookup-box found'
+    const status=form.querySelector('[data-zaia-customer-status]')
+    status?.insertAdjacentElement('afterend',box)
+  }
+
+  const mode=lookup.has_zaia_account?'active':'invite'
+  if(box.dataset.mode===mode&&box.dataset.customerId===String(lookup.zaia_customer_id||''))return
+  renderInviteBox(form,box,lookup,mode)
 }
 
 function refreshInviteUi(){
@@ -110,6 +119,5 @@ function refreshInviteUi(){
 }
 
 const merchantInviteObserver=new MutationObserver(()=>queueMicrotask(refreshInviteUi))
-merchantInviteObserver.observe(document.documentElement,{childList:true,subtree:true,characterData:true})
-setInterval(refreshInviteUi,700)
+merchantInviteObserver.observe(document.documentElement,{childList:true,subtree:true})
 refreshInviteUi()
