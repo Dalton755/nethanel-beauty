@@ -46,6 +46,13 @@
   text-overflow:clip!important;
   line-height:1!important;
 }
+/* Valores monetários ocupam menos largura no mobile para nunca perder centavos. */
+.premium-merchant-ui .zaia-stats .stat-value.money{
+  font-size:clamp(16px,5.2vw,22px)!important;
+  letter-spacing:-.055em!important;
+  overflow:visible!important;
+  font-variant-numeric:tabular-nums;
+}
 .premium-merchant-ui .zaia-stats .stat-note{
   white-space:normal!important;
   overflow-wrap:break-word!important;
@@ -115,6 +122,10 @@
     letter-spacing:-.035em!important;
     margin-top:6px!important;
   }
+  .premium-merchant-ui .zaia-stats .stat-value.money{
+    font-size:clamp(16px,5.2vw,22px)!important;
+    letter-spacing:-.055em!important;
+  }
   .premium-merchant-ui .zaia-stats .stat-note{
     font-size:11px!important;
     margin-top:6px!important;
@@ -156,6 +167,10 @@
   }
   .premium-merchant-ui .zaia-stats .stat-value{
     font-size:21px!important;
+  }
+  .premium-merchant-ui .zaia-stats .stat-value.money{
+    font-size:16px!important;
+    letter-spacing:-.05em!important;
   }
   .premium-merchant-ui .premium-filter-row button{
     padding:9px 13px!important;
