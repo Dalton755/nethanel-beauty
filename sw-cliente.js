@@ -1,5 +1,13 @@
-const CACHE='zaia-cliente-v16';
-const ASSETS=['/cliente','/styles.css','/map-enhancement.css','/operational.css','/rating.css?v=20261004-session1','/client-premium-ui.css?v=20261004-session1','/promotion-experience.css?v=20261003-promo1','/customer-assistant.css?v=20261003-assistant3','/client.js?v=20261004-claim2','/customer-claim.js?v=20261004-claim2','/customer-session-isolation.js?v=20261004-session1','/customer-assistant-stability.js?v=20261003-assistant3','/customer-arrival.js?v=20261004-session1','/customer-rating.js?v=20261004-session1','/client-premium-ui.js?v=20261004-session1','/promotion-experience.js?v=20261003-promo1','/customer-assistant.js?v=20261003-assistant3','/customer-access-info.js?v=20261004-session1','/customer-accessibility-filter.js?v=20261004-session1','/map-enhancement.js?v=20261004-session1','/customer-privacy.js','/customer-help.js','/production-guard.js','/auth-recovery.js','/client-shell.js','/session-scope.js?v=20261004-session1','/cloud.js','/config.js','/manifest-cliente.webmanifest','/icon.svg','/zaia-logo.svg','/public/notification-badge.svg'];
+const CACHE='zaia-cliente-v17';
+const ASSETS=['/cliente','/styles.css','/map-enhancement.css','/operational.css','/rating.css?v=20261004-session1','/client-premium-ui.css?v=20261004-session1','/promotion-experience.css?v=20261003-promo1','/customer-assistant.css?v=20261003-assistant3','/client.js?v=20261004-claim2','/customer-live-sync.js?v=20261005-push2','/customer-claim.js?v=20261004-claim2','/customer-session-isolation.js?v=20261004-session1','/customer-assistant-stability.js?v=20261003-assistant3','/customer-arrival.js?v=20261004-session1','/customer-rating.js?v=20261004-session1','/client-premium-ui.js?v=20261004-session1','/promotion-experience.js?v=20261003-promo1','/customer-assistant.js?v=20261003-assistant3','/customer-access-info.js?v=20261004-session1','/customer-accessibility-filter.js?v=20261004-session1','/map-enhancement.js?v=20261004-session1','/customer-privacy.js','/customer-help.js','/production-guard.js','/auth-recovery.js','/client-shell.js','/session-scope.js?v=20261004-session1','/cloud.js','/config.js','/manifest-cliente.webmanifest','/icon.svg','/zaia-logo.svg'];
+
+const safeNotificationIcon=data=>{
+  const raw=String(data?.icon||data?.brand_logo_url||'').trim();
+  if(!raw)return '/icon.svg';
+  try{const url=new URL(raw,self.location.origin);if(url.protocol==='https:'||url.origin===self.location.origin)return url.href}catch{}
+  return '/icon.svg';
+};
+
 self.addEventListener('install',e=>e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(ASSETS)),self.skipWaiting()])));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
   caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('zaia-cliente-')&&k!==CACHE).map(k=>caches.delete(k)))),
@@ -24,13 +32,12 @@ self.addEventListener('notificationclick',e=>{
 self.addEventListener('push',event=>{
   let data={};
   try{data=event.data?event.data.json():{}}catch{data={body:event.data?.text?.()||''}}
-  const icon=data.icon||'/icon.svg';
-  event.waitUntil(self.registration.showNotification(data.title||'ZAIA',{
+  event.waitUntil(self.registration.showNotification(data.title||data.brand_name||'ZAIA',{
     body:data.body||'Você tem uma nova atualização.',
-    icon,
-    badge:'/public/notification-badge.svg',
+    icon:safeNotificationIcon(data),
     data:{url:data.url||'/cliente?tab=agenda',type:data.type||'ZAIA_CUSTOMER',brand_name:data.brand_name||''},
     tag:data.notification_id||data.type||'zaia-customer-notification',
-    renotify:true
+    renotify:true,
+    timestamp:Date.now()
   }));
 });
