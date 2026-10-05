@@ -1,0 +1,35 @@
+/* ZAIA Negócios — acabamento visual para mobile */
+
+/* Home: o selo "Sem avaliações" precisa manter contraste dentro do card escuro. */
+.premium-merchant-ui .premium-home-rating .zaia-rating-summary .zaia-rating-score .zaia-rating-badge.muted{
+  background:#fff8f3!important;
+  color:#4a3139!important;
+  border:1px solid rgba(255,255,255,.7)!important;
+  box-shadow:0 4px 14px rgba(20,10,15,.08)!important;
+  opacity:1!important;
+  text-shadow:none!important;
+}
+
+@media(max-width:760px){
+  /* Agenda, Clientes e Serviços já possuem CTA principal no topo. O FAB duplicado
+     criava dois botões flutuantes no mesmo espaço do botão de Ajuda. */
+  .premium-merchant-ui .content[data-premium-page="agenda"] > .fab,
+  .premium-merchant-ui .content[data-premium-page="clients"] > .fab,
+  .premium-merchant-ui .content[data-premium-page="services"] > .fab{
+    display:none!important;
+  }
+
+  /* Reserva espaço real acima da navegação fixa para o último card/ação não ficar
+     escondido atrás do menu inferior. */
+  .premium-merchant-ui .content[data-premium-page="agenda"],
+  .premium-merchant-ui .content[data-premium-page="clients"],
+  .premium-merchant-ui .content[data-premium-page="services"]{
+    padding-bottom:calc(168px + env(safe-area-inset-bottom))!important;
+  }
+
+  /* Ajuda fica isolada acima da barra inferior, sem disputar espaço com ações. */
+  body .zaia-merchant-help-fab{
+    right:16px!important;
+    bottom:calc(96px + env(safe-area-inset-bottom))!important;
+  }
+}
