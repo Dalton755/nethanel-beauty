@@ -28,7 +28,20 @@
       const canonical='https://zaia.nethanel.com.br'
       const legacy='https://nethanel-beauty.vercel.app'
       if(location.origin===legacy){
-        location.replace(canonical+location.pathname+location.search+location.hash)
+        const target=canonical+location.pathname+location.search+location.hash
+        ;(async()=>{
+          try{
+            if('serviceWorker' in navigator){
+              const regs=await navigator.serviceWorker.getRegistrations()
+              for(const reg of regs){
+                try{const sub=await reg.pushManager?.getSubscription();if(sub)await sub.unsubscribe()}catch{}
+                try{await reg.unregister()}catch{}
+              }
+            }
+          }catch{}
+          location.replace(target)
+        })()
+        return
       }
     })()
   </script>
