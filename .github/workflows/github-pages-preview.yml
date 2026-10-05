@@ -115,10 +115,11 @@ jobs:
           '''
           (dist / 'sw.js').write_text(sw, encoding='utf-8')
 
-          (dist / 'index.html').write_text(
-              f'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZAIA Preview</title><script>location.replace({(base + "/loja/")!r})</script>',
-              encoding='utf-8'
-          )
+          home = f'''<!doctype html>
+          <html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZAIA Preview</title>
+          <style>body{{margin:0;min-height:100vh;display:grid;place-items:center;background:#f8f4f1;font-family:system-ui,sans-serif;color:#351523}}main{{width:min(92vw,420px);background:#fff;padding:28px;border-radius:24px;box-shadow:0 18px 50px rgba(53,21,35,.12);text-align:center}}img{{width:150px;max-width:70%}}p{{color:#766a70}}a{{display:block;text-decoration:none;padding:15px 18px;border-radius:14px;margin-top:12px;font-weight:800}}a.primary{{background:#351523;color:#fff}}a.secondary{{background:#f1e8e3;color:#351523}}</style></head>
+          <body><main><img src="{base}/zaia-logo.svg" alt="ZAIA"><h1>Ambiente de teste</h1><p>Escolha qual aplicativo deseja abrir.</p><a class="primary" href="{base}/cliente/">ZAIA Cliente</a><a class="secondary" href="{base}/loja/">ZAIA Estabelecimento</a></main></body></html>'''
+          (dist / 'index.html').write_text(home, encoding='utf-8')
           PY
 
       - name: Configurar Pages
