@@ -1,0 +1,141 @@
+name: ZAIA GitHub Pages Preview
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: zaia-github-pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Montar preview estático
+        env:
+          PAGES_BASE: /nethanel-beauty
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist/loja dist/cliente dist/funcionario dist/public
+          cp loja.html dist/loja/index.html
+          cp cliente.html dist/cliente/index.html
+          cp funcionario.html dist/funcionario/index.html
+          cp manifest*.webmanifest icon.svg zaia-logo.svg sw.js sw-loja.js sw-cliente.js sw-funcionario.js dist/ 2>/dev/null || true
+          cp -r public/. dist/public/ 2>/dev/null || true
+          cp src/*.js src/*.css dist/
+          curl --fail --silent --show-error https://zaia.nethanel.com.br/config.js -o dist/config.js
+
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          base = os.environ['PAGES_BASE'].rstrip('/')
+          dist = Path('dist')
+
+          for path in dist.rglob('*.html'):
+              text = path.read_text(encoding='utf-8')
+              text = text.replace('href="/', f'href="{base}/')
+              text = text.replace("href='/", f"href='{base}/")
+              text = text.replace('src="/', f'src="{base}/')
+              text = text.replace("src='/", f"src='{base}/")
+              text = text.replace("import('/", f"import('{base}/")
+              text = text.replace('import("/', f'import("{base}/')
+              path.write_text(text, encoding='utf-8')
+
+          for path in dist.glob('*.js'):
+              if path.name.startswith('sw'):
+                  continue
+              text = path.read_text(encoding='utf-8')
+              text = text.replace('src="/icon.svg"', f'src="{base}/icon.svg"')
+              text = text.replace('src="/zaia-logo.svg"', f'src="{base}/zaia-logo.svg"')
+              text = text.replace('href="/cliente"', f'href="{base}/cliente"')
+              text = text.replace('href="/loja"', f'href="{base}/loja"')
+              text = text.replace("navigator.serviceWorker.register('/sw.js')", f"navigator.serviceWorker.register('{base}/sw.js')")
+              path.write_text(text, encoding='utf-8')
+
+          sw = f'''const BASE={base!r};
+          const withBase=(raw)=>{{
+            raw=String(raw||'');
+            if(!raw)return BASE+'/loja/';
+            if(/^https?:\\/\\//i.test(raw))return raw;
+            if(raw.startsWith(BASE+'/'))return raw;
+            if(raw==='/')return BASE+'/loja/';
+            return BASE+(raw.startsWith('/')?raw:'/'+raw);
+          }};
+          const safeIcon=(data)=>{{
+            const raw=String(data?.icon||data?.brand_logo_url||'').trim();
+            if(!raw)return BASE+'/icon.svg';
+            try{{const u=new URL(raw,self.location.origin);if(u.protocol==='https:'||u.origin===self.location.origin)return u.href}}catch{{}}
+            return BASE+'/icon.svg';
+          }};
+          const targetFor=(data)=>{{
+            let raw=String(data?.url||'/loja?page=agenda');
+            const type=String(data?.type||'');
+            if(raw.startsWith('/?page=')||raw.startsWith('/?tab=')){{
+              const business=/BOOKING|BUSINESS|STOCK|APPOINTMENT_START|NO_SHOW/i.test(type);
+              raw=(business?'/loja':'/cliente')+raw.slice(1);
+            }}
+            return withBase(raw);
+          }};
+          self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));
+          self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+          self.addEventListener('notificationclick',e=>{{
+            e.notification.close();
+            const target=targetFor(e.notification?.data||{{}});
+            e.waitUntil(clients.matchAll({{type:'window',includeUncontrolled:true}}).then(async list=>{{
+              for(const client of list){{
+                try{{const u=new URL(client.url);if(u.origin===self.location.origin&&u.pathname.startsWith(BASE)){{await client.focus();if('navigate' in client)await client.navigate(target);return client}}}}catch{{}}
+              }}
+              return clients.openWindow(target);
+            }}));
+          }});
+          self.addEventListener('push',event=>{{
+            let data={{}};
+            try{{data=event.data?event.data.json():{{}}}}catch{{data={{body:event.data?.text?.()||''}}}}
+            event.waitUntil(self.registration.showNotification(data.title||data.brand_name||'ZAIA',{{
+              body:data.body||'Você tem uma nova atualização.',
+              icon:safeIcon(data),
+              data:{{url:targetFor(data),type:data.type||'ZAIA',brand_name:data.brand_name||''}},
+              tag:data.notification_id||data.type||'zaia-notification',
+              renotify:true,
+              timestamp:Date.now(),
+            }}));
+          }});
+          '''
+          (dist / 'sw.js').write_text(sw, encoding='utf-8')
+
+          (dist / 'index.html').write_text(
+              f'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>ZAIA Preview</title><script>location.replace({(base + "/loja/")!r})</script>',
+              encoding='utf-8'
+          )
+          PY
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+
+      - name: Enviar artefato
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Publicar no GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
