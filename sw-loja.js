@@ -1,5 +1,5 @@
-const CACHE='zaia-loja-v23';
-const ASSETS=['/loja','/styles.css','/pro-plans.css','/operational.css','/professional-services-fix.css','/rating.css?v=20261004-mobile2','/merchant-premium-ui.css?v=20261004-mobile2','/merchant-mobile-fixes.css?v=20261004-mobile2','/merchant-ui-polish.css?v=20261005-polish1','/merchant-booking-modal.css?v=20261004-mobile2','/app.js?v=20261004-global3','/finance-integrity.js?v=20261004-finance1','/global-customer.js?v=20261004-global3','/merchant-appointment-customer.js?v=20261004-appt1','/merchant-customer-invite.js?v=20261004-global3','/merchant-login-brand-guard.js?v=20261004-logout2','/merchant-logout-fix.js?v=20261004-logout2','/merchant-access-settings.js?v=20261003-access1','/operational-engine.js','/business-rating.js?v=20261004-mobile2','/merchant-premium-ui.js?v=20261004-mobile2','/merchant-booking-modal.js?v=20261004-mobile2','/promotion-experience.js?v=20261003-promo1','/pro-plans.js','/merchant-trial-status.js?v=20261005-trial1','/merchant-help.js','/production-guard.js','/auth-recovery.js','/merchant-shell.js','/session-scope.js?v=20261004-logout2','/cloud.js','/config.js','/manifest-loja.webmanifest','/icon.svg','/zaia-logo.svg'];
+const CACHE='zaia-loja-v24';
+const ASSETS=['/loja','/styles.css','/pro-plans.css','/operational.css','/professional-services-fix.css','/rating.css?v=20261004-mobile2','/merchant-premium-ui.css?v=20261004-mobile2','/merchant-mobile-fixes.css?v=20261004-mobile2','/merchant-ui-polish.css?v=20261005-polish1','/merchant-booking-modal.css?v=20261004-mobile2','/app.js?v=20261004-global3','/finance-integrity.js?v=20261004-finance1','/global-customer.js?v=20261004-global3','/merchant-appointment-customer.js?v=20261004-appt1','/merchant-customer-invite.js?v=20261004-global3','/merchant-login-brand-guard.js?v=20261004-logout2','/merchant-logout-fix.js?v=20261004-logout2','/merchant-access-settings.js?v=20261003-access1','/operational-engine.js','/business-rating.js?v=20261004-mobile2','/merchant-premium-ui.js?v=20261004-mobile2','/merchant-booking-modal.js?v=20261004-mobile2','/promotion-experience.js?v=20261003-promo1','/pro-plans.js','/merchant-trial-status.js?v=20261005-trial1','/merchant-help.js','/production-guard.js','/auth-recovery.js','/merchant-shell.js','/session-scope.js?v=20261004-logout2','/cloud.js','/config.js','/manifest-loja.webmanifest','/icon.svg','/zaia-logo.svg','/public/notification-badge.svg'];
 self.addEventListener('install',e=>e.waitUntil(Promise.all([caches.open(CACHE).then(c=>c.addAll(ASSETS)),self.skipWaiting()])));
 self.addEventListener('activate',e=>e.waitUntil(Promise.all([
   caches.keys().then(keys=>Promise.all(keys.filter(k=>k.startsWith('zaia-loja-')&&k!==CACHE).map(k=>caches.delete(k)))),
@@ -31,7 +31,7 @@ self.addEventListener('push',event=>{
   event.waitUntil(self.registration.showNotification(data.title||'ZAIA Negócios',{
     body:data.body||'Você tem uma nova atualização.',
     icon,
-    badge:'/icon.svg',
+    badge:'/public/notification-badge.svg',
     data:{url,type:data.type||'ZAIA_BUSINESS',brand_name:data.brand_name||''},
     tag:data.notification_id||data.type||'zaia-business-notification',
     renotify:true
