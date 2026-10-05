@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/customer-session-isolation.js','src/merchant-access-settings.js','src/merchant-login-brand-guard.js','src/merchant-logout-fix.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/merchant-workforce.js','src/employee-app.js','src/finance-integrity.js','src/global-customer.js','src/merchant-appointment-customer.js','src/merchant-customer-invite.js','src/customer-claim.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/merchant-trial-status.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/customer-session-isolation.js','src/merchant-access-settings.js','src/merchant-login-brand-guard.js','src/merchant-logout-fix.js','src/merchant-help.js','src/merchant-shell.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/merchant-workforce.js','src/employee-app.js','src/finance-integrity.js','src/global-customer.js','src/merchant-appointment-customer.js','src/merchant-customer-invite.js','src/customer-claim.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -37,6 +37,7 @@ await cp('src/client.js', 'dist/client.js')
 await cp('src/admin.js', 'dist/admin.js')
 await cp('src/admin-production.js', 'dist/admin-production.js')
 await cp('src/pro-plans.js', 'dist/pro-plans.js')
+await cp('src/merchant-trial-status.js', 'dist/merchant-trial-status.js')
 await cp('src/production-guard.js', 'dist/production-guard.js')
 await cp('src/auth-recovery.js', 'dist/auth-recovery.js')
 await cp('src/customer-privacy.js', 'dist/customer-privacy.js')
@@ -79,6 +80,7 @@ await cp('src/professional-services-fix.css', 'dist/professional-services-fix.cs
 await cp('src/rating.css', 'dist/rating.css')
 await cp('src/merchant-premium-ui.css', 'dist/merchant-premium-ui.css')
 await cp('src/merchant-mobile-fixes.css', 'dist/merchant-mobile-fixes.css')
+await cp('src/merchant-ui-polish.css', 'dist/merchant-ui-polish.css')
 await cp('src/client-premium-ui.css', 'dist/client-premium-ui.css')
 await cp('src/merchant-booking-modal.css', 'dist/merchant-booking-modal.css')
 await cp('src/promotion-experience.css', 'dist/promotion-experience.css')
