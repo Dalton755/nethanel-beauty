@@ -28,7 +28,19 @@
       const LEGACY_ORIGIN = 'https://nethanel-beauty.vercel.app'
 
       if (location.origin === LEGACY_ORIGIN) {
-        location.replace(CANONICAL_ORIGIN + location.pathname + location.search + location.hash)
+        const target = CANONICAL_ORIGIN + location.pathname + location.search + location.hash
+        ;(async () => {
+          try {
+            if ('serviceWorker' in navigator) {
+              const regs = await navigator.serviceWorker.getRegistrations()
+              for (const reg of regs) {
+                try { const sub = await reg.pushManager?.getSubscription(); if (sub) await sub.unsubscribe() } catch {}
+                try { await reg.unregister() } catch {}
+              }
+            }
+          } catch {}
+          location.replace(target)
+        })()
         return
       }
 
