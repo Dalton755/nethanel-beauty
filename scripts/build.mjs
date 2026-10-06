@@ -10,7 +10,7 @@ if (!url || !key) {
   throw new Error('Configure SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY no Vercel antes do deploy.')
 }
 
-for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/merchant-trial-status.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-booking-profile.js','src/customer-live-sync.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/customer-session-isolation.js','src/merchant-access-settings.js','src/merchant-login-brand-guard.js','src/merchant-logout-fix.js','src/merchant-help.js','src/merchant-shell.js','src/merchant-push-recovery.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/merchant-workforce.js','src/employee-app.js','src/finance-integrity.js','src/global-customer.js','src/merchant-appointment-customer.js','src/merchant-customer-invite.js','src/customer-claim.js','src/cloud.js']) {
+for (const file of ['src/app.js','src/client.js','src/admin.js','src/admin-production.js','src/pro-plans.js','src/merchant-trial-status.js','src/production-guard.js','src/auth-recovery.js','src/customer-privacy.js','src/customer-booking-profile.js','src/customer-live-sync.js','src/customer-help.js','src/customer-assistant.js','src/customer-assistant-stability.js','src/customer-access-info.js','src/customer-accessibility-filter.js','src/customer-session-isolation.js','src/merchant-access-settings.js','src/merchant-login-brand-guard.js','src/merchant-logout-fix.js','src/merchant-help.js','src/merchant-shell.js','src/merchant-push-recovery.js','src/native-push-bridge.js','src/client-shell.js','src/session-scope.js','src/map-enhancement.js','src/operational-engine.js','src/customer-arrival.js','src/business-rating.js','src/customer-rating.js','src/merchant-premium-ui.js','src/client-premium-ui.js','src/merchant-booking-modal.js','src/promotion-experience.js','src/merchant-workforce.js','src/employee-app.js','src/finance-integrity.js','src/global-customer.js','src/merchant-appointment-customer.js','src/merchant-customer-invite.js','src/customer-claim.js','src/cloud.js']) {
   execFileSync(process.execPath, ['--check', file], { stdio: 'inherit' })
 }
 
@@ -55,6 +55,7 @@ await cp('src/merchant-logout-fix.js', 'dist/merchant-logout-fix.js')
 await cp('src/merchant-help.js', 'dist/merchant-help.js')
 await cp('src/merchant-shell.js', 'dist/merchant-shell.js')
 await cp('src/merchant-push-recovery.js', 'dist/merchant-push-recovery.js')
+await cp('src/native-push-bridge.js', 'dist/native-push-bridge.js')
 await cp('src/client-shell.js', 'dist/client-shell.js')
 await cp('src/session-scope.js', 'dist/session-scope.js')
 await cp('src/map-enhancement.js', 'dist/map-enhancement.js')
