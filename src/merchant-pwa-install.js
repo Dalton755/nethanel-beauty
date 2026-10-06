@@ -6,6 +6,7 @@ let currentEstablishment=null
 let manifestReady=false
 
 const isStandalone=()=>window.matchMedia?.('(display-mode: standalone)')?.matches===true||window.navigator.standalone===true
+const isIOS=()=>/iphone|ipad|ipod/i.test(navigator.userAgent)||((navigator.platform==='MacIntel'||navigator.userAgent.includes('Macintosh'))&&navigator.maxTouchPoints>1)
 
 function appBase(){
   const match=location.pathname.match(/^\/([^/]+)\/(?:loja|cliente|funcionario)(?:\/|$)/)
@@ -31,6 +32,17 @@ function escapeHtml(value){
   return String(value??'').replace(/[&<>'"]/g,ch=>({
     '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'
   })[ch])
+}
+
+function ensureMeta(name,content){
+  let meta=document.querySelector(`meta[name="${name}"]`)
+  if(!meta){
+    meta=document.createElement('meta')
+    meta.name=name
+    document.head.appendChild(meta)
+  }
+  meta.content=content
+  return meta
 }
 
 async function ensureWorker(){
@@ -85,10 +97,24 @@ async function applyStoreIdentity(est){
     if(!favicon){favicon=document.createElement('link');favicon.rel='icon';document.head.appendChild(favicon)}
     favicon.href=logo
     favicon.removeAttribute('type')
+
+    // iOS prioriza apple-touch-icon na instalação pela Tela de Início.
+    let appleIcon=document.querySelector('link[rel="apple-touch-icon"]')
+    if(!appleIcon){
+      appleIcon=document.createElement('link')
+      appleIcon.rel='apple-touch-icon'
+      document.head.appendChild(appleIcon)
+    }
+    appleIcon.href=logo
   }
+
+  const appName=String(est.name||'ZAIA Negócios').trim()||'ZAIA Negócios'
   const theme=cleanColor(est.brandPrimaryColor,'#351523')
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme)
-  document.title=`${est.name||'ZAIA Negócios'} — ZAIA`
+  ensureMeta('apple-mobile-web-app-capable','yes')
+  ensureMeta('apple-mobile-web-app-title',appName)
+  ensureMeta('apple-mobile-web-app-status-bar-style','default')
+  document.title=`${appName} — ZAIA`
   manifestReady=true
   return true
 }
@@ -100,6 +126,10 @@ function buildBanner(est,{manual=false}={}){
   const dismissed=sessionStorage.getItem(`zaia_pwa_install_dismissed_${est.id}`)==='1'
   if(dismissed)return
   const logo=safeLogo(est.brandLogoUrl)
+  const ios=isIOS()
+  const manualText=ios
+    ?'No iPhone, instale pela Tela de Início para usar o nome e a logo da loja e habilitar recursos do app.'
+    :'Adicione à tela inicial para abrir como um app próprio da loja.'
   const box=document.createElement('div')
   box.id=BANNER_ID
   box.className='zaia-pwa-install-card'
@@ -107,7 +137,7 @@ function buildBanner(est,{manual=false}={}){
     <div class="zaia-pwa-install-logo">${logo?`<img src="${escapeHtml(logo)}" alt="">`:'<span>ZAIA</span>'}</div>
     <div class="zaia-pwa-install-copy">
       <strong>Instale ${escapeHtml(est.name||'o app da sua loja')}</strong>
-      <span>${manual?'Adicione à tela inicial para abrir como um app próprio da loja.':'Tenha o app da loja na tela do celular com nome, cores e identidade do estabelecimento.'}</span>
+      <span>${manual?manualText:'Tenha o app da loja na tela do celular com nome, cores e identidade do estabelecimento.'}</span>
     </div>
     <button class="zaia-pwa-install-action" type="button">${manual?'Como instalar':'Instalar app'}</button>
     <button class="zaia-pwa-install-close" type="button" aria-label="Fechar">×</button>`
@@ -132,6 +162,10 @@ function buildBanner(est,{manual=false}={}){
         button.disabled=false
         button.textContent='Instalar app'
       }
+      return
+    }
+    if(isIOS()){
+      alert('No Safari, toque em Compartilhar e escolha “Adicionar à Tela de Início”. Depois confirme em “Adicionar”. O app usará o nome e a logo desta loja.')
       return
     }
     alert('No Chrome, toque no menu ⋮ e escolha “Instalar app” ou “Adicionar à tela inicial”. O aplicativo será instalado com a identidade desta loja.')
@@ -165,8 +199,8 @@ async function init(){
     if(!ok)return
     maybeShowInstall()
 
-    // Alguns navegadores não expõem beforeinstallprompt imediatamente após a troca
-    // dinâmica do manifesto. Mantemos uma alternativa clara sem forçar a instalação.
+    // Safari/iOS não expõe beforeinstallprompt. No Chrome, alguns aparelhos também
+    // demoram a expor o evento após a troca dinâmica do manifesto.
     setTimeout(()=>{
       if(!isStandalone()&&!document.getElementById(BANNER_ID)&&!deferredInstallPrompt){
         buildBanner(currentEstablishment,{manual:true})
