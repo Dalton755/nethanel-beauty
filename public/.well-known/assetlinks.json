@@ -1,0 +1,15 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.use_as_origin"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.nethanel.zaia.vezell.dev",
+      "sha256_cert_fingerprints": [
+        "3D:C6:92:29:84:B9:0F:EF:E7:BC:5A:7E:0E:95:2B:96:8F:05:E9:5F:CE:4D:76:BC:D7:A6:8C:25:49:DE:7B:51"
+      ]
+    }
+  }
+]
