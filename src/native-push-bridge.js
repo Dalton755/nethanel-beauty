@@ -6,7 +6,11 @@ const EXPECTED_ORIGIN='https://zaia.nethanel.com.br'
 const params=new URLSearchParams(location.search)
 const source=String(params.get('source')||'').toLowerCase()
 const initialEstablishment=String(params.get('app')||'').trim()
-const isAndroidLaunch=source==='android'
+const launchNativeToken=String(params.get('nativeToken')||'').trim()
+const launchNativePlatform=String(params.get('nativePlatform')||'').trim().toUpperCase()
+const launchNativeAppId=String(params.get('nativeAppId')||'').trim()
+const launchNativeAppVersion=String(params.get('nativeAppVersion')||'').trim()
+const isAndroidLaunch=source==='android'||launchNativePlatform==='ANDROID'
 
 if(isAndroidLaunch){
   try{sessionStorage.setItem(NATIVE_MODE_KEY,'ANDROID')}catch{}
@@ -14,14 +18,30 @@ if(isAndroidLaunch){
 }
 
 const nativePlatform=(()=>{
+  if(launchNativePlatform==='ANDROID'||launchNativePlatform==='IOS')return launchNativePlatform
   if(isAndroidLaunch)return 'ANDROID'
   try{return sessionStorage.getItem(NATIVE_MODE_KEY)||''}catch{return ''}
 })()
 
 if(nativePlatform)window.ZAIA_NATIVE_PUSH_MODE=nativePlatform
 
+if(launchNativeToken){
+  try{
+    const clean=new URL(location.href)
+    ;['nativePush','nativeToken','nativePlatform','nativeAppId','nativeAppVersion'].forEach(key=>clean.searchParams.delete(key))
+    history.replaceState(history.state,'',`${clean.pathname}${clean.search}${clean.hash}`)
+  }catch{}
+}
+
 let nativePort=null
-let pendingToken=null
+let pendingToken=launchNativeToken?{
+  type:'ZAIA_NATIVE_PUSH_TOKEN',
+  token:launchNativeToken,
+  platform:nativePlatform||'ANDROID',
+  appId:launchNativeAppId||'com.nethanel.zaia.vezell.dev',
+  appVersion:launchNativeAppVersion||null,
+  deviceName:navigator.userAgent||null,
+}:null
 let retryTimer=null
 let lastRegisteredToken=''
 let registering=false
@@ -162,6 +182,10 @@ window.addEventListener('message',event=>{
 document.addEventListener('zaia:business-state-ready',()=>retryPending())
 window.addEventListener('focus',()=>retryPending())
 window.addEventListener('pageshow',()=>retryPending())
+
+if(pendingToken){
+  setTimeout(()=>retryPending(),250)
+}
 
 window.zaiaNativePushDiagnostics=async()=>{
   const establishmentId=await resolveEstablishmentId({})
