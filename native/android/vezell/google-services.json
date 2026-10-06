@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "727928060976",
+    "project_id": "zaia-33fc3",
+    "storage_bucket": "zaia-33fc3.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:727928060976:android:6c903662eb23c04b4681f5",
+        "android_client_info": {
+          "package_name": "com.nethanel.zaia.vezell.dev"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDGT1pOsv4csah2eOsOz0BqoXg0N9PkNRM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
