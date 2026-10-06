@@ -21,6 +21,16 @@ function urlBase64ToUint8Array(base64String){
   return Uint8Array.from([...raw].map(c=>c.charCodeAt(0)))
 }
 
+function subscriptionUsesKey(subscription,publicKey){
+  const current=subscription?.options?.applicationServerKey
+  if(!current)return true
+  const actual=new Uint8Array(current)
+  const expected=urlBase64ToUint8Array(publicKey)
+  if(actual.length!==expected.length)return false
+  for(let i=0;i<actual.length;i+=1){if(actual[i]!==expected[i])return false}
+  return true
+}
+
 function supported(){
   return 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window
 }
@@ -84,8 +94,6 @@ async function withTimeout(promise,ms,message){
 }
 
 async function currentServiceWorker(){
-  // Não dependemos mais de um registro fire-and-forget feito por outro módulo.
-  // Este fluxo registra/atualiza o SW que realmente será usado pelo Push deste origin.
   const registration=await navigator.serviceWorker.register(SW_URL,{updateViaCache:'none'})
   try{await registration.update()}catch{}
   if(registration.active)return registration
@@ -99,9 +107,16 @@ async function currentServiceWorker(){
 async function subscribeCurrentDevice(establishment){
   if(!establishment?.id)throw new Error('Estabelecimento não identificado.')
   const registration=await currentServiceWorker()
+  const publicKey=await getZaiaPushPublicKey()
   let subscription=await registration.pushManager.getSubscription()
+
+  if(subscription&&!subscriptionUsesKey(subscription,publicKey)){
+    try{await subscription.unsubscribe()}catch{}
+    subscription=null
+    lastSuccessfulEndpoint=''
+  }
+
   if(!subscription){
-    const publicKey=await getZaiaPushPublicKey()
     subscription=await registration.pushManager.subscribe({
       userVisibleOnly:true,
       applicationServerKey:urlBase64ToUint8Array(publicKey),
@@ -113,8 +128,6 @@ async function subscribeCurrentDevice(establishment){
     throw new Error('Não foi possível criar a inscrição Push neste aparelho.')
   }
 
-  // Sempre regrava a inscrição. Isso reativa no banco um endpoint que o navegador
-  // ainda possui, mas que havia sido marcado como inativo após falha/migração.
   await businessRegisterPush(establishment.id,{endpoint:json.endpoint,keys:json.keys})
 
   const status=await businessPushStatus(establishment.id)
@@ -123,7 +136,7 @@ async function subscribeCurrentDevice(establishment){
   }
 
   lastSuccessfulEndpoint=json.endpoint
-  return {endpoint:json.endpoint,status,registration}
+  return {endpoint:json.endpoint,status,registration,subscription}
 }
 
 async function ensureCurrentDevice(establishment,interactive=false,sendTest=false){
@@ -152,7 +165,16 @@ async function ensureCurrentDevice(establishment,interactive=false,sendTest=fals
 
   const result=await subscribeCurrentDevice(establishment)
   lastRecoveryAt=Date.now()
-  if(sendTest)await sendBusinessPushTest(establishment.id)
+  if(sendTest){
+    const test=await sendBusinessPushTest(establishment.id)
+    if(Number(test?.sent||0)<1){
+      if(Number(test?.removed||0)>0){
+        try{await result.subscription?.unsubscribe()}catch{}
+        lastSuccessfulEndpoint=''
+      }
+      throw new Error('O aparelho foi registrado, mas o Push de teste não foi entregue. Toque em Reconectar para gerar uma nova inscrição.')
+    }
+  }
   document.dispatchEvent(new CustomEvent('zaia:business-push-ready',{
     detail:{establishmentId:establishment.id,devices:Number(result.status?.devices||0),endpoint:result.endpoint}
   }))
@@ -193,8 +215,6 @@ async function initAttempt(attempt=0){
   try{
     const est=currentEstablishment||await resolveEstablishment()
     if(!est){
-      // O módulo pode carregar alguns milissegundos antes da sessão/loja terminar
-      // de hidratar. Antes havia uma única tentativa; agora aguardamos a loja ficar pronta.
       if(attempt<10){
         clearTimeout(initTimer)
         initTimer=setTimeout(()=>initAttempt(attempt+1),1200+attempt*350)
