@@ -40,9 +40,23 @@ jobs:
           fi
           test -x "$SDKMANAGER"
           "$SDKMANAGER" --version
-          "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "platforms;android-36" "build-tools;36.1.0"
+
+          # O Bubblewrap valida um SDK no formato legado: ele exige bin/ ou tools/
+          # diretamente na raiz. Os runners atuais do GitHub usam cmdline-tools/latest/bin.
+          # Criamos uma raiz compatível apontando para o SDK real do runner.
+          BW_SDK="$HOME/.bubblewrap/android-sdk-wrapper"
+          mkdir -p "$BW_SDK/bin"
+          ln -sfn "$SDKMANAGER" "$BW_SDK/bin/sdkmanager"
+          for dir in build-tools platform-tools platforms licenses cmdline-tools; do
+            if [ -e "$ANDROID_HOME/$dir" ]; then
+              rm -rf "$BW_SDK/$dir"
+              ln -s "$ANDROID_HOME/$dir" "$BW_SDK/$dir"
+            fi
+          done
+
           mkdir -p "$HOME/.bubblewrap"
-          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$BW_SDK" > "$HOME/.bubblewrap/config.json"
 
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
