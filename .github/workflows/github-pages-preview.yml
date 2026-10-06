@@ -97,15 +97,15 @@ jobs:
             const primary=cleanColor(url.searchParams.get('primary'),'#351523');
             const background=cleanColor(url.searchParams.get('secondary'),'#f7f1ed');
             const manifest={{
-              id:BASE+`/loja/?app=${{encodeURIComponent(est)}}`,
+              id:BASE+'/loja/?app='+encodeURIComponent(est),
               name,
               short_name:cleanText(name,'ZAIA',24),
-              start_url:BASE+`/loja/?app=${{encodeURIComponent(est)}}&source=pwa`,
+              start_url:BASE+'/loja/?app='+encodeURIComponent(est)+'&source=pwa',
               scope:BASE+'/loja/',
               display:'standalone',
               background_color:background,
               theme_color:primary,
-              description:`Aplicativo de ${{name}}, powered by ZAIA.`,
+              description:'Aplicativo de '+name+', powered by ZAIA.',
               categories:['business','beauty'],
               icons:[
                 {{src:logo,sizes:'192x192',purpose:'any maskable'}},
