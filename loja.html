@@ -54,9 +54,15 @@
     if (isRecovery) {
       import('/auth-recovery.js')
     } else {
+      const nativeSource=String(new URLSearchParams(location.search).get('source')||'').toLowerCase()
+      const isNativeApp=nativeSource==='android'||nativeSource==='ios'
       import('/merchant-shell.js')
       import('/app.js?v=20261004-global3')
-      import('/merchant-push-recovery.js?v=20261005-push3')
+      if(isNativeApp){
+        import('/native-push-bridge.js?v=20261006-fcm1')
+      }else{
+        import('/merchant-push-recovery.js?v=20261005-push3')
+      }
       import('/merchant-pwa-install.js?v=20261005-pwa2')
       import('/finance-integrity.js?v=20261004-finance1')
       import('/global-customer.js?v=20261004-global3')
