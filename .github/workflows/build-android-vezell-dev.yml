@@ -42,9 +42,6 @@ jobs:
           "$SDKMANAGER" --version
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "platforms;android-36" "build-tools;36.1.0"
 
-          # O Bubblewrap valida um SDK no formato legado: ele exige bin/ ou tools/
-          # diretamente na raiz. Os runners atuais do GitHub usam cmdline-tools/latest/bin.
-          # Criamos uma raiz compatível apontando para o SDK real do runner.
           BW_SDK="$HOME/.bubblewrap/android-sdk-wrapper"
           mkdir -p "$BW_SDK/bin"
           ln -sfn "$SDKMANAGER" "$BW_SDK/bin/sdkmanager"
@@ -67,6 +64,7 @@ jobs:
           VEZELL_LOGO_URL: https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358
         run: |
           set -euo pipefail
+          export ANDROID_SDK_ROOT="$HOME/.bubblewrap/android-sdk-wrapper"
           mkdir -p .native-build/vezell
           cp native/android/vezell/twa-manifest.json .native-build/vezell/twa-manifest.json
           base64 -d native/android/vezell/zaia-vezell-dev-keystore.b64 > .native-build/vezell/android.keystore
@@ -96,6 +94,7 @@ jobs:
           BUBBLEWRAP_KEY_PASSWORD: zaia-dev-2026
         run: |
           set -euo pipefail
+          export ANDROID_SDK_ROOT="$HOME/.bubblewrap/android-sdk-wrapper"
           cd .native-build/vezell
           bubblewrap build --skipPwaValidation --manifest=twa-manifest.json --signingKeyPath=android.keystore --signingKeyAlias=zaia-vezell-dev
           find . -maxdepth 3 -type f \( -name '*.apk' -o -name '*.aab' \) -print
