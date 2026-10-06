@@ -1,5 +1,11 @@
 {
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "rewrites": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "destination": "/public/.well-known/assetlinks.json"
+    }
+  ]
 }
