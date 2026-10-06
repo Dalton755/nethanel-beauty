@@ -1,0 +1,48 @@
+{
+  "packageId": "com.nethanel.zaia.vezell.dev",
+  "host": "zaia.nethanel.com.br",
+  "name": "Vezell Barber Studio",
+  "launcherName": "Vezell Barber Studio",
+  "display": "standalone",
+  "themeColor": "#3D2020",
+  "themeColorDark": "#3D2020",
+  "navigationColor": "#3D2020",
+  "navigationColorDark": "#3D2020",
+  "navigationDividerColor": "#3D2020",
+  "navigationDividerColorDark": "#3D2020",
+  "backgroundColor": "#F7F1ED",
+  "enableNotifications": true,
+  "startUrl": "/loja?app=1bff23ac-18cb-404c-884a-1dd89d4538cd&source=android",
+  "iconUrl": "https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358",
+  "maskableIconUrl": "https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358",
+  "monochromeIconUrl": "https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358",
+  "splashScreenFadeOutDuration": 250,
+  "signingKey": {
+    "path": "android.keystore",
+    "alias": "zaia-vezell-dev"
+  },
+  "appVersionName": "0.1.0-dev",
+  "appVersionCode": 1,
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "webManifestUrl": "https://zaia.nethanel.com.br/manifest-loja.webmanifest",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": true,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://zaia.nethanel.com.br/",
+  "minSdkVersion": 23,
+  "orientation": "default",
+  "fingerprints": [
+    {
+      "value": "3D:C6:92:29:84:B9:0F:EF:E7:BC:5A:7E:0E:95:2B:96:8F:05:E9:5F:CE:4D:76:BC:D7:A6:8C:25:49:DE:7B:51"
+    }
+  ],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": [],
+  "appVersion": "0.1.0-dev"
+}
