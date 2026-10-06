@@ -49,11 +49,29 @@ jobs:
 
       - name: Preparar projeto
         shell: bash
+        env:
+          VEZELL_LOGO_URL: https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358
         run: |
           set -euo pipefail
           mkdir -p .native-build/vezell
           cp native/android/vezell/twa-manifest.json .native-build/vezell/twa-manifest.json
           base64 -d native/android/vezell/zaia-vezell-dev-keystore.b64 > .native-build/vezell/android.keystore
+          curl --fail --location --silent --show-error "$VEZELL_LOGO_URL" -o .native-build/vezell/logo.png
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          p=Path('.native-build/vezell/twa-manifest.json')
+          data=json.loads(p.read_text())
+          local='http://127.0.0.1:8765/logo.png'
+          data['iconUrl']=local
+          data['maskableIconUrl']=local
+          data['monochromeIconUrl']=local
+          p.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n')
+          PY
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory .native-build/vezell >/tmp/vezell-logo-server.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill "$SERVER_PID" 2>/dev/null || true' EXIT
+          sleep 1
           cd .native-build/vezell
           bubblewrap update --skipVersionUpgrade --manifest=twa-manifest.json
 
