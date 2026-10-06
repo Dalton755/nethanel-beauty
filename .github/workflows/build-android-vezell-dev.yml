@@ -41,6 +41,8 @@ jobs:
           test -x "$SDKMANAGER"
           "$SDKMANAGER" --version
           "$SDKMANAGER" "platform-tools" "platforms;android-35" "build-tools;35.0.0"
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$ANDROID_HOME" > "$HOME/.bubblewrap/config.json"
 
       - name: Instalar Bubblewrap
         run: npm install -g @bubblewrap/cli
