@@ -1,0 +1,68 @@
+name: Build Android Vezell DEV
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'native/android/vezell/**'
+      - '.github/workflows/build-android-vezell-dev.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Instalar Bubblewrap
+        run: npm install -g @bubblewrap/cli
+
+      - name: Preparar projeto
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .native-build/vezell
+          cp native/android/vezell/twa-manifest.json .native-build/vezell/twa-manifest.json
+          base64 -d native/android/vezell/zaia-vezell-dev-keystore.b64 > .native-build/vezell/android.keystore
+          cd .native-build/vezell
+          bubblewrap update --skipVersionUpgrade --manifest=twa-manifest.json
+
+      - name: Gerar APK e AAB
+        shell: bash
+        env:
+          BUBBLEWRAP_KEYSTORE_PASSWORD: zaia-dev-2026
+          BUBBLEWRAP_KEY_PASSWORD: zaia-dev-2026
+        run: |
+          set -euo pipefail
+          cd .native-build/vezell
+          bubblewrap build --skipPwaValidation --manifest=twa-manifest.json --signingKeyPath=android.keystore --signingKeyAlias=zaia-vezell-dev
+          find . -maxdepth 2 -type f \( -name '*.apk' -o -name '*.aab' \) -print
+
+      - name: Publicar APK/AAB como artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: Vezell-Barber-Studio-DEV
+          path: |
+            .native-build/vezell/**/*.apk
+            .native-build/vezell/**/*.aab
+          if-no-files-found: error
+          retention-days: 14
