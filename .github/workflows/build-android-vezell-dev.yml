@@ -87,6 +87,84 @@ jobs:
           cd .native-build/vezell
           bubblewrap update --skipVersionUpgrade --manifest=twa-manifest.json
 
+      - name: Integrar Firebase Cloud Messaging
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd .native-build/vezell
+
+          cp "$GITHUB_WORKSPACE/native/android/vezell/google-services.json" app/google-services.json
+
+          JAVA_DIR="$(dirname "$(find app/src/main -type f -name LauncherActivity.java -print -quit)")"
+          test -n "$JAVA_DIR"
+          cp "$GITHUB_WORKSPACE/native/android/vezell/LauncherActivity.java" "$JAVA_DIR/LauncherActivity.java"
+          cp "$GITHUB_WORKSPACE/native/android/vezell/ZaiaFirebaseMessagingService.java" "$JAVA_DIR/ZaiaFirebaseMessagingService.java"
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          root=Path('build.gradle')
+          root_text=root.read_text()
+          marker="classpath 'com.android.tools.build:gradle:"
+          if "com.google.gms:google-services" not in root_text:
+              pos=root_text.find(marker)
+              if pos < 0:
+                  raise SystemExit('Não encontrei o classpath do Android Gradle Plugin.')
+              line_end=root_text.find('\n',pos)
+              root_text=root_text[:line_end+1]+"        classpath 'com.google.gms:google-services:4.5.0'\n"+root_text[line_end+1:]
+              root.write_text(root_text)
+
+          app=Path('app/build.gradle')
+          app_text=app.read_text()
+          if "apply plugin: 'com.google.gms.google-services'" not in app_text:
+              plugin_end=app_text.find('}\n', app_text.find('plugins {'))
+              if plugin_end < 0:
+                  raise SystemExit('Bloco plugins não encontrado.')
+              plugin_end += 2
+              app_text=app_text[:plugin_end]+"\napply plugin: 'com.google.gms.google-services'\n"+app_text[plugin_end:]
+
+          if "com.google.firebase:firebase-messaging" not in app_text:
+              dep_start=app_text.find('dependencies {')
+              if dep_start < 0:
+                  raise SystemExit('Bloco dependencies não encontrado.')
+              insert=dep_start+len('dependencies {')
+              firebase="\n    implementation platform('com.google.firebase:firebase-bom:34.19.0')\n    implementation 'com.google.firebase:firebase-messaging'\n"
+              app_text=app_text[:insert]+firebase+app_text[insert:]
+          app.write_text(app_text)
+
+          manifest=Path('app/src/main/AndroidManifest.xml')
+          m=manifest.read_text()
+          if 'android.permission.POST_NOTIFICATIONS' not in m:
+              manifest_end=m.find('>', m.find('<manifest'))
+              if manifest_end < 0:
+                  raise SystemExit('Tag manifest não encontrada.')
+              m=m[:manifest_end+1]+'\n    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>'+m[manifest_end+1:]
+
+          service_block='''
+              <meta-data
+                  android:name="com.google.firebase.messaging.default_notification_icon"
+                  android:resource="@drawable/ic_notification_icon" />
+              <meta-data
+                  android:name="com.google.firebase.messaging.default_notification_color"
+                  android:resource="@color/colorPrimary" />
+              <meta-data
+                  android:name="com.google.firebase.messaging.default_notification_channel_id"
+                  android:value="zaia_store_notifications" />
+              <service
+                  android:name=".ZaiaFirebaseMessagingService"
+                  android:exported="false">
+                  <intent-filter>
+                      <action android:name="com.google.firebase.MESSAGING_EVENT" />
+                  </intent-filter>
+              </service>
+          '''
+          if '.ZaiaFirebaseMessagingService' not in m:
+              m=m.replace('</application>', service_block+'\n    </application>')
+          manifest.write_text(m)
+          PY
+
+          ./gradlew :app:processReleaseGoogleServices :app:compileReleaseJavaWithJavac --no-daemon
+
       - name: Gerar APK e AAB
         shell: bash
         env:
@@ -102,7 +180,7 @@ jobs:
       - name: Publicar APK/AAB como artefato
         uses: actions/upload-artifact@v4
         with:
-          name: Vezell-Barber-Studio-DEV
+          name: Vezell-Barber-Studio-DEV-FCM
           path: |
             .native-build/vezell/**/*.apk
             .native-build/vezell/**/*.aab
