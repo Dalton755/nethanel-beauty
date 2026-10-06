@@ -94,6 +94,8 @@ jobs:
           cd .native-build/vezell
 
           cp "$GITHUB_WORKSPACE/native/android/vezell/google-services.json" app/google-services.json
+          mkdir -p app/src/main/res/drawable
+          cp "$GITHUB_WORKSPACE/native/android/vezell/ic_stat_zaia.xml" app/src/main/res/drawable/ic_stat_zaia.xml
 
           JAVA_DIR="$(dirname "$(find app/src/main -type f -name LauncherActivity.java -print -quit)")"
           test -n "$JAVA_DIR"
@@ -143,7 +145,7 @@ jobs:
           service_block='''
               <meta-data
                   android:name="com.google.firebase.messaging.default_notification_icon"
-                  android:resource="@drawable/ic_notification_icon" />
+                  android:resource="@drawable/ic_stat_zaia" />
               <meta-data
                   android:name="com.google.firebase.messaging.default_notification_color"
                   android:resource="@color/colorPrimary" />
