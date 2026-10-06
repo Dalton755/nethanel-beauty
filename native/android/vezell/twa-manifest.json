@@ -11,7 +11,7 @@
   "navigationDividerColor": "#3D2020",
   "navigationDividerColorDark": "#3D2020",
   "backgroundColor": "#F7F1ED",
-  "enableNotifications": true,
+  "enableNotifications": false,
   "startUrl": "/loja?app=1bff23ac-18cb-404c-884a-1dd89d4538cd&source=android",
   "iconUrl": "https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358",
   "maskableIconUrl": "https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358",
@@ -21,8 +21,8 @@
     "path": "android.keystore",
     "alias": "zaia-vezell-dev"
   },
-  "appVersionName": "0.1.0-dev",
-  "appVersionCode": 1,
+  "appVersionName": "0.2.0-dev",
+  "appVersionCode": 2,
   "shortcuts": [],
   "generatorApp": "bubblewrap-cli",
   "webManifestUrl": "https://zaia.nethanel.com.br/manifest-loja.webmanifest",
@@ -44,5 +44,5 @@
   ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
-  "appVersion": "0.1.0-dev"
+  "appVersion": "0.2.0-dev"
 }
