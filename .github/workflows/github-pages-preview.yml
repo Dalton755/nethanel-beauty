@@ -79,6 +79,42 @@ jobs:
             try{{const u=new URL(raw,self.location.origin);if(u.protocol==='https:'||u.origin===self.location.origin)return u.href}}catch{{}}
             return BASE+'/icon.svg';
           }};
+          const cleanText=(value,fallback,max=80)=>{{
+            const text=String(value||fallback||'').replace(/[\\u0000-\\u001f\\u007f]/g,' ').replace(/\\s+/g,' ').trim();
+            return (text||fallback||'ZAIA').slice(0,max);
+          }};
+          const cleanColor=(value,fallback)=>/^#[0-9a-f]{{6}}$/i.test(String(value||''))?String(value):fallback;
+          const manifestIcon=(value)=>{{
+            const raw=String(value||'').trim();
+            if(!raw)return BASE+'/icon.svg';
+            try{{const u=new URL(raw,self.location.origin);if(u.protocol==='https:'||u.origin===self.location.origin)return u.href}}catch{{}}
+            return BASE+'/icon.svg';
+          }};
+          const manifestResponse=(url)=>{{
+            const est=cleanText(url.searchParams.get('est'),'loja',80).replace(/[^a-zA-Z0-9_-]/g,'').slice(0,64)||'loja';
+            const name=cleanText(url.searchParams.get('name'),'ZAIA Negócios',80);
+            const logo=manifestIcon(url.searchParams.get('logo'));
+            const primary=cleanColor(url.searchParams.get('primary'),'#351523');
+            const background=cleanColor(url.searchParams.get('secondary'),'#f7f1ed');
+            const manifest={{
+              id:BASE+`/loja/?app=${{encodeURIComponent(est)}}`,
+              name,
+              short_name:cleanText(name,'ZAIA',24),
+              start_url:BASE+`/loja/?app=${{encodeURIComponent(est)}}&source=pwa`,
+              scope:BASE+'/loja/',
+              display:'standalone',
+              background_color:background,
+              theme_color:primary,
+              description:`Aplicativo de ${{name}}, powered by ZAIA.`,
+              categories:['business','beauty'],
+              icons:[
+                {{src:logo,sizes:'192x192',purpose:'any maskable'}},
+                {{src:logo,sizes:'512x512',purpose:'any maskable'}},
+                {{src:BASE+'/icon.svg',sizes:'512x512',type:'image/svg+xml',purpose:'any maskable'}},
+              ],
+            }};
+            return new Response(JSON.stringify(manifest),{{headers:{{'Content-Type':'application/manifest+json; charset=utf-8','Cache-Control':'no-store'}}}});
+          }};
           const targetFor=(data)=>{{
             let raw=String(data?.url||'/loja?page=agenda');
             const type=String(data?.type||'');
@@ -90,6 +126,13 @@ jobs:
           }};
           self.addEventListener('install',e=>e.waitUntil(self.skipWaiting()));
           self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
+          self.addEventListener('fetch',e=>{{
+            if(e.request.method!=='GET')return;
+            const url=new URL(e.request.url);
+            if(url.origin===self.location.origin&&url.pathname===BASE+'/manifest-loja-personalizado.webmanifest'){{
+              e.respondWith(Promise.resolve(manifestResponse(url)));
+            }}
+          }});
           self.addEventListener('notificationclick',e=>{{
             e.notification.close();
             const target=targetFor(e.notification?.data||{{}});
