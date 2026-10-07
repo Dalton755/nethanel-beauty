@@ -10,16 +10,17 @@ const launchNativeToken=String(params.get('nativeToken')||'').trim()
 const launchNativePlatform=String(params.get('nativePlatform')||'').trim().toUpperCase()
 const launchNativeAppId=String(params.get('nativeAppId')||'').trim()
 const launchNativeAppVersion=String(params.get('nativeAppVersion')||'').trim()
-const isAndroidLaunch=source==='android'||launchNativePlatform==='ANDROID'
+const isNativeLaunch=source==='android'||source==='ios'||launchNativePlatform==='ANDROID'||launchNativePlatform==='IOS'
 
-if(isAndroidLaunch){
-  try{sessionStorage.setItem(NATIVE_MODE_KEY,'ANDROID')}catch{}
+if(isNativeLaunch){
+  const launchPlatform=launchNativePlatform==='IOS'||source==='ios'?'IOS':'ANDROID'
+  try{sessionStorage.setItem(NATIVE_MODE_KEY,launchPlatform)}catch{}
   if(initialEstablishment){try{localStorage.setItem(ESTABLISHMENT_KEY,initialEstablishment)}catch{}}
 }
 
 const nativePlatform=(()=>{
   if(launchNativePlatform==='ANDROID'||launchNativePlatform==='IOS')return launchNativePlatform
-  if(isAndroidLaunch)return 'ANDROID'
+  if(isNativeLaunch)return source==='ios'?'IOS':'ANDROID'
   try{return sessionStorage.getItem(NATIVE_MODE_KEY)||''}catch{return ''}
 })()
 
@@ -38,7 +39,7 @@ let pendingToken=launchNativeToken?{
   type:'ZAIA_NATIVE_PUSH_TOKEN',
   token:launchNativeToken,
   platform:nativePlatform||'ANDROID',
-  appId:launchNativeAppId||'com.nethanel.zaia.vezell.dev',
+  appId:launchNativeAppId||'',
   appVersion:launchNativeAppVersion||null,
   deviceName:navigator.userAgent||null,
 }:null
