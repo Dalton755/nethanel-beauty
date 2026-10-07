@@ -602,7 +602,7 @@ export async function businessMarkNotificationsRead(establishmentId) {
 export async function sendBusinessPushTest(establishmentId) {
   const session = await ensureSession()
   if (!session?.access_token) throw new Error('Entre novamente na ZAIA.')
-  const res = await fetch(`${baseUrl()}/functions/v1/zaia-customer-push`, {
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-notifications`, {
     method:'POST',
     headers:{
       apikey:apiKey(),
@@ -655,7 +655,7 @@ export async function publicPromotions({ establishmentId = null, lat = null, lon
 }
 
 export async function getZaiaPushPublicKey() {
-  const res = await fetch(`${baseUrl()}/functions/v1/zaia-customer-push`, {
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-notifications`, {
     headers: { apikey: apiKey(), 'Content-Type': 'application/json' },
   })
   const data = await res.json().catch(() => ({}))
@@ -666,7 +666,7 @@ export async function getZaiaPushPublicKey() {
 export async function sendZaiaPushTest() {
   const session = await ensureSession()
   if (!session?.access_token) throw new Error('Entre na sua conta ZAIA.')
-  const res = await fetch(`${baseUrl()}/functions/v1/zaia-customer-push`, {
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-notifications`, {
     method: 'POST',
     headers: {
       apikey: apiKey(),
