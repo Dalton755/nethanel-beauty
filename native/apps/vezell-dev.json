@@ -1,0 +1,18 @@
+{
+  "establishmentId": "1bff23ac-18cb-404c-884a-1dd89d4538cd",
+  "appName": "Vezell Barber Studio",
+  "artifactSlug": "vezell-barber-studio-dev",
+  "packageId": "com.nethanel.zaia.vezell.dev",
+  "host": "zaia.nethanel.com.br",
+  "themeColor": "#3D2020",
+  "backgroundColor": "#F7F1ED",
+  "logoUrl": "https://sxghzubovthsvmfqncch.supabase.co/storage/v1/object/public/zaia-branding/1bff23ac-18cb-404c-884a-1dd89d4538cd/logo.png?v=1790957753358",
+  "channelName": "Avisos da Vezell",
+  "channelDescription": "Agendamentos, clientes e avisos importantes da Vezell Barber Studio.",
+  "firebaseConfigPath": "native/android/vezell/google-services.json",
+  "keystoreB64Path": "native/android/vezell/zaia-vezell-dev-keystore.b64",
+  "keyAlias": "zaia-vezell-dev",
+  "fingerprint": "3D:C6:92:29:84:B9:0F:EF:E7:BC:5A:7E:0E:95:2B:96:8F:05:E9:5F:CE:4D:76:BC:D7:A6:8C:25:49:DE:7B:51",
+  "versionName": "0.3.0-dev",
+  "versionCode": 3
+}
