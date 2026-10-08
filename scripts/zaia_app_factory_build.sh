@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-set -Eeuo pipefail
+set -euo pipefail
 
 : "${FACTORY_URL:?FACTORY_URL ausente}"
 mkdir -p .factory .native-build/store/generated
@@ -151,6 +151,7 @@ for dir in build-tools platform-tools platforms licenses cmdline-tools; do
 done
 mkdir -p "$HOME/.bubblewrap"
 printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$BW_SDK" > "$HOME/.bubblewrap/config.json"
+export ANDROID_HOME="$BW_SDK"
 export ANDROID_SDK_ROOT="$BW_SDK"
 
 python3 scripts/generate_store_android.py .factory/config.json .native-build/store/generated
