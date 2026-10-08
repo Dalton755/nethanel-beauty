@@ -18,7 +18,8 @@ document.addEventListener('click',e=>{
     e.preventDefault()
     e.stopImmediatePropagation()
     localStorage.setItem('zaia_google_return_to',location.pathname+location.search)
-    signInWithGoogle(CANONICAL)
+    window.zaiaCaptureBooking?.()
+    signInWithGoogle(`${location.origin}/cliente`)
     return
   }
   const merchant=e.target.closest?.('.client-business-link')
