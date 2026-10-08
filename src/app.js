@@ -1169,9 +1169,9 @@ function bindGlobal(){
 }
 function bindPage(){
   if(page==='home'){
-    $('[data-zaia-home-day]').forEach(b=>b.onclick=()=>{zaiaHomeDate=b.dataset.zaiaHomeDay;render()})
-    $('[data-zaia-home-shift]').forEach(b=>b.onclick=()=>{const d=new Date(zaiaHomeDate+'T12:00:00');d.setDate(d.getDate()+Number(b.dataset.zaiaHomeShift||0));zaiaHomeDate=zaiaHomeLocalISO(d);render()})
-    $('[data-zaia-home-tab]').forEach(b=>b.onclick=()=>{zaiaHomeTab=b.dataset.zaiaHomeTab;render()})
+    document.querySelectorAll('[data-zaia-home-day]').forEach(b=>b.onclick=()=>{zaiaHomeDate=b.dataset.zaiaHomeDay;render()})
+    document.querySelectorAll('[data-zaia-home-shift]').forEach(b=>b.onclick=()=>{const d=new Date(zaiaHomeDate+'T12:00:00');d.setDate(d.getDate()+Number(b.dataset.zaiaHomeShift||0));zaiaHomeDate=zaiaHomeLocalISO(d);render()})
+    document.querySelectorAll('[data-zaia-home-tab]').forEach(b=>b.onclick=()=>{zaiaHomeTab=b.dataset.zaiaHomeTab;render()})
   }
 
   if(page==='plans'&&!state.planCatalog?.length&&!plansLoading)loadPlans()
