@@ -240,7 +240,7 @@ function applyEnhancements(){
   const content=q('.content')
   if(!content)return
   const page=currentPage(content)
-  if(page==='home')enhanceHome(content)
+  if(page==='home'&&!q('.zaia-v3-home',content))enhanceHome(content)
   else if(page==='agenda')enhanceAgenda(content)
   else if(page==='clients')enhanceClients(content)
   else if(page==='inventory')enhanceInventory(content)
