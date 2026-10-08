@@ -1,65 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="ZAIA">
   <defs>
-    <linearGradient id="canvas" x1="0" y1="0" x2="1" y2="1">
-      <stop stop-color="#fffaf6"/>
-      <stop offset="1" stop-color="#f1e6df"/>
-    </linearGradient>
-    <radialGradient id="wine" cx="32%" cy="22%" r="86%">
-      <stop offset="0" stop-color="#8d2d49"/>
-      <stop offset="0.38" stop-color="#64172f"/>
-      <stop offset="0.72" stop-color="#451022"/>
-      <stop offset="1" stop-color="#2b0916"/>
-    </radialGradient>
-    <linearGradient id="rim" x1="0.08" y1="0.02" x2="0.94" y2="1">
-      <stop stop-color="#fff0ca"/>
-      <stop offset="0.24" stop-color="#e9bb79"/>
-      <stop offset="0.5" stop-color="#fff1ce"/>
-      <stop offset="0.72" stop-color="#bd7a3b"/>
-      <stop offset="1" stop-color="#f0c98d"/>
-    </linearGradient>
-    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
-      <stop stop-color="#fff4d6"/>
-      <stop offset="0.22" stop-color="#efc98d"/>
-      <stop offset="0.48" stop-color="#fff0c6"/>
-      <stop offset="0.7" stop-color="#c78342"/>
-      <stop offset="1" stop-color="#f5d7a2"/>
-    </linearGradient>
-    <linearGradient id="ribbon" x1="0" y1="0" x2="1" y2="1">
-      <stop stop-color="#fff6db"/>
-      <stop offset="0.5" stop-color="#d99d59"/>
-      <stop offset="1" stop-color="#fff0c4"/>
-    </linearGradient>
-    <linearGradient id="gloss" x1="0" y1="0" x2="0" y2="1">
-      <stop stop-color="#ffffff" stop-opacity="0.34"/>
-      <stop offset="0.46" stop-color="#ffffff" stop-opacity="0.05"/>
-      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
-    </linearGradient>
-    <filter id="shadow" x="-30%" y="-30%" width="160%" height="170%">
-      <feDropShadow dx="0" dy="12" stdDeviation="15" flood-color="#260812" flood-opacity="0.28"/>
-    </filter>
-    <filter id="zshadow" x="-30%" y="-30%" width="160%" height="160%">
-      <feDropShadow dx="0" dy="5" stdDeviation="4" flood-color="#200711" flood-opacity="0.45"/>
-    </filter>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fffcf8"/><stop offset="1" stop-color="#f4e6d8"/></linearGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a77544"/><stop offset=".65" stop-color="#cb965f"/><stop offset="1" stop-color="#f0b27d"/></linearGradient>
   </defs>
-
-  <rect width="512" height="512" rx="112" fill="url(#canvas)"/>
-
-  <g filter="url(#shadow)">
-    <circle cx="256" cy="250" r="205" fill="url(#wine)" stroke="url(#rim)" stroke-width="13"/>
-    <circle cx="256" cy="250" r="192" fill="none" stroke="#fff1cf" stroke-opacity="0.22" stroke-width="2"/>
-  </g>
-
-  <path d="M105 182c27-78 91-127 172-135 65-6 121 15 155 49-43-17-95-20-145-9-81 18-142 61-182 95Z" fill="url(#gloss)" opacity="0.55"/>
-
-  <g filter="url(#zshadow)">
-    <!-- base Z -->
-    <path d="M145 149h231l-42 52h-61l-110 128h214l-42 52H136l42-52h57l111-128H145Z" fill="url(#gold)"/>
-
-    <!-- sculpted ribbon through the diagonal -->
-    <path d="M327 188c-29 24-61 51-90 84-24 27-45 55-61 83 36-17 71-40 103-68 34-30 60-61 78-91-10 3-20 7-30 12Z" fill="#431020" opacity="0.5"/>
-    <path d="M337 191c-26 27-57 54-91 80-32 24-61 49-83 76 24-11 52-26 82-47 38-27 70-57 95-88 10-13 17-25 23-36-8 4-17 9-26 15Z" fill="url(#ribbon)"/>
-    <path d="M164 347c33-17 67-39 102-66 30-23 57-49 82-78-12 30-33 60-63 91-30 31-67 57-111 77Z" fill="#fff2ce" opacity="0.55"/>
-  </g>
-
-  <circle cx="256" cy="250" r="205" fill="none" stroke="#7a3d24" stroke-opacity="0.28" stroke-width="2"/>
+  <rect width="512" height="512" rx="110" fill="url(#bg)"/>
+  <path d="M97 141H319L176 335H313V369H95L238 176H97Z" fill="#321609"/>
+  <path d="M303 369L372 189 401 189 465 369H421L386 263 346 369Z" fill="url(#gold)"/>
+  <path d="M385 90L393 116 419 124 393 132 385 159 377 132 351 124 377 116Z" fill="url(#gold)"/>
+  <path d="M137 406H375" fill="none" stroke="#bd8a54" stroke-width="5" stroke-linecap="round" opacity=".48"/>
 </svg>
