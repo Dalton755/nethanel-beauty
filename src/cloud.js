@@ -616,6 +616,23 @@ export async function sendBusinessPushTest(establishmentId) {
   return data
 }
 
+export async function getBusinessAppProfile(establishmentId, platform = 'ANDROID') {
+  return rest('rpc/business_app_profile', {
+    method:'POST',
+    body:{
+      p_establishment_id:establishmentId,
+      p_platform:String(platform || 'ANDROID').toUpperCase(),
+    },
+  })
+}
+
+export async function requestBusinessAndroidApp(establishmentId) {
+  return rest('rpc/business_request_android_app', {
+    method:'POST',
+    body:{ p_establishment_id:establishmentId },
+  })
+}
+
 export async function cancelAppointment(appointmentId, reason = '') {
   return rest('rpc/cancel_appointment', {
     method:'POST',
