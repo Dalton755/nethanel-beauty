@@ -59,7 +59,7 @@ echo "Gerando app ${PROFILE_ID:0:8} - $APP_NAME"
 
 jq -r '.google_services_b64' .factory/job.json | base64 -d > .factory/google-services.json
 
-NEEDS_KEY="$(jq -r '.signing.needs_generation // true' .factory/job.json)"
+NEEDS_KEY="$(jq -r 'if .signing.needs_generation == false then "false" else "true" end' .factory/job.json)"
 if [ "$NEEDS_KEY" = "true" ]; then
   STORE_PASS="$(openssl rand -hex 20)"
   KEY_PASS="$STORE_PASS"
