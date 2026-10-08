@@ -7,7 +7,7 @@ const readonlyRpc=new Set([
   'employee_dashboard','finance_dashboard','merchant_subscription_status','get_admin_dashboard',
   'get_billing_configuration','public_business_branding','suggest_service_materials',
   'admin_is_current','business_customer_lookup','get_available_slots','public_search_professionals',
-  'public_service_catalog','business_app_download','customer_privacy_status',
+  'public_service_catalog','business_app_download','customer_privacy_status','legal_status',
 ])
 export function previewAllowsRequest(raw,method='GET',origin='https://sxghzubovthsvmfqncch.supabase.co'){
   let u
