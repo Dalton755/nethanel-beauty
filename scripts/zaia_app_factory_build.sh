@@ -189,30 +189,32 @@ mkdir -p .factory/release
 cp "$APK" ".factory/release/${ARTIFACT_SLUG}.apk"
 cp "$AAB" ".factory/release/${ARTIFACT_SLUG}.aab"
 
-TAG="zaia-app-${PROFILE_ID}-v${VERSION_CODE}"
-APK_NAME="${ARTIFACT_SLUG}.apk"
-AAB_NAME="${ARTIFACT_SLUG}.aab"
-if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-  gh release upload "$TAG" ".factory/release/$APK_NAME" ".factory/release/$AAB_NAME" --clobber --repo "$GITHUB_REPOSITORY"
-else
-  gh release create "$TAG" ".factory/release/$APK_NAME" ".factory/release/$AAB_NAME" \
-    --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-    --title "ZAIA App - $APP_NAME - $VERSION_NAME" \
-    --notes "Pacote gerado automaticamente pelo ZAIA App Factory." --prerelease
-fi
+APK_FILE=".factory/release/$ARTIFACT_SLUG.apk"
+AAB_FILE=".factory/release/$ARTIFACT_SLUG.aab"
 
-APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK_NAME}"
-AAB_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${AAB_NAME}"
+curl --fail-with-body --silent --show-error \
+  -X POST "$FACTORY_URL" \
+  -H "Authorization: Bearer $OIDC_TOKEN" \
+  -H "Content-Type: application/vnd.android.package-archive" \
+  -H "x-zaia-factory-mode: upload_apk" \
+  -H "x-profile-id: $PROFILE_ID" \
+  --data-binary "@$APK_FILE" > .factory/upload-apk.json
+
+curl --fail-with-body --silent --show-error \
+  -X POST "$FACTORY_URL" \
+  -H "Authorization: Bearer $OIDC_TOKEN" \
+  -H "Content-Type: application/octet-stream" \
+  -H "x-zaia-factory-mode: upload_aab" \
+  -H "x-profile-id: $PROFILE_ID" \
+  --data-binary "@$AAB_FILE" > .factory/upload-aab.json
+
 jq -n \
   --arg mode "complete" \
   --arg profile_id "$PROFILE_ID" \
-  --arg apk_url "$APK_URL" \
-  --arg aab_url "$AAB_URL" \
-  --arg release_tag "$TAG" \
-  '{mode:$mode,profile_id:$profile_id,apk_url:$apk_url,aab_url:$aab_url,release_tag:$release_tag}' \
+  '{mode:$mode,profile_id:$profile_id}' \
   > .factory/complete.json
-factory_post .factory/complete.json >/dev/null
+factory_post .factory/complete.json > .factory/complete-response.json
 
 trap - ERR
-echo "ZAIA App Factory concluido: $APK_URL"
+echo "ZAIA App Factory concluido: APK e AAB armazenados com acesso privado."
 # signing reuse verification v3
