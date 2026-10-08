@@ -215,3 +215,4 @@ factory_post .factory/complete.json >/dev/null
 
 trap - ERR
 echo "ZAIA App Factory concluido: $APK_URL"
+# signing reuse verification v3
