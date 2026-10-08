@@ -28,7 +28,7 @@ if (!env.SUPABASE_URL || !env.SUPABASE_PUBLISHABLE_KEY) {
   env.SUPABASE_PUBLISHABLE_KEY = config.supabasePublishableKey;
   env.SUPABASE_SCHEMA = config.schema || 'beleza';
 }
-execFileSync(process.execPath, ['scripts/build.mjs'], {
-  stdio: 'inherit',
-  env,
-});
+// Primeiro valida regras de negócio; depois confere todos os assets gerados.
+execFileSync(process.execPath, ['--test', 'tests/zaia-flows.test.mjs'], { stdio: 'inherit', env });
+execFileSync(process.execPath, ['scripts/build.mjs'], { stdio: 'inherit', env });
+execFileSync(process.execPath, ['--test', 'tests/zaia-build-smoke.test.mjs'], { stdio: 'inherit', env });
