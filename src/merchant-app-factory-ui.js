@@ -1,4 +1,4 @@
-import { loadCloudState, getBusinessAppProfile, requestBusinessAndroidApp } from './cloud.js'
+import { loadCloudState, getBusinessAppProfile, requestBusinessAndroidApp, getBusinessAndroidAppDownload } from './cloud.js'
 
 const ROOT_ID='zaiaMyAppModal'
 const STYLE_ID='zaiaMyAppStyles'
@@ -71,12 +71,11 @@ function renderPro(root,est,profile){
   const ready=status==='BUILT'||status==='PUBLISHED'
   const appName=profile?.app_name||est.name||'Meu aplicativo'
   const packageId=profile?.package_id||''
-  const download=profile?.direct_download_url||''
   const version=profile?.version_name||''
   const action=!brandReady
     ? '<div class="zaia-myapp-warn"><strong>Antes de gerar:</strong> ative a identidade do estabelecimento e envie uma logo.</div><button class="btn primary" id="zaiaMyAppBrand">Configurar identidade</button>'
     : ready
-      ? (download?'<a class="btn primary" href="'+esc(download)+'">Baixar APK</a>':'<button class="btn primary" disabled>Finalizando link de download</button>')
+      ? '<button class="btn primary" id="zaiaMyAppDownload">Baixar APK</button>'
       : status==='BUILDING'
         ? '<button class="btn primary" disabled>Gerando APK...</button>'
         : status==='READY'
@@ -97,6 +96,15 @@ function renderPro(root,est,profile){
   root.querySelector('.zaia-myapp-close').onclick=closeModal
   root.querySelectorAll('#zaiaMyAppBrand').forEach(b=>b.onclick=openBrand)
   root.querySelector('#zaiaMyAppRefresh')?.addEventListener('click',()=>open())
+  root.querySelector('#zaiaMyAppDownload')?.addEventListener('click',async e=>{
+    const b=e.currentTarget,old=b.textContent;b.disabled=true;b.textContent='Liberando download...'
+    try{
+      const data=await getBusinessAndroidAppDownload(est.id)
+      location.assign(data.url)
+    }catch(error){
+      b.disabled=false;b.textContent=old;alert(String(error?.message||error))
+    }
+  })
   root.querySelector('#zaiaMyAppRequest')?.addEventListener('click',async e=>{
     if(!confirm('Gerar um aplicativo Android personalizado para este estabelecimento?'))return
     const b=e.currentTarget,old=b.textContent;b.disabled=true;b.textContent='Solicitando...'
