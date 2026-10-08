@@ -26,7 +26,7 @@ const $$=(s,e=document)=>[...e.querySelectorAll(s)]
 const esc=(v='')=>String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
 const fmtMoney=n=>Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
 const fmtDuration=m=>{m=Number(m||0);const h=Math.floor(m/60),r=m%60;return h?(r?`${h}h ${r}min`:`${h}h`):`${r} min`}
-const todayISO=()=>new Date().toISOString().slice(0,10)
+const todayISO=()=>new Intl.DateTimeFormat('sv-SE',{timeZone:'America/Sao_Paulo',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
 const addDays=(iso,n)=>{const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+n);return d.toISOString().slice(0,10)}
 const dateLabel=iso=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'2-digit'})
 const formatDate=iso=>new Date(iso+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric'})
@@ -36,6 +36,7 @@ const maskPhone=value=>{const d=normalizePhone(value).slice(0,11);if(!d)return''
 const profileKey='zaia_customer_profile_v1'
 const getProfile=()=>{try{return JSON.parse(localStorage.getItem(profileKey))||{}}catch{return{}}}
 const saveProfile=p=>localStorage.setItem(profileKey,JSON.stringify(p))
+const BOOKING_RETURN_KEY='zaia_booking_return_v1'
 
 const SEGMENTS=[
   ['CABELO','Cabeleireiro'],['BARBEARIA','Barbearia'],['SOBRANCELHAS','Sobrancelhas'],
@@ -51,6 +52,43 @@ let state={
   results:[],loading:false,error:'',store:null,serviceObj:null,professional:null,
   date:todayISO(),slots:[],slot:null,booking:null,
   session:null,customerData:null,promotions:[],tab:'buscar',authMode:null,authMessage:''
+}
+
+// Preserva apenas IDs da jornada (sem nome, telefone ou outros dados pessoais).
+window.zaiaCaptureBooking=()=>{
+  if(state.screen!=='store'||!state.store?.id)return
+  const context={
+    establishmentId:state.store.id,serviceId:state.serviceObj?.id||null,
+    professionalId:state.professional?.id||null,date:state.date,
+    slotStart:state.slot?.startsAt||null,createdAt:Date.now(),
+  }
+  sessionStorage.setItem(BOOKING_RETURN_KEY,JSON.stringify(context))
+}
+
+async function restoreBookingFromOAuth(){
+  const stored=sessionStorage.getItem(BOOKING_RETURN_KEY)
+  if(!stored)return false
+  sessionStorage.removeItem(BOOKING_RETURN_KEY)
+  let previous
+  try{previous=JSON.parse(stored)}catch{return false}
+  if(!previous?.establishmentId||Date.now()-Number(previous.createdAt||0)>30*60*1000)return false
+  try{
+    await openStore(previous.establishmentId)
+    if(!state.store)return false
+    if(previous.date&&/^\d{4}-\d{2}-\d{2}$/.test(previous.date)&&previous.date>=todayISO())state.date=previous.date
+    if(previous.serviceId)await selectService(previous.serviceId)
+    if(previous.professionalId&&state.serviceObj){
+      await selectProfessional(previous.professionalId)
+    }
+    if(previous.slotStart)state.slot=state.slots.find(slot=>slot.startsAt===previous.slotStart)||null
+    // Horários podem ser reservados por outra pessoa durante a autenticação.
+    if(previous.slotStart&&!state.slot)state.error='Seu horário anterior não está mais disponível. Escolha outro.'
+    render()
+    return true
+  }catch(error){
+    console.warn('ZAIA: não foi possível restaurar agendamento',error)
+    return false
+  }
 }
 
 function icon(name){
@@ -122,7 +160,7 @@ function authModal(){
   const signup=state.authMode==='signup'
   const profile=state.authMode==='profile'
   const p=state.customerData?.profile||{}
-  if(profile)return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><span class="client-kicker">SEU PERFIL ZAIA</span><h2>Complete seus dados</h2><p>Usaremos essas informações nos seus agendamentos.</p><form id="clientProfileForm" class="client-auth-form"><div class="field"><label>Nome completo</label><input name="name" required value="${esc(p.full_name||'')}"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" value="${esc(maskPhone(p.phone||''))}"></div><div class="field"><label>Data de nascimento <small>(opcional)</small></label><input name="birthDate" type="date" value="${esc(p.birth_date||'')}"></div><label class="client-check"><input type="checkbox" name="marketing" ${p.marketing_opt_in!==false?'checked':''}><span>Quero receber promoções relevantes na ZAIA</span></label><button class="client-primary wide" type="submit">Salvar perfil</button></form></div></div>`
+  if(profile)return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><span class="client-kicker">SEU PERFIL ZAIA</span><h2>Complete seus dados</h2><p>Usaremos essas informações nos seus agendamentos.</p><form id="clientProfileForm" class="client-auth-form"><div class="field"><label>Nome completo</label><input name="name" required value="${esc(p.full_name||'')}"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" value="${esc(maskPhone(p.phone||''))}"></div><div class="field"><label>Data de nascimento <small>(opcional)</small></label><input name="birthDate" type="date" value="${esc(p.birth_date||'')}"></div><label class="client-check"><input type="checkbox" name="marketing" ${p.marketing_opt_in===true?'checked':''}><span>Quero receber promoções relevantes na ZAIA</span></label><button class="client-primary wide" type="submit">Salvar perfil</button></form></div></div>`
   return `<div class="client-auth-backdrop"><div class="client-auth-modal"><button class="client-auth-close" data-auth-close>×</button><div class="client-auth-logo">${mark()}</div><span class="client-kicker">${signup?'CRIAR CONTA':'MINHA ZAIA'}</span><h2>${signup?'Crie sua conta ZAIA':'Entre na sua conta'}</h2><p>${signup?'Seus agendamentos, histórico e lembretes em um só lugar.':'Continue de onde parou em qualquer estabelecimento.'}</p>${state.authMessage?`<div class="client-alert">${esc(state.authMessage)}</div>`:''}<button type="button" class="client-google-btn" id="clientGoogleLogin"><span class="google-g">G</span><span>Continuar com Google</span></button><div class="client-auth-divider"><span>ou</span></div><form id="clientAuthForm" class="client-auth-form">${signup?`<div class="field"><label>Nome completo</label><input name="name" required minlength="2"></div><div class="field"><label>WhatsApp</label><input id="authPhone" name="phone" required inputmode="tel" placeholder="(11) 99999-9999"></div>`:''}<div class="field"><label>E-mail</label><input name="email" type="email" required autocomplete="email"></div><div class="field"><label>Senha</label><div class="client-password-field"><input id="clientAuthPassword" name="password" type="password" required minlength="6" autocomplete="${signup?'new-password':'current-password'}"><button type="button" class="client-password-toggle" data-password-toggle aria-label="Mostrar senha">Mostrar</button></div></div><button class="client-primary wide" type="submit">${signup?'Criar conta':'Entrar'}</button></form><button class="client-auth-switch" id="authSwitch">${signup?'Já tenho conta':'Ainda não tenho conta'}</button></div></div>`
 }
 
@@ -344,7 +382,8 @@ function bind(){
   $('#bookingLogin')?.addEventListener('click',()=>{state.authMode='login';state.authMessage='';render()})
   $('#clientGoogleLogin')?.addEventListener('click',()=>{
     localStorage.setItem('zaia_google_return_to', location.pathname + location.search)
-    signInWithGoogle('https://nethanel-beauty.vercel.app/cliente')
+    window.zaiaCaptureBooking?.()
+    signInWithGoogle(`${location.origin}/cliente`)
   })
   document.querySelectorAll('[data-auth-close]').forEach(b=>b.onclick=()=>{state.authMode=null;state.authMessage='';render()})
   $('#authSwitch')?.addEventListener('click',()=>{state.authMode=state.authMode==='signup'?'login':'signup';state.authMessage='';render()})
@@ -372,7 +411,7 @@ function bind(){
       let pending={};try{pending=JSON.parse(localStorage.getItem('zaia_pending_customer_profile')||'{}')}catch{}
       await refreshCustomer()
       if(!state.customerData?.profile&&pending.fullName){
-        await customerUpsertProfile({fullName:pending.fullName,phone:pending.phone,marketingOptIn:true})
+        await customerUpsertProfile({fullName:pending.fullName,phone:pending.phone,marketingOptIn:false})
         localStorage.removeItem('zaia_pending_customer_profile');await refreshCustomer()
       }
       state.authMode=state.customerData?.profile?'': 'profile'
@@ -383,7 +422,7 @@ function bind(){
   })
   $('#clientProfileForm')?.addEventListener('submit',async e=>{
     e.preventDefault();const fd=Object.fromEntries(new FormData(e.currentTarget));const phone=normalizePhone(fd.phone)
-    try{await customerUpsertProfile({fullName:String(fd.name).trim(),phone,birthDate:fd.birthDate||null,marketingOptIn:e.currentTarget.elements.marketing?.checked!==false});await refreshCustomer();state.authMode=null;render()}catch(error){alert(String(error.message||error))}
+    try{await customerUpsertProfile({fullName:String(fd.name).trim(),phone,birthDate:fd.birthDate||null,marketingOptIn:e.currentTarget.elements.marketing?.checked===true});await refreshCustomer();state.authMode=null;render()}catch(error){alert(String(error.message||error))}
   })
   document.querySelectorAll('[data-client-tab]').forEach(b=>b.onclick=async()=>{
     const tab=b.dataset.clientTab
@@ -510,7 +549,7 @@ async function boot(){
     const suggestedName=meta.full_name||meta.name||''
     if(suggestedName){
       try{
-        await customerUpsertProfile({fullName:suggestedName,phone:null,marketingOptIn:true})
+        await customerUpsertProfile({fullName:suggestedName,phone:null,marketingOptIn:false})
         await refreshCustomer()
       }catch{}
     }
@@ -527,6 +566,8 @@ async function boot(){
       if(u.origin===location.origin&&u.pathname.startsWith('/cliente'))history.replaceState({},'',u.pathname+u.search)
     }catch{}
   }
+
+  if(oauthSession&&await restoreBookingFromOAuth())return
 
   const params=new URLSearchParams(location.search)
   const tab=params.get('tab')
