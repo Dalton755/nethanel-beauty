@@ -1,0 +1,355 @@
+name: ZAIA App Factory
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/zaia-app-factory.yml'
+      - 'native/templates/android/**'
+      - 'scripts/generate_store_android.py'
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: zaia-app-factory
+  cancel-in-progress: false
+
+jobs:
+  build-next:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      FACTORY_URL: https://sxghzubovthsvmfqncch.supabase.co/functions/v1/zaia-app-factory
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Reclamar prÃ³ximo aplicativo
+        id: claim
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .factory
+          OIDC="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=zaia-app-factory" | jq -r '.value')"
+          echo "::add-mask::$OIDC"
+          curl --fail-with-body --silent --show-error \
+            -X POST "$FACTORY_URL" \
+            -H "Authorization: Bearer $OIDC" \
+            -H "Content-Type: application/json" \
+            --data '{"mode":"claim"}' > .factory/job.json
+
+          HAS_JOB="$(jq -r '.has_job // false' .factory/job.json)"
+          echo "has_job=$HAS_JOB" >> "$GITHUB_OUTPUT"
+          if [ "$HAS_JOB" != "true" ]; then
+            echo "Nenhum aplicativo aguardando geraÃ§Ã£o."
+            exit 0
+          fi
+
+          PROFILE_ID="$(jq -r '.profile_id' .factory/job.json)"
+          echo "profile_id=$PROFILE_ID" >> "$GITHUB_OUTPUT"
+          echo "Aplicativo reclamado pelo App Factory: ${PROFILE_ID:0:8}"
+
+      - name: Java 17
+        if: steps.claim.outputs.has_job == 'true'
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Node 22
+        if: steps.claim.outputs.has_job == 'true'
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Preparar assinatura e configuraÃ§Ã£o
+        if: steps.claim.outputs.has_job == 'true'
+        id: signing
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          PROFILE_ID="$(jq -r '.profile_id' .factory/job.json)"
+          PACKAGE_ID="$(jq -r '.package_id' .factory/job.json)"
+          APP_NAME="$(jq -r '.app_name' .factory/job.json)"
+          VERSION_NAME="$(jq -r '.version_name' .factory/job.json)"
+          VERSION_CODE="$(jq -r '.version_code' .factory/job.json)"
+          ARTIFACT_SLUG="zaia-store-${PROFILE_ID:0:8}"
+
+          jq -r '.google_services_b64' .factory/job.json | base64 -d > .factory/google-services.json
+
+          NEEDS_KEY="$(jq -r '.signing.needs_generation // true' .factory/job.json)"
+          if [ "$NEEDS_KEY" = "true" ]; then
+            STORE_PASS="$(openssl rand -hex 20)"
+            KEY_PASS="$STORE_PASS"
+            KEY_ALIAS="zaia-${PROFILE_ID:0:12}"
+
+            echo "::add-mask::$STORE_PASS"
+            echo "::add-mask::$KEY_PASS"
+
+            keytool -genkeypair \
+              -keystore .factory/android.keystore \
+              -storetype PKCS12 \
+              -storepass "$STORE_PASS" \
+              -keypass "$KEY_PASS" \
+              -alias "$KEY_ALIAS" \
+              -keyalg RSA \
+              -keysize 4096 \
+              -validity 10000 \
+              -dname "CN=${APP_NAME}, OU=ZAIA App Factory, O=Nethanel Tecnologia, C=BR" \
+              -noprompt
+
+            FINGERPRINT="$(keytool -exportcert -rfc \
+              -keystore .factory/android.keystore \
+              -storepass "$STORE_PASS" \
+              -alias "$KEY_ALIAS" |
+              openssl x509 -noout -fingerprint -sha256 |
+              cut -d= -f2)"
+            KEYSTORE_B64="$(base64 -w0 .factory/android.keystore)"
+            echo "::add-mask::$KEYSTORE_B64"
+
+            OIDC="$(curl --fail --silent --show-error \
+              -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=zaia-app-factory" | jq -r '.value')"
+            echo "::add-mask::$OIDC"
+
+            jq -n \
+              --arg mode "signing_key" \
+              --arg profile_id "$PROFILE_ID" \
+              --arg keystore_b64 "$KEYSTORE_B64" \
+              --arg store_password "$STORE_PASS" \
+              --arg key_password "$KEY_PASS" \
+              --arg key_alias "$KEY_ALIAS" \
+              --arg fingerprint "$FINGERPRINT" \
+              '{mode:$mode,profile_id:$profile_id,keystore_b64:$keystore_b64,store_password:$store_password,key_password:$key_password,key_alias:$key_alias,fingerprint:$fingerprint}' \
+              > .factory/signing-payload.json
+
+            curl --fail-with-body --silent --show-error \
+              -X POST "$FACTORY_URL" \
+              -H "Authorization: Bearer $OIDC" \
+              -H "Content-Type: application/json" \
+              --data-binary @.factory/signing-payload.json \
+              > /dev/null
+          else
+            KEYSTORE_B64="$(jq -r '.signing.keystore_b64' .factory/job.json)"
+            STORE_PASS="$(jq -r '.signing.store_password' .factory/job.json)"
+            KEY_PASS="$(jq -r '.signing.key_password' .factory/job.json)"
+            KEY_ALIAS="$(jq -r '.signing.key_alias' .factory/job.json)"
+            FINGERPRINT="$(jq -r '.signing.fingerprint' .factory/job.json)"
+
+            echo "::add-mask::$KEYSTORE_B64"
+            echo "::add-mask::$STORE_PASS"
+            echo "::add-mask::$KEY_PASS"
+            printf '%s' "$KEYSTORE_B64" | base64 -d > .factory/android.keystore
+          fi
+
+          printf '%s' "$KEYSTORE_B64" > .factory/android.keystore.b64
+
+          echo "BUBBLEWRAP_KEYSTORE_PASSWORD=$STORE_PASS" >> "$GITHUB_ENV"
+          echo "BUBBLEWRAP_KEY_PASSWORD=$KEY_PASS" >> "$GITHUB_ENV"
+          echo "KEY_ALIAS=$KEY_ALIAS" >> "$GITHUB_ENV"
+          echo "PROFILE_ID=$PROFILE_ID" >> "$GITHUB_ENV"
+          echo "PACKAGE_ID=$PACKAGE_ID" >> "$GITHUB_ENV"
+          echo "APP_NAME=$APP_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_NAME=$VERSION_NAME" >> "$GITHUB_ENV"
+          echo "VERSION_CODE=$VERSION_CODE" >> "$GITHUB_ENV"
+          echo "ARTIFACT_SLUG=$ARTIFACT_SLUG" >> "$GITHUB_ENV"
+          echo "FINGERPRINT=$FINGERPRINT" >> "$GITHUB_ENV"
+
+          jq -n \
+            --arg establishmentId "$(jq -r '.establishment_id' .factory/job.json)" \
+            --arg appName "$APP_NAME" \
+            --arg artifactSlug "$ARTIFACT_SLUG" \
+            --arg packageId "$PACKAGE_ID" \
+            --arg host "$(jq -r '.host' .factory/job.json)" \
+            --arg themeColor "$(jq -r '.theme_color' .factory/job.json)" \
+            --arg backgroundColor "$(jq -r '.background_color' .factory/job.json)" \
+            --arg logoUrl "$(jq -r '.logo_url' .factory/job.json)" \
+            --arg channelName "$(jq -r '.channel_name' .factory/job.json)" \
+            --arg channelDescription "$(jq -r '.channel_description' .factory/job.json)" \
+            --arg firebaseConfigPath ".factory/google-services.json" \
+            --arg keystoreB64Path ".factory/android.keystore.b64" \
+            --arg keyAlias "$KEY_ALIAS" \
+            --arg fingerprint "$FINGERPRINT" \
+            --arg versionName "$VERSION_NAME" \
+            --argjson versionCode "$VERSION_CODE" \
+            '{
+              establishmentId:$establishmentId,
+              appName:$appName,
+              artifactSlug:$artifactSlug,
+              packageId:$packageId,
+              host:$host,
+              themeColor:$themeColor,
+              backgroundColor:$backgroundColor,
+              logoUrl:$logoUrl,
+              channelName:$channelName,
+              channelDescription:$channelDescription,
+              firebaseConfigPath:$firebaseConfigPath,
+              keystoreB64Path:$keystoreB64Path,
+              keyAlias:$keyAlias,
+              fingerprint:$fingerprint,
+              versionName:$versionName,
+              versionCode:$versionCode
+            }' > .factory/config.json
+
+      - name: Preparar Android SDK
+        if: steps.claim.outputs.has_job == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "$SDKMANAGER" ]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -type f -name sdkmanager | sort | tail -n 1)"
+          fi
+          test -x "$SDKMANAGER"
+          "$SDKMANAGER" "platform-tools" "platforms;android-35" "platforms;android-36" "build-tools;36.1.0"
+
+          BW_SDK="$HOME/.bubblewrap/android-sdk-wrapper"
+          mkdir -p "$BW_SDK/bin"
+          ln -sfn "$SDKMANAGER" "$BW_SDK/bin/sdkmanager"
+          for dir in build-tools platform-tools platforms licenses cmdline-tools; do
+            if [ -e "$ANDROID_HOME/$dir" ]; then
+              rm -rf "$BW_SDK/$dir"
+              ln -s "$ANDROID_HOME/$dir" "$BW_SDK/$dir"
+            fi
+          done
+          mkdir -p "$HOME/.bubblewrap"
+          printf '{"jdkPath":"%s","androidSdkPath":"%s"}\n' "$JAVA_HOME" "$BW_SDK" > "$HOME/.bubblewrap/config.json"
+
+      - name: Instalar Bubblewrap
+        if: steps.claim.outputs.has_job == 'true'
+        run: npm install -g @bubblewrap/cli
+
+      - name: Gerar projeto Android
+        if: steps.claim.outputs.has_job == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .native-build/store/generated
+          python3 scripts/generate_store_android.py .factory/config.json .native-build/store/generated
+          export ANDROID_SDK_ROOT="$HOME/.bubblewrap/android-sdk-wrapper"
+
+          cp .native-build/store/generated/twa-manifest.json .native-build/store/twa-manifest.json
+          cp .factory/android.keystore .native-build/store/android.keystore
+         Ý\›KY˜Z[K[ØØ][ÛˆK\Ú[[K\ÚÝËY\œ›Üˆ‰
+œH\ˆ	Ë›ÙÛ×Ý\›	È™˜XÝÜžKÚ›Ø‹šœÛÛŠHˆ[È›˜]]™KXZ[ÜÝÜ™KÛÙÛËœ™Â‚ˆ]ÛŒÈH	ÔIÂˆ[\ÜœÛÛ‚ˆœ›ÛH]Xˆ[\Ü]ˆT]
+	Ë›˜]]™KXZ[ÜÝÜ™KÝØK[X[šY™\ÝšœÛÛ‰ÊBˆ]OZœÛÛ‹›ØYÊœ™XYÝ^
+
+JBˆØØ[IÚ‹ËÌLËŒŒŒNŽÍKÛÙÛËœ™ÉÂˆ]VÉÚXÛÛ•\›	×O[ØØ[ˆ]VÉÛX\ÚØX›RXÛÛ•\›	×O[ØØ[ˆ]VÉÛ[Û›ØÚ›ÛYRXÛÛ•\›	×O[ØØ[ˆÜš]WÝ^
+œÛÛ‹™[\Ê]K[œÝ\™WØ\ØÚZOQ˜[ÙK[™[LŠJÉ×‰ÊBˆB‚ˆ]ÛŒÈ[HœÙ\™\ˆÍHKXš[™LËŒŒŒHKY\™XÝÜžH›˜]]™KXZ[ÜÝÜ™H‹Ý\Þ˜ZXKY˜XÝÜžK[ÙÛË›ÙÈ‰ŒH	‚ˆÑT•‘T—ÔQIBˆ˜\	ÚÚ[‰ÑT•‘T—ÔQˆ‹Ù]‹Û[YIÈVUˆÛY\BˆÙ›˜]]™KXZ[ÜÝÜ™BˆX˜›]Ü˜\\]HK\ÚÚ\™\œÚ[Û•\Ü˜YHK[X[šY™\Ý]ØK[X[šY™\ÝšœÛÛ‚‚ˆH˜[YNˆ[YÜ˜\ˆš\™X˜\ÙHÛÝYY\ÜØYÚ[™ÂˆYŽˆÝ\Ë˜ÛZ[K›Ý]]Ëš\×Ú›ØˆOH	ÝYIÂˆÚ[ˆ˜\Úˆ[ŽˆˆÙ]Y][È\Y˜Z[ˆÙ›˜]]™KXZ[ÜÝÜ™BˆÜ‰ÒUP—ÕÓÔ’ÔÔPÑKË™˜XÝÜžKÙÛÛÙÛK\Ù\šXÙ\ËšœÛÛˆˆ\ÙÛÛÙÛK\Ù\šXÙ\ËšœÛÛ‚‚ˆ]ÛŒÈH	ÔIÂˆ[\ÜœÛÛ‹ÜÂˆœ›ÛH]Xˆ[\Ü]ˆ^XÝY[ÜË™[š\›Û–ÉÔPÒÐQÑWÒQ	×Bˆ]OZœÛÛ‹›ØYÊ]
+	Ø\ÙÛÛÙÛK\Ù\šXÙ\ËšœÛÛ‰ÊKœ™XYÝ^
+
+JBˆXÚØYÙ\ÏVÂˆË™Ù]
+	ØÛY[Ú[™›ÉËßJK™Ù]
+	Ø[™›ÚYØÛY[Ú[™›ÉËßJK™Ù]
+	ÜXÚØYÙWÛ˜[YIÊBˆ›ÜˆÈ[ˆ]K™Ù]
+	ØÛY[	Ë×JBˆBˆYˆ^XÝY›Ý[ˆXÚØYÙ\Î‚ˆ˜Z\ÙHÞ\Ý[Q^]
+‰Ñš\™X˜\ÙH°èÛÈÛÛ0ê[HÈXÛÝHÙ^XÝYKˆ[˜ÛÛ˜YÜÎˆÜXÚØYÙ\ßIÊBˆB‚ˆUWÑTH‰
+\›˜[YH‰
+š[™\ÜÜ˜ËÛXZ[ˆ]\Hˆ[˜[YH][˜Ú\XÝ]š]Kš˜]˜H\š[\]Z]
+HŠH‚ˆ\Ý[ˆ‰UWÑTˆ‚ˆÜÙ[™\˜]YÓ][˜Ú\XÝ]š]Kš˜]˜H‰UWÑT‹Ó][˜Ú\XÝ]š]Kš˜]˜H‚ˆ7vVæW&FVBõ¦–f—&V&6TÖW76v–æu6W'f–6Ræ¦f"D¤dôD•"õ¦–f—&V&6TÖW76v–æu6W'f–6Ræ¦f ¢Ö¶F—"×÷7&2öÖ–â÷&W2öG&v&ÆP¢7"Dt•D…T%õtõ$µ54RöæF—fR÷FV×ÆFW2öæG&ö–Bö–5÷7FE÷¦–ç†ÖÂ"÷7&2öÖ–â÷&W2öG&v&ÆRö–5÷7FE÷¦–ç†ÖÀ ¢—F†öã2ÒÃÂu’p¢g&öÒF†Æ–"–×÷'BF€ ¢&ö÷CÕF‚‚v'V–ÆBæw&FÆRr¢&ö÷E÷FW‡C×&ö÷Bç&VE÷FW‡B‚¢Ö&¶W#Ò&6Æ77F‚v6öÒææG&ö–BçFööÇ2æ'V–ÆC¦w&FÆS¢ ¢–b&6öÒævöövÆRæv×3¦vöövÆR×6W'f–6W2"æ÷B–â&ö÷E÷FW‡C ¢÷3×&ö÷E÷FW‡Bæf–æB†Ö&¶W"¢–b÷2Â ¢&—6R7—7FVÔW†—B‚tæG&ö–Bw&FÆRÇVv–âì:6òVæ6öçG&Fòâr¢Æ–æUöVæC×&ö÷E÷FW‡Bæf–æB‚uÆârÇ÷2¢&ö÷E÷FW‡C×&ö÷E÷FW‡E³¦Æ–æUöVæB³Ò²"6Æ77F‚v6öÒævöövÆRæv×3¦vöövÆR×6W'f–6W3£BãRãuÆâ"·&ö÷E÷FW‡E¶Æ–æUöVæB³¥Ð¢&ö÷Bçw&—FU÷FW‡B‡&ö÷E÷FW‡B ¢ÕF‚‚vö'V–ÆBæw&FÆRr¢÷FW‡CÖç&VE÷FW‡B‚¢–b&Ç’ÇVv–ã¢v6öÒævöövÆRæv×2ævöövÆR×6W'f–6W2r"æ÷B–â÷FW‡C ¢ÇVv–åöVæCÖ÷FW‡Bæf–æB‚wÕÆârÂ÷FW‡Bæf–æB‚wÇVv–ç2²r’¢–bÇVv–åöVæBÂ ¢&—6R7—7FVÔW†—B‚t&Æö6òÇVv–ç2ì:6òVæ6öçG&Fòâr¢ÇVv–åöVæB³Ò ¢÷FW‡CÖ÷FW‡E³§ÇVv–åöVæEÒ²%ÆæÇ’ÇVv–ã¢v6öÒævöövÆRæv×2ævöövÆR×6W'f–6W2uÆâ"¶÷FW‡E·ÇVv–åöVæC¥Ð ¢–b&6öÒævöövÆRæf—&V&6S¦f—&V&6RÖÖW76v–ær"æ÷B–â÷FW‡C ¢FW÷7F'CÖ÷FW‡Bæf–æB‚vFWVæFVæ6–W2²r¢–bFW÷7F'BÂ ¢&—6R7—7FVÔW†—B‚t&Æö6òFWVæFVæ6–W2ì:6òVæ6öçG&Fòâr¢–ç6W'CÖFW÷7F'B¶ÆVâ‚vFWVæFVæ6–W2²r¢f—&V&6SÒ%Æâ–×ÆVÖVçFF–öâÆFf÷&Ò‚v6öÒævöövÆRæf—&V&6S¦f—&V&6RÖ&öÓ£3Bã’ãr•Æâ–×ÆVÖVçFF–öâv6öÒævöövÆRæf—&V&6S¦f—&V&6RÖÖW76v–æruÆâ ¢÷FW‡CÖ÷FW‡E³¦–ç6W'EÒ¶f—&V&6R¶÷FW‡E¶–ç6W'C¥Ð¢çw&—FU÷FW‡B†÷FW‡B ¢Öæ–fW7CÕF‚‚v÷7&2öÖ–âôæG&ö–DÖæ–fW7Bç†ÖÂr¢ÓÖÖæ–fW7Bç&VE÷FW‡B‚¢–bvæG&ö–BçW&Ö—76–öâåõ5EôäõD”d”4D”ôå2ræ÷B–âÓ ¢Öæ–fW7EöVæCÖÒæf–æB‚sârÂÒæf–æB‚sÆÖæ–fW7Br’¢–bÖæ–fW7EöVæBÂ ¢&—6R7—7FVÔW†—B‚uFrÖæ–fW7Bì:6òVæ6öçG&Fâr¢ÓÖÕ³¦Öæ–fW7EöVæB³Ò²uÆâÇW6W2×W&Ö—76–öâæG&ö–C¦æÖSÒ&æG&ö–BçW&Ö—76–öâåõ5EôäõD”d”4D”ôå2"óâr¶Õ¶Öæ–fW7EöVæB³¥Ð ¢6W'f–6Uö&Æö6³Òrrp¢ÆÖWFÖFF¢æG&ö–C¦æÖSÒ&6öÒævöövÆRæf—&V&6RæÖW76v–æræFVfVÇEöæ÷F–f–6F–öåö–6öâ ¢æG&ö–C§&W6÷W&6SÒ$G&v&ÆRö–5÷7FE÷¦–"óà¢ÆÖWFÖFF¢æG&ö–C¦æÖSÒ&6öÒævöövÆRæf—&V&6RæÖW76v–æræFVfVÇEöæ÷F–f–6F–öåö6öÆ÷" ¢æG&ö–C§&W6÷W&6SÒ$6öÆ÷"ö6öÆ÷%&–Ö'’"óà¢ÆÖWFÖFF¢æG&ö–C¦æÖSÒ&6öÒævöövÆRæf—&V&6RæÖW76v–æræFVfVÇEöæ÷F–f–6F–öåö6†ææVÅö–B ¢æG&ö–C§fÇVSÒ'¦–÷7F÷&Uöæ÷F–f–6F–öç2"óà¢Ç6W'f–6P¢æG&ö–C¦æÖSÒ"å¦–f—&V&6TÖW76v–æu6W'f–6R ¢æG&ö–C¦W‡÷'FVCÒ&fÇ6R#à¢Æ–çFVçBÖf–ÇFW#à¢Æ7F–öâæG&ö–C¦æÖSÒ&6öÒævöövÆRæf—&V&6RäÔU54t”äuôUdTåB"óà¢Âö–çFVçBÖf–ÇFW#à¢Â÷6W'f–6Sà¢rrp¢–brå¦–f—&V&6TÖW76v–æu6W'f–6Rræ÷B–âÓ ¢ÓÖÒç&WÆ6R‚sÂöÆ–6F–öãârÂ6W'f–6Uö&Æö6²²uÆâÂöÆ–6F–öãâr¢Öæ–fW7Bçw&—FU÷FW‡B†Ò¢ ¢âöw&FÆWr¦§&ö6W75&VÆV6TvöövÆU6W'f–6W2¦¦6ö×–ÆU&VÆV6T¦fv—F„¦f2ÒÖæòÖFVÖöà ¢ÒæÖS¢vW&"²R"76–æF÷0¢–c¢7FW2æ6Æ–Òæ÷WGWG2æ†5ö¦ö"ÓÒwG'VRp¢6†VÆÃ¢&6€¢'Vã¢À¢6WBÖWVò—Vf–À¢W‡÷'BäE$ô”Eõ4Dµõ$ôõCÒ"D„ôÔRòæ'V&&ÆWw&öæG&ö–B×6F²×w&W" ¢6BææF—fRÖ'V–ÆB÷7F÷&P¢'V&&ÆWw&'V–ÆBÀ¢Ò×6¶—vfÆ–FF–öâÀ¢ÒÖÖæ–fW7C×GvÖÖæ–fW7Bæ§6öâÀ¢Ò×6–væ–æt¶W•FƒÖæG&ö–Bæ¶W—7F÷&RÀ¢Ò×6–væ–æt¶W”Æ–3Ò"D´U•ôÄ”2  ¢³Ò"B†f–æBâ×G—RbÖæÖRv×&VÆV6R×6–væVBæ²r×&–çB×V—B’ ¢#Ò"B†f–æBâ×G—RbÖæÖRv×&VÆV6RÖ'VæFÆRæ"r×&–çB×V—B’ ¢FW7BÖâ"D² ¢FW7BÖâ"D"  ¢Ö¶F—"×"Dt•D…T%õtõ$µ54Ròæf7F÷'’÷&VÆV6R ¢À€ˆ‘A,ˆ€ˆ‘%Q!U	}]=I-MA¼¹™…Ñ½Éä½É•±•…Í”¼‘íIQ%Q}M1Uô¹…Á¬ˆ(€€€€€€€€€cp "$AAB" "$GITHUB_WORKSPACE/.factory/release/${ARTIFACT_SLUG}.aab"
+
+      - name: Publicar APK
+        if: steps.claim.outputs.has_job == 'true'
+        id: publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          TAG="zaia-app-${PROFILE_ID}-v${VERSION_CODE}"
+          APK_NAME="${ARTIFACT_SLUG}.apk"
+          AAB_NAME="${ARTIFACT_SLUG}.aab"
+
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" \
+              ".factory/release/$APK_NAME" \
+              ".factory/release/$AAB_NAME" \
+              --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" \
+              ".factory/release/$APK_NAME" \
+              ".factory/release/$AAB_NAME" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target "$GITHUB_SHA" \
+              --title "ZAIA App â€¢ ${APP_NAME} â€¢ ${VERSION_NAME}" \
+              --notes "Pacote gerado automaticamente pelo ZAIA App Factory." \
+              --prerelease
+          fi
+
+          APK_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${APK_NAME}"
+          AAB_URL="https://github.com/${GITHUB_REPOSITORY}/releases/download/${TAG}/${AAB_NAME}"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "apk_url=$APK_URL" >> "$GITHUB_OUTPUT"
+          echo "aab_url=$AAB_URL" >> "$GITHUB_OUTPUT"
+
+      - name: Concluir no ZAIA
+        if: steps.claim.outputs.has_job == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          OIDC="$(curl --fail --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=zaia-app-factory" | jq -r '.value')"
+          echo "::add-mask::$OIDC"
+
+          jq -n \
+            --arg mode "complete" \
+            --arg profile_id "$PROFILE_ID" \
+            --arg apk_url "${{ steps.publish.outputs.apk_url }}" \
+            --arg aab_url "${{ steps.publish.outputs.aab_url }}" \
+            --arg release_tag "${{ steps.publish.outputs.tag }}" \
+            '{mode:$mode,profile_id:$profile_id,apk_url:$apk_url,aab_url:$aab_url,release_tag:$release_tag}' \
+            > .factory/complete.json
+
+          curl --fail-with-body --silent --show-error \
+            -X POST "$FACTORY_URL" \
+            -H "Authorization: Bearer $OIDC" \
+            -H "Content-Type: application/json" \
+            --data-binary @.factory/complete.json \
+            > /dev/null
+
+      - name: Guardar artefatos da execuÃ§Ã£o
+        if: steps.claim.outputs.has_job == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ZAIA-App-${{ steps.claim.outputs.profile_id }}
+          path: |
+            .factory/release/*.apk
+            .factory/release/*.aab
+            .native-build/store/generated/assetlinks-entry.json
+            .native-build/store/generated/build-metadata.json
+          if-no-files-found: error
+          retention-days: 14
+
+      - name: Registrar falha no ZAIA
+        if: failure() && steps.claim.outputs.has_job == 'true'
+        shell: bash
+        run: |
+          set +e
+          OIDC="$(curl --silent --show-error \
+            -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=zaia-app-factory" | jq -r '.value')"
+          echo "::add-mask::$OIDC"
+
+          jq -n \
+            --arg mode "fail" \
+            --arg profile_id "${{ steps.claim.outputs.profile_id }}" \
+            --arg error "Build Android falhou. ExecuÃ§Ã£o GitHub Actions: https://github.com/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}" \
+            '{mode:$mode,profile_id:$profile_id,error:$error}' \
+            > .factory/fail.json
+
+          curl --silent --show-error \
+            -X POST "$FACTORY_URL" \
+            -H "Authorization: Bearer $OIDC" \
+            -H "Content-Type: application/json" \
+            --data-binary @.factory/fail.json \
+            > /dev/null
