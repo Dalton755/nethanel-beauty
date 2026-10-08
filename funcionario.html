@@ -15,6 +15,9 @@
   <div id="employeeApp"></div>
   <script>window.ZAIA_APP_CONTEXT='employee'</script>
   <script src="/config.js"></script>
-  <script type="module" src="/employee-app.js?v=20261004-employee1"></script>
+  <script type="module">
+    await import('/preview-write-guard.js?v=20261008-qa1')
+    await import('/employee-app.js?v=20261004-employee1')
+  </script>
 </body>
 </html>
