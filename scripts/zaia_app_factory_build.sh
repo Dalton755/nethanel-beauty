@@ -1,3 +1,4 @@
+# ZAIA App Factory worker v2
 #!/usr/bin/env bash
 set -euo pipefail
 
