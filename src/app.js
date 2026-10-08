@@ -1,3 +1,4 @@
+import {getRetentionCandidates,getAgendaOpportunity,localBusinessDate} from './retention-insights.js'
 import {
   cloudEnabled,
   getSession,
@@ -75,7 +76,7 @@ const $$ = (s,el=document)=>[...el.querySelectorAll(s)]
 const fmtMoney = n => Number(n||0).toLocaleString('pt-BR',{style:'currency',currency:'BRL'})
 const fmtDate = d => new Date(d+'T12:00:00').toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'})
 const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2)+Date.now()
-const todayISO = ()=> new Date().toISOString().slice(0,10)
+const todayISO = ()=> localBusinessDate(new Date())
 const storageKey='beauty_os_mvp_v2'
 const brandCacheKey='zaia_last_business_brand_v1'
 const ZAIA_COLORS={primary:'#351a0c',secondary:'#b88048',accent:'#c99558'}
@@ -737,6 +738,7 @@ function homePage(){
   const revenue=selected.reduce((sum,a)=>sum+Number(a.price||0),0)
   const low=state.products.filter(p=>Number(p.minStock||0)>0&&Number(p.stock)<=Number(p.minStock))
   const returns=clientsDueReturn()
+  const opportunity=getAgendaOpportunity(state.appointments,zaiaHomeDate)
   const next=selected.find(a=>a.status!=='CONCLUIDO')
   const tabs=[['appointments','Agendamentos'],['team','Equipe'],['services','Serviços']]
   return `<div class="zaia-v3-home"><section class="dashboard-hero zaia-v3-hero"><span class="zaia-v3-business-tag">${esc(state.establishment.name)}</span><h1 class="title">Olá, Profissional!</h1><p class="subtitle">Seu negócio mais organizado<br>e com mais clientes.</p></section>
@@ -754,6 +756,7 @@ function homePage(){
       </div>
       <div class="zaia-v3-quick"><button class="quick-action" data-open="appointment">${icon('calendar',20)}<span>Agendar</span></button><button class="quick-action" data-open="client">${icon('users',20)}<span>Cliente</span></button><button class="quick-action" data-page="inventory">${icon('box',20)}<span>Estoque</span></button><button class="quick-action" data-page="finance">${icon('wallet',20)}<span>Financeiro</span></button></div>
     </details>
+    ${opportunity.lowDemand?`<section class="zaia-v3-growth-hint"><div><strong>Horários disponíveis? Transforme em oportunidade.</strong><p>Divulgue seus serviços e incentive novos agendamentos para preencher a agenda.</p></div><button type="button" class="btn small" data-page="promotions">Criar promoção</button></section>`:''}
     ${returns.length?`<div class="section-head return-head"><div><span class="eyebrow">RELACIONAMENTO</span><h2>Clientes para reativar</h2></div><span class="pill">${returns.length}</span></div><div class="list client-return-list">${returns.slice(0,4).map(c=>`<div class="item"><div class="client-initial">${esc(c.name[0]?.toUpperCase()||'C')}</div><div class="item-main"><strong>${esc(c.name)}</strong><div class="meta">${c.daysSince} dias desde a última visita ${c.lastService?'• '+esc(c.lastService):''}</div></div>${c.phone?`<button class="btn small" data-wa="${c.id}">WhatsApp</button>`:''}</div>`).join('')}</div>`:''}
   </div>`
 }
@@ -1938,8 +1941,7 @@ async function completeAppointment(id,button){
   }catch(error){setBusy(button,false);alert(`Não foi possível concluir o atendimento. ${friendlyError(error)}`)}
 }
 function clientsDueReturn(){
-  const now=new Date(todayISO()+'T12:00:00')
-  return state.clients.filter(c=>c.lastVisit&&c.returnDays>0).map(c=>{const d=new Date(c.lastVisit+'T12:00:00');const days=Math.floor((now-d)/86400000);return {...c,daysSince:days}}).filter(c=>c.daysSince>=Math.max(1,c.returnDays-3))
+  return getRetentionCandidates(state.clients,state.appointments,todayISO())
 }
 function openWhatsApp(id){
   const c=state.clients.find(x=>x.id===id);if(!c)return
