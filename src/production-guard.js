@@ -2,7 +2,7 @@ import { ensureSession } from './cloud.js'
 
 const cfg=()=>window.BEAUTY_CONFIG||{}
 const isCustomer=()=>location.pathname==='/cliente'||location.pathname.startsWith('/cliente/')
-const isSkipped=()=>location.pathname.startsWith('/gestao')||location.pathname.startsWith('/termos')||location.pathname.startsWith('/privacidade')
+const isSkipped=()=>location.hostname.endsWith('.onrender.com')&&String(cfg().supabaseUrl||'').includes('sxghzubovthsvmfqncch.supabase.co')||location.pathname.startsWith('/gestao')||location.pathname.startsWith('/termos')||location.pathname.startsWith('/privacidade')
 let activeUser=null
 let checking=false
 let overlay=null
