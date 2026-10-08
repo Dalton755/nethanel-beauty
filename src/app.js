@@ -90,6 +90,7 @@ let modal=null
 let modalData=null
 let loading=true
 let authMessage=''
+let loadError=''
 let currentUser=null
 let businessLocationDraft=null
 let loginBrand=null
@@ -494,6 +495,7 @@ function friendlyError(error){
 
 async function boot(){
   loading=true
+  loadError=''
   loginBrand=loginBrand||loadCachedBrand()
   render()
   if(!cloudEnabled()){
@@ -546,8 +548,9 @@ async function boot(){
       page=requestedPage
     }
   }catch(error){
-    authMessage=`Não foi possível carregar os dados: ${friendlyError(error)}`
-    state=emptyState()
+    loadError=friendlyError(error)
+    // Evita interpretar falha de rede como estabelecimento não cadastrado.
+    console.warn('ZAIA: falha ao carregar a operação',error)
   }
   loading=false;render()
 }
@@ -558,6 +561,11 @@ function render(){
   applyBrandTheme(activeBrand)
   if(loading){app.innerHTML=loadingPage();return}
   if(cloudEnabled()&&!getSession()){app.innerHTML=authPage();bindAuth();return}
+  if(loadError){
+    app.innerHTML=`<section class="onboard"><div class="onboard-inner" role="alert"><div class="hero-logo zaia-hero">${zaiaLogo()}</div><h1>Não foi possível carregar seu espaço.</h1><p class="subtitle">Seus dados foram preservados. Verifique sua conexão e tente novamente.</p><div class="warning-box">${esc(loadError)}</div><button class="btn primary wide" id="zaiaRetryLoading" type="button">Tentar novamente</button></div></section>`
+    $('#zaiaRetryLoading')?.addEventListener('click',()=>boot())
+    return
+  }
   if(!state.setup){app.innerHTML=onboarding();bindOnboarding();return}
   app.innerHTML=`<div class="shell">${nav()}${topbar()}<main class="content">${pageContent()}</main></div>${modal?modalHtml():''}`
   bindGlobal();bindPage();if(modal)bindModal()
@@ -577,7 +585,7 @@ function loadingPage(){
 }function bindAuth(){
   const form=$('#authForm')
   $('#googleLogin')?.addEventListener('click',()=>{
-    signInWithGoogle('https://nethanel-beauty.vercel.app/')
+    signInWithGoogle(`${location.origin}/loja`)
   })
   form?.addEventListener('submit',async e=>{
     e.preventDefault();authMessage=''
