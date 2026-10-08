@@ -13,14 +13,14 @@ oidc_token(){
     "${ACTIONS_ID_TOKEN_REQUEST_URL}&audience=zaia-app-factory" | jq -r '.value'
 }
 
+OIDC_TOKEN="$(oidc_token)"
+echo "::add-mask::$OIDC_TOKEN"
+
 factory_post(){
   local payload="$1"
-  local token
-  token="$(oidc_token)"
-  echo "::add-mask::$token"
   curl --fail-with-body --silent --show-error \
     -X POST "$FACTORY_URL" \
-    -H "Authorization: Bearer $token" \
+    -H "Authorization: Bearer $OIDC_TOKEN" \
     -H "Content-Type: application/json" \
     --data-binary "@$payload"
 }
