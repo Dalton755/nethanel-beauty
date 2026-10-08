@@ -63,6 +63,7 @@
     })()
   </script>
   <script type="module">
+    await import('/preview-write-guard.js?v=20261008-qa1')
     const authHash = new URLSearchParams(location.hash.replace(/^#/, ''))
     const isRecovery = authHash.get('type') === 'recovery'
     if (isRecovery) {
