@@ -78,7 +78,7 @@ const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toStri
 const todayISO = ()=> new Date().toISOString().slice(0,10)
 const storageKey='beauty_os_mvp_v2'
 const brandCacheKey='zaia_last_business_brand_v1'
-const ZAIA_COLORS={primary:'#3b172b',secondary:'#6b3149',accent:'#c89a61'}
+const ZAIA_COLORS={primary:'#351a0c',secondary:'#b88048',accent:'#c99558'}
 
 const emptyState = () => ({
   setup:false, establishment:null, services:[], products:[], clients:[], appointments:[], professionals:[], promotions:[], financeData:null, financeTransactions:[], financeAccounts:[], planCatalog:[], merchantSubscription:null, notificationsEnabled:false
@@ -600,10 +600,14 @@ function loadingPage(){
 
 function topbar(){
   const est=state.establishment
-  const segments=est.segments.map(s=>SEGMENTS[s]?.name).filter(Boolean).join(' • ')
+  const segments=(est.segments||[]).map(s=>SEGMENTS[s]?.name).filter(Boolean).join(' • ')
   const userLabel=(currentUser?.email||'Conta ZAIA').split('@')[0]
-  return `<header class="topbar"><div class="mobile-brand">${businessBrandHtml(est,{compact:true})}<div class="brandtext"><strong>${esc(est.name)}</strong><span>${esc(segments)}</span></div></div><div class="desktop-search">${icon('search',18)}<span>Buscar clientes, serviços e atendimentos...</span></div><div class="top-actions"><button class="icon-button" id="notifyTopBtn" aria-label="Notificações">${icon('bell',19)}${Number(businessPushState?.unread||0)>0?`<i class="notification-dot"></i>`:'<i></i>'}</button><div class="account-chip"><div class="avatar">${esc((userLabel[0]||'Z').toUpperCase())}</div><div><strong>${esc(userLabel)}</strong><span>${esc(est.name)}</span></div></div></div></header>`
-}function nav(){
+  const customLogo=est.brandEnabled&&est.brandLogoUrl
+    ? `<img class="zaia-v3-custom-logo" src="${esc(est.brandLogoUrl)}" alt="Logo de ${esc(est.name)}">`
+    : ''
+  return `<header class="topbar zaia-v3-topbar"><div class="mobile-brand zaia-v3-mobile-brand"><div class="zaia-v3-platform-brand"><img src="/zaia-logo.svg" alt="ZAIA — Beleza organizada, negócios que crescem"></div><div class="zaia-v3-business-meta">${customLogo}<span><strong>${esc(est.name)}</strong><small>${esc(segments||'Gestão do estabelecimento')}</small></span></div></div><div class="desktop-search">${icon('search',18)}<span>Buscar clientes, serviços e atendimentos...</span></div><div class="top-actions"><button class="icon-button" id="notifyTopBtn" aria-label="Notificações">${icon('bell',22)}${Number(businessPushState?.unread||0)>0?'<i class="notification-dot"></i>':''}</button><div class="account-chip"><div class="avatar">${esc((userLabel[0]||'Z').toUpperCase())}</div><div><strong>${esc(userLabel)}</strong><span>${esc(est.name)}</span></div></div></div></header>`
+}
+function nav(){
   const items=[
     ['home','home','Início'],
     ['agenda','calendar','Agenda'],
@@ -679,27 +683,71 @@ function defaultDuration(n){
   return exact[name]||60
 }
 
+function zaiaHomeLocalISO(d=new Date()){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+}
+let zaiaHomeDate=zaiaHomeLocalISO()
+let zaiaHomeTab='appointments'
+
+function zaiaHomeDates(){
+  const center=new Date(zaiaHomeDate+'T12:00:00')
+  const items=[]
+  for(let offset=-2;offset<=2;offset++){
+    const d=new Date(center)
+    d.setDate(center.getDate()+offset)
+    const iso=zaiaHomeLocalISO(d)
+    const weekday=d.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').replace(/^./,m=>m.toUpperCase())
+    items.push(`<button type="button" class="zaia-v3-day ${iso===zaiaHomeDate?'selected':''}" data-zaia-home-day="${iso}" aria-pressed="${iso===zaiaHomeDate?'true':'false'}"><span>${weekday}</span><strong>${d.getDate()}</strong></button>`)
+  }
+  return `<div class="zaia-v3-calendar-head"><button type="button" data-zaia-home-shift="-5" aria-label="Cinco dias anteriores">‹</button><span>${center.toLocaleDateString('pt-BR',{month:'long',year:'numeric'})}</span><button type="button" data-zaia-home-shift="5" aria-label="Próximos cinco dias">›</button></div><div class="zaia-v3-date-strip" aria-label="Selecionar data da agenda">${items.join('')}</div>`
+}
+
+function zaiaHomeAppointment(a){
+  const svc=serviceById(a.serviceId)
+  const pro=professionalById(a.professionalId)
+  const initials=String(a.clientName||'Cliente').trim().split(/\s+/).slice(0,2).map(v=>v[0]||'').join('').toUpperCase()
+  const closed=['CONCLUIDO','CANCELADO','NAO_COMPARECEU'].includes(a.status)
+  const badge=a.status==='CONCLUIDO'?'Concluído':a.status==='EM_ATENDIMENTO'?'Em atendimento':a.status==='CANCELADO'?'Cancelado':'Agendado'
+  const statusClass=a.status==='CONCLUIDO'?'done':a.status==='EM_ATENDIMENTO'?'active':a.status==='CANCELADO'?'cancel':'upcoming'
+  return `<details class="zaia-v3-appointment ${statusClass}"><summary aria-label="Detalhes do atendimento de ${esc(a.clientName||'Cliente')}"><span class="zaia-v3-appointment-time">${esc(a.time||'--:--')}</span><span class="zaia-v3-client-avatar" aria-hidden="true">${esc(initials||'C')}</span><span class="zaia-v3-appointment-info"><strong>${esc(a.clientName||'Cliente')}</strong><small>${esc(svc?.name||'Serviço')}</small></span><span class="zaia-v3-chevron" aria-hidden="true">›</span></summary><div class="zaia-v3-appointment-details"><div><strong>Profissional:</strong> ${esc(pro?.name||'A definir')} <span>·</span> ${fmtMoney(a.price)}</div><span class="zaia-v3-status ${statusClass}">${badge}</span><div class="zaia-v3-detail-actions"><button class="btn small ghost" data-appointment-materials="${esc(a.id)}" ${closed?'disabled':''}>Materiais</button><button class="btn small" data-complete="${esc(a.id)}" ${closed?'disabled':''}>${a.status==='CONCLUIDO'?'Concluído':'Concluir'}</button>${!closed?`<button class="btn small danger-soft" data-cancel-appointment="${esc(a.id)}">Cancelar</button>`:''}</div></div></details>`
+}
+
+function zaiaHomeTabPanel(appointments){
+  if(zaiaHomeTab==='team'){
+    const professionals=(state.professionals||[]).filter(p=>p.active!==false)
+    return `<section class="zaia-v3-list">${professionals.length?professionals.map(p=>`<div class="zaia-v3-directory-card"><span class="zaia-v3-client-avatar">${esc(String(p.name||'P').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase())}</span><span><strong>${esc(p.name||'Profissional')}</strong><small>Equipe do estabelecimento</small></span><button class="zaia-v3-link" data-page="professionals">Ver ›</button></div>`).join(''):'<div class="zaia-v3-empty">Sua equipe ainda não foi cadastrada.</div>'}</section><button class="zaia-v3-outline-action" data-page="professionals">Gerenciar equipe ›</button>`
+  }
+  if(zaiaHomeTab==='services'){
+    const services=(state.services||[]).filter(x=>x.active!==false)
+    return `<section class="zaia-v3-list">${services.length?services.slice(0,8).map(s=>`<div class="zaia-v3-directory-card"><span class="zaia-v3-service-symbol">✦</span><span><strong>${esc(s.name||'Serviço')}</strong><small>${Number(s.duration||0)} min ${Number(s.price||0)>0?'· '+fmtMoney(s.price):''}</small></span><button class="zaia-v3-link" data-page="services">Ver ›</button></div>`).join(''):'<div class="zaia-v3-empty">Nenhum serviço cadastrado ainda.</div>'}</section><button class="zaia-v3-outline-action" data-page="services">Gerenciar serviços ›</button>`
+  }
+  return `<section class="zaia-v3-list">${appointments.length?appointments.map(zaiaHomeAppointment).join(''):'<div class="zaia-v3-empty"><strong>Nenhum agendamento nesta data.</strong><span>Escolha outro dia ou registre um horário.</span></div>'}</section><div class="zaia-v3-agenda-actions"><button class="zaia-v3-outline-action" data-page="agenda">Ver agenda completa ›</button><button class="btn primary" data-open="appointment">+ Novo horário</button></div>`
+}
+
 function homePage(){
-  const today=state.appointments.filter(a=>a.date===todayISO()&&a.status!=='CANCELADO').sort((a,b)=>a.time.localeCompare(b.time))
-  const revenue=today.reduce((sum,a)=>sum+Number(a.price||0),0)
+  const selected=state.appointments.filter(a=>a.date===zaiaHomeDate&&a.status!=='CANCELADO').sort((a,b)=>String(a.time).localeCompare(String(b.time)))
+  const revenue=selected.reduce((sum,a)=>sum+Number(a.price||0),0)
   const low=state.products.filter(p=>Number(p.minStock||0)>0&&Number(p.stock)<=Number(p.minStock))
   const returns=clientsDueReturn()
-  const next=today.find(a=>a.status!=='CONCLUIDO')
-  return `<section class="dashboard-hero"><div><span class="eyebrow">VISÃO DO NEGÓCIO</span><h1 class="title">Olá, ${esc(state.establishment.name)}.</h1><p class="subtitle">Mais clareza para cuidar do seu negócio hoje.</p></div><div class="hero-brand">${zaiaLogo(true)}<span>Gestão inteligente para beleza</span></div></section>
-  <div class="grid stats zaia-stats">
-    <div class="card stat-card"><div class="stat-icon">${icon('calendar',21)}</div><div><div class="stat-label">Atendimentos hoje</div><div class="stat-value">${today.length}</div><div class="stat-note">${next?`Próximo às ${next.time}`:'Agenda livre'}</div></div></div>
-    <div class="card stat-card"><div class="stat-icon champagne">${icon('sparkle',21)}</div><div><div class="stat-label">Receita prevista</div><div class="stat-value money">${fmtMoney(revenue)}</div><div class="stat-note">Agenda de hoje</div></div></div>
-    <div class="card stat-card"><div class="stat-icon soft">${icon('users',21)}</div><div><div class="stat-label">Retornos</div><div class="stat-value">${returns.length}</div><div class="stat-note">Clientes no período ideal</div></div></div>
-    <div class="card stat-card"><div class="stat-icon warning">${icon('box',21)}</div><div><div class="stat-label">Produtos em falta</div><div class="stat-value">${low.length}</div><div class="stat-note">${low.length?'Atenção necessária':'Estoque saudável'}</div></div></div>
-  </div>
-  <div class="dashboard-grid">
-    <section class="card dashboard-panel agenda-panel"><div class="section-head"><div><span class="eyebrow">HOJE</span><h2>Agenda</h2></div><button class="link-button" data-page="agenda">Ver agenda ${icon('arrow',16)}</button></div>${today.length?`<div class="list clean-list">${today.slice(0,5).map(appointmentItem).join('')}</div>`:`<div class="empty"><b>Nenhum horário hoje</b>Sua agenda está livre. Aproveite para organizar retornos.</div>`}<button class="btn primary dashboard-new" data-open="appointment">${icon('plus',18)} Novo agendamento</button></section>
-    <div class="dashboard-side">
-      <section class="card dashboard-panel"><div class="section-head"><div><span class="eyebrow">ATALHOS</span><h2>Ações rápidas</h2></div></div><div class="quick zaia-quick"><button class="quick-action" data-open="appointment">${icon('calendar',21)}<span>Agendar</span></button><button class="quick-action" data-open="client">${icon('users',21)}<span>Cliente</span></button><button class="quick-action" data-page="services">${icon('sparkle',21)}<span>Serviços</span></button><button class="quick-action" data-page="inventory">${icon('box',21)}<span>Estoque</span></button></div></section>
-      <section class="card dashboard-panel pro-highlight"><div class="pro-glow"></div><span class="eyebrow">ZAIA PRO</span><h2>Sua marca dentro da ZAIA.</h2><p>Logo, cores e ícone personalizados para uma experiência ainda mais profissional.</p><button class="btn pro-button" data-open="zaiaPro">Conhecer personalização ${icon('arrow',17)}</button></section>
-    </div>
-  </div>
-  ${returns.length?`<div class="section-head return-head"><div><span class="eyebrow">RELACIONAMENTO</span><h2>Clientes para reativar</h2></div><span class="pill">${returns.length}</span></div><div class="list client-return-list">${returns.slice(0,4).map(c=>`<div class="item"><div class="client-initial">${esc(c.name[0]?.toUpperCase()||'C')}</div><div class="item-main"><strong>${esc(c.name)}</strong><div class="meta">${c.daysSince} dias desde a última visita ${c.lastService?'• '+esc(c.lastService):''}</div></div>${c.phone?`<button class="btn small" data-wa="${c.id}">WhatsApp</button>`:''}</div>`).join('')}</div>`:''}`
+  const next=selected.find(a=>a.status!=='CONCLUIDO')
+  const tabs=[['appointments','Agendamentos'],['team','Equipe'],['services','Serviços']]
+  return `<div class="zaia-v3-home"><section class="dashboard-hero zaia-v3-hero"><span class="zaia-v3-business-tag">${esc(state.establishment.name)}</span><h1 class="title">Olá, Profissional!</h1><p class="subtitle">Seu negócio mais organizado<br>e com mais clientes.</p></section>
+    <section class="zaia-v3-home-board" aria-label="Resumo da agenda">
+      ${zaiaHomeDates()}
+      <div class="zaia-v3-tabs" role="tablist" aria-label="Visão rápida">${tabs.map(([k,label])=>`<button type="button" role="tab" data-zaia-home-tab="${k}" class="${zaiaHomeTab===k?'selected':''}" aria-selected="${zaiaHomeTab===k?'true':'false'}">${label}</button>`).join('')}</div>
+      ${zaiaHomeTabPanel(selected)}
+    </section>
+    <details class="zaia-v3-insights"><summary>Visão do negócio <span>Indicadores e atalhos ›</span></summary>
+      <div class="grid stats zaia-stats">
+        <div class="card stat-card"><div class="stat-icon">${icon('calendar',21)}</div><div><div class="stat-label">Atendimentos do dia</div><div class="stat-value">${selected.length}</div><div class="stat-note">${next?`Próximo às ${next.time}`:'Agenda livre'}</div></div></div>
+        <div class="card stat-card"><div class="stat-icon champagne">${icon('sparkle',21)}</div><div><div class="stat-label">Receita prevista</div><div class="stat-value money">${fmtMoney(revenue)}</div><div class="stat-note">Na data selecionada</div></div></div>
+        <div class="card stat-card"><div class="stat-icon soft">${icon('users',21)}</div><div><div class="stat-label">Retornos</div><div class="stat-value">${returns.length}</div><div class="stat-note">Clientes para reativar</div></div></div>
+        <div class="card stat-card"><div class="stat-icon warning">${icon('box',21)}</div><div><div class="stat-label">Estoque em alerta</div><div class="stat-value">${low.length}</div><div class="stat-note">${low.length?'Atenção necessária':'Estoque saudável'}</div></div></div>
+      </div>
+      <div class="zaia-v3-quick"><button class="quick-action" data-open="appointment">${icon('calendar',20)}<span>Agendar</span></button><button class="quick-action" data-open="client">${icon('users',20)}<span>Cliente</span></button><button class="quick-action" data-page="inventory">${icon('box',20)}<span>Estoque</span></button><button class="quick-action" data-page="finance">${icon('wallet',20)}<span>Financeiro</span></button></div>
+    </details>
+    ${returns.length?`<div class="section-head return-head"><div><span class="eyebrow">RELACIONAMENTO</span><h2>Clientes para reativar</h2></div><span class="pill">${returns.length}</span></div><div class="list client-return-list">${returns.slice(0,4).map(c=>`<div class="item"><div class="client-initial">${esc(c.name[0]?.toUpperCase()||'C')}</div><div class="item-main"><strong>${esc(c.name)}</strong><div class="meta">${c.daysSince} dias desde a última visita ${c.lastService?'• '+esc(c.lastService):''}</div></div>${c.phone?`<button class="btn small" data-wa="${c.id}">WhatsApp</button>`:''}</div>`).join('')}</div>`:''}
+  </div>`
 }
 function agendaPage(){
   const list=[...state.appointments].sort((a,b)=>(a.date+a.time).localeCompare(b.date+b.time))
@@ -1120,6 +1168,12 @@ function bindGlobal(){
   })
 }
 function bindPage(){
+  if(page==='home'){
+    $('[data-zaia-home-day]').forEach(b=>b.onclick=()=>{zaiaHomeDate=b.dataset.zaiaHomeDay;render()})
+    $('[data-zaia-home-shift]').forEach(b=>b.onclick=()=>{const d=new Date(zaiaHomeDate+'T12:00:00');d.setDate(d.getDate()+Number(b.dataset.zaiaHomeShift||0));zaiaHomeDate=zaiaHomeLocalISO(d);render()})
+    $('[data-zaia-home-tab]').forEach(b=>b.onclick=()=>{zaiaHomeTab=b.dataset.zaiaHomeTab;render()})
+  }
+
   if(page==='plans'&&!state.planCatalog?.length&&!plansLoading)loadPlans()
   if(page==='plans'&&billingConfig===null){
     getBillingConfiguration().then(v=>{billingConfig=v;if(page==='plans')render()}).catch(()=>{billingConfig={ok:false,mercado_pago_access_token:false,mercado_pago_webhook_secret:false};if(page==='plans')render()})
