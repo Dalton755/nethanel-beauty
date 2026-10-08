@@ -32,7 +32,7 @@ document.addEventListener('click',e=>{
   if(google){
     e.preventDefault()
     e.stopImmediatePropagation()
-    signInWithGoogle(CANONICAL)
+    signInWithGoogle(`${location.origin}/loja`)
     return
   }
   const home=e.target.closest?.('a[href="/"]')
