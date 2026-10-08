@@ -27,6 +27,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          node --check src/merchant-app-factory-ui.js
+          node --check src/cloud.js
           mkdir -p dist/loja dist/cliente dist/funcionario dist/public
           cp loja.html dist/loja/index.html
           cp cliente.html dist/cliente/index.html
