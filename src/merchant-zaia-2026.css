@@ -168,3 +168,31 @@ body{background:linear-gradient(180deg,#fffbf8 0%,#f9f1e9 100%);color:var(--zaia
 @media(prefers-reduced-motion:reduce){
   .zaia-v3-day,.zaia-v3-chevron,.zaia-v3-tabs button{transition:none}
 }
+
+/* Páginas internas: mesma linguagem de botões, cartões e campos. */
+.premium-merchant-ui .nav-brand .zaia-wordmark{padding:8px 10px;background:#fff9f2;border-radius:13px;width:165px;filter:none}
+.premium-merchant-ui [data-premium-page]:not([data-premium-page="home"]) h1.title,
+.premium-merchant-ui .premium-page-heading h1{
+  color:var(--zaia-brown);font-family:Georgia,'Times New Roman',serif;letter-spacing:-.045em
+}
+.premium-merchant-ui [data-premium-page]:not([data-premium-page="home"]) .card,
+.premium-merchant-ui [data-premium-page]:not([data-premium-page="home"]) .item,
+.premium-merchant-ui .premium-appointment-card,
+.premium-merchant-ui .premium-client-card,
+.premium-merchant-ui .premium-inventory-item{border:1px solid #f0e3d8!important;background:#fffdfa!important;box-shadow:0 7px 24px rgba(70,46,27,.035)!important}
+.premium-merchant-ui .premium-date-button,.premium-merchant-ui .premium-filter-row button{
+  background:#fff9f3;border:1px solid #eee1d6;color:#6b5140
+}
+.premium-merchant-ui .premium-filter-row button.on{background:linear-gradient(110deg,#b87c43,#d39d64)!important;color:white}
+.premium-merchant-ui .field input:focus,.premium-merchant-ui .field textarea:focus,
+.premium-merchant-ui .field select:focus{
+  border-color:#c99460!important;box-shadow:0 0 0 3px rgba(198,145,91,.13)!important
+}
+.premium-merchant-ui .premium-client-avatar,.premium-merchant-ui .premium-product-icon{background:#f9eee0;color:#a87741;border-color:#f0e0cd}
+.premium-merchant-ui .finance-kpi,.premium-merchant-ui .premium-kpis article{
+  background:linear-gradient(145deg,#fffefa,#fcf6f0)!important;border-color:#f1e5d9!important
+}
+.premium-merchant-ui .pill:not(.good):not(.danger):not(.warn){background:#fbf1e5;color:#8b6745;border-color:#ecd9c3}
+@media(max-width:959px){
+  .premium-merchant-ui .nav-brand .zaia-wordmark{padding:0;background:none}
+}
