@@ -4,6 +4,8 @@ const ROOT_ID='zaiaMyAppModal'
 const STYLE_ID='zaiaMyAppStyles'
 let opening=false
 let lastState=null
+let pollTimer=null
+let autoOpened=false
 
 const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]))
 const phoneIcon='<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10 5h4M11 18.5h2"/></svg>'
@@ -36,7 +38,7 @@ function ensureStyles(){
   document.head.appendChild(s)
 }
 
-function closeModal(){document.getElementById(ROOT_ID)?.remove()}
+function closeModal(){if(pollTimer){clearTimeout(pollTimer);pollTimer=null}document.getElementById(ROOT_ID)?.remove()}
 function openPlans(){closeModal();document.querySelector('[data-page="plans"]')?.click()}
 function openBrand(){
   closeModal()
@@ -100,6 +102,10 @@ function renderPro(root,est,profile){
     const b=e.currentTarget,old=b.textContent;b.disabled=true;b.textContent='Solicitando...'
     try{await requestBusinessAndroidApp(est.id);await open()}catch(error){b.disabled=false;b.textContent=old;alert(String(error?.message||error))}
   })
+
+  if(status==='READY'||status==='BUILDING'){
+    pollTimer=setTimeout(()=>{if(document.getElementById(ROOT_ID))open()},15000)
+  }
 }
 
 async function open(){
@@ -130,6 +136,15 @@ function enhance(){
   }
   const pro=document.querySelector('.pro-settings-card')
   if(pro&&!pro.dataset.zaiaMyApp){pro.dataset.zaiaMyApp='1';const h=pro.querySelector('h2'),p=pro.querySelector('p'),b=pro.querySelector('button');if(h)h.textContent='Seu próprio aplicativo';if(p)p.textContent='Use sua identidade e gere um APK Android conectado à mesma operação ZAIA.';if(b){b.removeAttribute('data-open');b.textContent='Abrir Meu aplicativo ›';b.onclick=e=>{e.preventDefault();e.stopPropagation();open()}}}
+
+  const params=new URLSearchParams(location.search)
+  if(!autoOpened&&params.get('openApp')==='1'&&(card||list)){
+    autoOpened=true
+    params.delete('openApp')
+    const query=params.toString()
+    history.replaceState({},'',location.pathname+(query?'?'+query:'')+location.hash)
+    setTimeout(open,180)
+  }
 }
 
 new MutationObserver(()=>requestAnimationFrame(enhance)).observe(document.documentElement,{childList:true,subtree:true})
