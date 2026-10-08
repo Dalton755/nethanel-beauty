@@ -218,3 +218,4 @@ factory_post .factory/complete.json > .factory/complete-response.json
 trap - ERR
 echo "ZAIA App Factory concluido: APK e AAB armazenados com acesso privado."
 # signing reuse verification v3
+# private storage verification v4
