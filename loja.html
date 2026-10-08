@@ -19,7 +19,7 @@
   <link rel="stylesheet" href="/merchant-booking-modal.css?v=20261004-mobile2" />
   <link rel="stylesheet" href="/promotion-experience.css?v=20261003-promo1" />
   <link rel="stylesheet" href="/merchant-workforce.css?v=20261004-workforce1" />
-  <link rel="stylesheet" href="/merchant-zaia-2026.css?v=20261008-zaia3" />
+  <link rel="stylesheet" href="/merchant-zaia-2026.css?v=20261008-qa2" />
   <title>ZAIA Negócios — Gestão do estabelecimento</title>
 </head>
 <body>
@@ -59,7 +59,7 @@
       const nativeSource=String(new URLSearchParams(location.search).get('source')||'').toLowerCase()
       const isNativeApp=nativeSource==='android'||nativeSource==='ios'
       import('/merchant-shell.js')
-      import('/app.js?v=20261004-global3')
+      import('/app.js?v=20261008-qa2')
       if(isNativeApp){
         import('/native-push-bridge.js?v=20261007-engine1')
       }else{
