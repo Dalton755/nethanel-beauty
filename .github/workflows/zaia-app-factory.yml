@@ -14,7 +14,7 @@ on:
       - 'native/templates/android/**'
 
 permissions:
-  contents: write
+  contents: read
   id-token: write
 
 concurrency:
@@ -27,7 +27,6 @@ jobs:
     timeout-minutes: 40
     env:
       FACTORY_URL: https://sxghzubovthsvmfqncch.supabase.co/functions/v1/zaia-app-factory
-      GH_TOKEN: ${{ github.token }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
