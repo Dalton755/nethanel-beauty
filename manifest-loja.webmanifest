@@ -5,9 +5,9 @@
   "start_url": "/loja",
   "scope": "/loja",
   "display": "standalone",
-  "background_color": "#f7f1ed",
-  "theme_color": "#351523",
-  "description": "Gestão inteligente para negócios de beleza.",
+  "background_color": "#fff8f1",
+  "theme_color": "#fff8f1",
+  "description": "ZAIA — Beleza organizada. Negócios que crescem.",
   "icons": [
     {
       "src": "/icon.svg",
