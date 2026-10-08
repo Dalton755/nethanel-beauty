@@ -633,6 +633,23 @@ export async function requestBusinessAndroidApp(establishmentId) {
   })
 }
 
+export async function getBusinessAndroidAppDownload(establishmentId) {
+  const session = await ensureSession()
+  if (!session?.access_token) throw new Error('Entre novamente na ZAIA.')
+  const res = await fetch(`${baseUrl()}/functions/v1/zaia-app-download`, {
+    method:'POST',
+    headers:{
+      apikey:apiKey(),
+      Authorization:`Bearer ${session.access_token}`,
+      'Content-Type':'application/json',
+    },
+    body:JSON.stringify({ establishment_id:establishmentId }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok || !data?.url) throw new Error(data?.error || 'Não foi possível liberar o download do aplicativo.')
+  return data
+}
+
 export async function cancelAppointment(appointmentId, reason = '') {
   return rest('rpc/cancel_appointment', {
     method:'POST',
